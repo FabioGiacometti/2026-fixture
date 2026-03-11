@@ -71,9 +71,12 @@ export default function CesiumGlobe({
     viewer.scene.moon.show = false;
     viewer.scene.skyAtmosphere.show = true;
 
-    // Apply a subtle dark tint to the imagery
-    viewer.scene.globe.imageryLayers.get(0).brightness = 0.75;
-    viewer.scene.globe.imageryLayers.get(0).saturation = 0.6;
+    // Apply a subtle dark tint to the imagery (guard against async layer init)
+    const baseLayer = viewer.scene.globe.imageryLayers.get(0);
+    if (baseLayer) {
+      baseLayer.brightness = 0.75;
+      baseLayer.saturation = 0.6;
+    }
 
     // Initial camera
     viewer.camera.flyTo({
