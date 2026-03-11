@@ -1,7 +1,6 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { HistoricalEvent } from "@/data/historical-events";
 
-/* ── Types for the CesiumJS global ── */
 declare global {
   interface Window {
     Cesium: any;
@@ -12,17 +11,25 @@ interface CesiumGlobeProps {
   events: HistoricalEvent[];
   selectedEvent: HistoricalEvent | null;
   onSelectEvent: (event: HistoricalEvent) => void;
+  onHoverEvent: (event: HistoricalEvent | null, x: number, y: number) => void;
+  isMobile: boolean;
 }
 
-export default function CesiumGlobe({ events, selectedEvent, onSelectEvent }: CesiumGlobeProps) {
+export default function CesiumGlobe({
+  events,
+  selectedEvent,
+  onSelectEvent,
+  onHoverEvent,
+  isMobile,
+}: CesiumGlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const entitiesRef = useRef<Map<string, any>>(new Map());
   const onSelectRef = useRef(onSelectEvent);
+  const onHoverRef = useRef(onHoverEvent);
 
-  useEffect(() => {
-    onSelectRef.current = onSelectEvent;
-  }, [onSelectEvent]);
+  useEffect(() => { onSelectRef.current = onSelectEvent; }, [onSelectEvent]);
+  useEffect(() => { onHoverRef.current = onHoverEvent; }, [onHoverEvent]);
 
   /* ── Initialize Cesium viewer once ── */
   useEffect(() => {
@@ -34,12 +41,13 @@ export default function CesiumGlobe({ events, selectedEvent, onSelectEvent }: Ce
       return;
     }
 
-    // Use OSM imagery — no Ion token required
     Cesium.Ion.defaultAccessToken = "";
 
     const viewer = new Cesium.Viewer(containerRef.current, {
-      imageryProvider: new Cesium.OpenStreetMapImageryProvider({
-        url: "https://tile.openstreetmap.org/",
+      imageryProvider: new Cesium.UrlTemplateImageryProvider({
+        url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        credit: "© OpenStreetMap contributors",
+        maximumLevel: 19,
       }),
       baseLayerPicker: false,
       geocoder: false,
@@ -52,18 +60,22 @@ export default function CesiumGlobe({ events, selectedEvent, onSelectEvent }: Ce
       vrButton: false,
       infoBox: false,
       selectionIndicator: false,
-      creditContainer: document.createElement("div"), // hide credits
+      creditContainer: document.createElement("div"),
     });
 
-    // Dark atmosphere
+    // Dark atmosphere, globe visible
     viewer.scene.backgroundColor = Cesium.Color.fromCssColorString("#111319");
-    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString("#1a1f2e");
+    viewer.scene.globe.show = true;
     viewer.scene.skyBox.show = false;
     viewer.scene.sun.show = false;
     viewer.scene.moon.show = false;
     viewer.scene.skyAtmosphere.show = true;
 
-    // Initial camera position — whole Earth visible
+    // Apply a subtle dark tint to the imagery
+    viewer.scene.globe.imageryLayers.get(0).brightness = 0.75;
+    viewer.scene.globe.imageryLayers.get(0).saturation = 0.6;
+
+    // Initial camera
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(15, 20, 22_000_000),
       duration: 2,
@@ -75,13 +87,38 @@ export default function CesiumGlobe({ events, selectedEvent, onSelectEvent }: Ce
       const picked = viewer.scene.pick(click.position);
       if (Cesium.defined(picked) && picked.id && picked.id._customEventId) {
         const eventId: string = picked.id._customEventId;
-        // Find the event in all historical events (not just visible)
         import("@/data/historical-events").then(({ historicalEvents }) => {
           const found = historicalEvents.find((e) => e.id === eventId);
           if (found) onSelectRef.current(found);
         });
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    // Hover handler
+    handler.setInputAction((move: any) => {
+      const picked = viewer.scene.pick(move.endPosition);
+      if (Cesium.defined(picked) && picked.id && picked.id._customEventId) {
+        const eventId: string = picked.id._customEventId;
+        import("@/data/historical-events").then(({ historicalEvents }) => {
+          const found = historicalEvents.find((e) => e.id === eventId);
+          if (found) {
+            const rect = viewer.scene.canvas.getBoundingClientRect();
+            onHoverRef.current(
+              found,
+              move.endPosition.x + rect.left,
+              move.endPosition.y + rect.top
+            );
+            viewer.scene.canvas.style.cursor = "pointer";
+          } else {
+            onHoverRef.current(null, 0, 0);
+            viewer.scene.canvas.style.cursor = "default";
+          }
+        });
+      } else {
+        onHoverRef.current(null, 0, 0);
+        viewer.scene.canvas.style.cursor = "default";
+      }
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
     viewerRef.current = viewer;
 
@@ -100,7 +137,6 @@ export default function CesiumGlobe({ events, selectedEvent, onSelectEvent }: Ce
     if (!viewer || !window.Cesium) return;
     const Cesium = window.Cesium;
 
-    // Remove entities no longer in view
     const newIds = new Set(events.map((e) => e.id));
     entitiesRef.current.forEach((entity, id) => {
       if (!newIds.has(id)) {
@@ -109,7 +145,6 @@ export default function CesiumGlobe({ events, selectedEvent, onSelectEvent }: Ce
       }
     });
 
-    // Add new entities
     events.forEach((event) => {
       if (entitiesRef.current.has(event.id)) return;
 
@@ -135,15 +170,13 @@ export default function CesiumGlobe({ events, selectedEvent, onSelectEvent }: Ce
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           pixelOffset: new Cesium.Cartesian2(0, -14),
-          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 4_000_000),
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          show: false, // only show on hover/select
+          show: isMobile, // always show on mobile, hide on desktop (tooltip handles it)
+          scale: 0.9,
         },
       });
 
-      // Store event id for click detection
       entity._customEventId = event.id;
-
       entitiesRef.current.set(event.id, entity);
     });
   }, [events, selectedEvent]);
@@ -154,7 +187,6 @@ export default function CesiumGlobe({ events, selectedEvent, onSelectEvent }: Ce
     if (!viewer || !window.Cesium) return;
     const Cesium = window.Cesium;
 
-    // Reset all markers
     entitiesRef.current.forEach((entity, id) => {
       const isSelected = selectedEvent?.id === id;
       if (entity.point) {
@@ -165,11 +197,10 @@ export default function CesiumGlobe({ events, selectedEvent, onSelectEvent }: Ce
         entity.point.outlineWidth = isSelected ? 8 : 0;
       }
       if (entity.label) {
-        entity.label.show = isSelected;
+        entity.label.show = isMobile || isSelected;
       }
     });
 
-    // Fly to selected
     if (selectedEvent) {
       viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(
@@ -181,7 +212,17 @@ export default function CesiumGlobe({ events, selectedEvent, onSelectEvent }: Ce
         easingFunction: Cesium.EasingFunction.QUARTIC_IN_OUT,
       });
     }
-  }, [selectedEvent]);
+  }, [selectedEvent, isMobile]);
+
+  /* ── Toggle mobile labels ── */
+  useEffect(() => {
+    if (!viewerRef.current || !window.Cesium) return;
+    entitiesRef.current.forEach((entity, id) => {
+      if (entity.label) {
+        entity.label.show = isMobile || selectedEvent?.id === id;
+      }
+    });
+  }, [isMobile, selectedEvent]);
 
   return (
     <div
