@@ -1,15 +1,18 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { historicalEvents, formatYear } from "@/data/historical-events";
 
 interface TimelineBarProps {
   currentYear: number;
   onYearChange: (year: number) => void;
+  onHoverYear?: (year: number | null) => void;
 }
 
 const MIN_YEAR = -3000;
 const MAX_YEAR = 2024;
 
-export default function TimelineBar({ currentYear, onYearChange }: TimelineBarProps) {
+export default function TimelineBar({ currentYear, onYearChange, onHoverYear }: TimelineBarProps) {
+  const sliderRef = useRef<HTMLInputElement>(null);
+
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       onYearChange(Number(e.target.value));
@@ -17,7 +20,22 @@ export default function TimelineBar({ currentYear, onYearChange }: TimelineBarPr
     [onYearChange]
   );
 
-  // Count events visible near current year for display
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLInputElement>) => {
+      if (!onHoverYear || !sliderRef.current) return;
+      const rect = sliderRef.current.getBoundingClientRect();
+      const pct = (e.clientX - rect.left) / rect.width;
+      const hoverYear = Math.round(MIN_YEAR + pct * (MAX_YEAR - MIN_YEAR));
+      onHoverYear(Math.max(MIN_YEAR, Math.min(MAX_YEAR, hoverYear)));
+    },
+    [onHoverYear]
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    onHoverYear?.(null);
+  }, [onHoverYear]);
+
+  // Count events visible near current year
   const nearbyEventCount = useMemo(() => {
     return historicalEvents.filter(
       (e) => e.year >= currentYear - 300 && e.year <= currentYear + 300
@@ -55,7 +73,6 @@ export default function TimelineBar({ currentYear, onYearChange }: TimelineBarPr
     >
       {/* ── Year info row ── */}
       <div className="flex items-center justify-between">
-        {/* Left: era label */}
         <span
           className="font-mono-space text-xs tracking-widest uppercase"
           style={{ color: "hsl(var(--muted-foreground))" }}
@@ -63,7 +80,6 @@ export default function TimelineBar({ currentYear, onYearChange }: TimelineBarPr
           {era}
         </span>
 
-        {/* Center: large year display */}
         <div className="flex flex-col items-center">
           <span
             className="font-mono-space text-2xl font-bold tracking-tight leading-none"
@@ -79,7 +95,6 @@ export default function TimelineBar({ currentYear, onYearChange }: TimelineBarPr
           </span>
         </div>
 
-        {/* Right: bookmarks */}
         <span
           className="font-mono-space text-xs tracking-widest uppercase"
           style={{ color: "hsl(var(--muted-foreground))" }}
@@ -90,7 +105,6 @@ export default function TimelineBar({ currentYear, onYearChange }: TimelineBarPr
 
       {/* ── Slider row ── */}
       <div className="relative flex items-center gap-3">
-        {/* BC label */}
         <span
           className="font-mono-space text-xs shrink-0"
           style={{ color: "hsl(var(--muted-foreground))" }}
@@ -98,7 +112,6 @@ export default function TimelineBar({ currentYear, onYearChange }: TimelineBarPr
           3000 a.C.
         </span>
 
-        {/* Custom slider track container */}
         <div className="relative flex-1 flex items-center">
           {/* Background fill bar */}
           <div
@@ -110,18 +123,20 @@ export default function TimelineBar({ currentYear, onYearChange }: TimelineBarPr
             }}
           />
           <input
+            ref={sliderRef}
             type="range"
             min={MIN_YEAR}
             max={MAX_YEAR}
             step={1}
             value={currentYear}
             onChange={handleChange}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
             className="timeline-slider relative z-10"
             aria-label="Año histórico"
           />
         </div>
 
-        {/* AD label */}
         <span
           className="font-mono-space text-xs shrink-0"
           style={{ color: "hsl(var(--muted-foreground))" }}
