@@ -44,10 +44,8 @@ export default function CesiumGlobe({
     Cesium.Ion.defaultAccessToken = "";
 
     const viewer = new Cesium.Viewer(containerRef.current, {
-      imageryProvider: new Cesium.UrlTemplateImageryProvider({
-        url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-        credit: "© OpenStreetMap contributors",
-        maximumLevel: 19,
+      imageryProvider: new Cesium.TileMapServiceImageryProvider({
+        url: Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII"),
       }),
       baseLayerPicker: false,
       geocoder: false,
@@ -63,20 +61,13 @@ export default function CesiumGlobe({
       creditContainer: document.createElement("div"),
     });
 
-    // Dark atmosphere, globe visible
+    // Scene settings
     viewer.scene.backgroundColor = Cesium.Color.fromCssColorString("#111319");
     viewer.scene.globe.show = true;
     viewer.scene.skyBox.show = false;
     viewer.scene.sun.show = false;
     viewer.scene.moon.show = false;
     viewer.scene.skyAtmosphere.show = true;
-
-    // Apply a subtle dark tint to the imagery (guard against async layer init)
-    const baseLayer = viewer.scene.globe.imageryLayers.get(0);
-    if (baseLayer) {
-      baseLayer.brightness = 0.75;
-      baseLayer.saturation = 0.6;
-    }
 
     // Initial camera
     viewer.camera.flyTo({
