@@ -43,10 +43,16 @@ export default function CesiumGlobe({
 
     Cesium.Ion.defaultAccessToken = "";
 
+    // Use UrlTemplateImageryProvider — works synchronously in Cesium 1.107+
+    // TileMapServiceImageryProvider constructor became async, so we bypass it.
+    const naturalEarthProvider = new Cesium.UrlTemplateImageryProvider({
+      url: Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII") + "/{z}/{x}/{reverseY}.jpg",
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      maximumLevel: 5,
+    });
+
     const viewer = new Cesium.Viewer(containerRef.current, {
-      imageryProvider: new Cesium.TileMapServiceImageryProvider({
-        url: Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII"),
-      }),
+      imageryProvider: naturalEarthProvider,
       baseLayerPicker: false,
       geocoder: false,
       homeButton: false,
@@ -67,7 +73,7 @@ export default function CesiumGlobe({
     viewer.scene.skyBox.show = false;
     viewer.scene.sun.show = false;
     viewer.scene.moon.show = false;
-    viewer.scene.skyAtmosphere.show = true;
+    viewer.scene.skyAtmosphere.show = false; // disable — was causing the blue glow over tiles
 
     // Initial camera
     viewer.camera.flyTo({
