@@ -1,4 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import CesiumGlobe from "@/components/CesiumGlobe";
 import TimelineBar from "@/components/TimelineBar";
 import EventsListPanel from "@/components/EventsListPanel";
@@ -21,6 +23,7 @@ export default function Index() {
   const [hoveredEventState, setHoveredEventState] = useState<HoveredEventState | null>(null);
   const [timelineHoverActive, setTimelineHoverActive] = useState(false);
   const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [mapStyle, setMapStyle] = useState<"political" | "geographic">("political");
   const isMobile = useIsMobile();
 
   // Poll for CesiumJS
@@ -79,6 +82,7 @@ export default function Index() {
           onSelectEvent={handleSelectEvent}
           onHoverEvent={handleHoverEvent}
           isMobile={isMobile}
+          mapStyle={mapStyle}
         />
       ) : (
         <LoadingScreen />
@@ -156,6 +160,41 @@ export default function Index() {
         >
           {historicalEvents.length} eventos
         </span>
+      </div>
+
+      {/* ── Map Style Toggle (top-right) ── */}
+      <div
+        className="fixed top-5 right-6 z-40 flex items-center gap-3 px-4 py-2 rounded-full"
+        style={{
+          background: "hsl(var(--card) / 0.85)",
+          border: "1px solid hsl(var(--border))",
+          backdropFilter: "blur(8px)",
+        }}
+        // Adjust right position if EventsListPanel is collapsed or not to avoid overlap, 
+        // though EventsListPanel is fixed to the right. Let's position the toggle next to the panel tab.
+      >
+        <div className="flex items-center space-x-2">
+          <Label 
+            htmlFor="map-style" 
+            className="font-mono-space text-[10px] uppercase tracking-wider"
+            style={{ color: mapStyle === "political" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
+          >
+            Político
+          </Label>
+          <Switch
+            id="map-style"
+            checked={mapStyle === "geographic"}
+            onCheckedChange={(checked) => setMapStyle(checked ? "geographic" : "political")}
+            style={mapStyle === "geographic" ? { backgroundColor: "hsl(var(--primary))" } : {}}
+          />
+          <Label 
+            htmlFor="map-style"
+            className="font-mono-space text-[10px] uppercase tracking-wider"
+            style={{ color: mapStyle === "geographic" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
+          >
+            Geográfico
+          </Label>
+        </div>
       </div>
 
       {/* ── Instruction overlay (top-center) ── */}

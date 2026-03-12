@@ -13,6 +13,7 @@ interface CesiumGlobeProps {
   onSelectEvent: (event: HistoricalEvent) => void;
   onHoverEvent: (event: HistoricalEvent | null, x: number, y: number) => void;
   isMobile: boolean;
+  mapStyle: "political" | "geographic";
 }
 
 export default function CesiumGlobe({
@@ -21,6 +22,7 @@ export default function CesiumGlobe({
   onSelectEvent,
   onHoverEvent,
   isMobile,
+  mapStyle,
 }: CesiumGlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
@@ -44,17 +46,22 @@ export default function CesiumGlobe({
     Cesium.Ion.defaultAccessToken = "";
 
     // In CesiumJS 1.107+, `imageryProvider` in Viewer constructor is deprecated.
-    // Must use `baseLayer` with ImageryLayer.fromProviderAsync + TileMapServiceImageryProvider.fromUrl
+    // Must use `baseLayer` with ImageryLayer.fromProviderAsync
+    const initialProvider = mapStyle === "geographic" 
+      ? new Cesium.UrlTemplateImageryProvider({
+          url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+          maximumLevel: 19,
+          credit: "Tiles © Esri",
+        })
+      : new Cesium.UrlTemplateImageryProvider({
+          url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+          subdomains: ["a", "b", "c", "d"],
+          maximumLevel: 19,
+          credit: "© OpenStreetMap contributors, © CARTO",
+        });
+
     const viewer = new Cesium.Viewer(containerRef.current, {
-      baseLayer: Cesium.ImageryLayer.fromProviderAsync(
-        Promise.resolve(
-          new Cesium.UrlTemplateImageryProvider({
-            url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-            maximumLevel: 19,
-            credit: "© OpenStreetMap contributors",
-          })
-        )
-      ),
+      baseLayer: Cesium.ImageryLayer.fromProviderAsync(Promise.resolve(initialProvider)),
       baseLayerPicker: false,
       geocoder: false,
       homeButton: false,
@@ -131,7 +138,42 @@ export default function CesiumGlobe({
         viewerRef.current = null;
       }
     };
-  }, []);
+  }, []); // Only run once to initialize viewer
+
+  /* ── Dynamic Layer Switching ── */
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !window.Cesium) return;
+    
+    const Cesium = window.Cesium;
+    const layers = viewer.scene.imageryLayers;
+    
+    // Create new provider based on selected style
+    const newProvider = mapStyle === "geographic"
+      ? new Cesium.UrlTemplateImageryProvider({
+          url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+          maximumLevel: 19,
+          credit: "Tiles © Esri",
+        })
+      : new Cesium.UrlTemplateImageryProvider({
+          url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+          subdomains: ["a", "b", "c", "d"],
+          maximumLevel: 19,
+          credit: "© OpenStreetMap contributors, © CARTO",
+        });
+
+    // We use Promise.resolve as fromProviderAsync expects a promise
+    const newLayer = Cesium.ImageryLayer.fromProviderAsync(Promise.resolve(newProvider));
+    
+    // Add the new layer
+    layers.add(newLayer);
+    
+    // Remove the old layers (excluding the one we just added)
+    // We loop backwards to safely remove from the collection
+    for (let i = layers.length - 2; i >= 0; i--) {
+      layers.remove(layers.get(i));
+    }
+  }, [mapStyle]);
 
   /* ── Update markers when visible events change ── */
   useEffect(() => {
