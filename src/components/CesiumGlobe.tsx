@@ -47,8 +47,12 @@ export default function CesiumGlobe({
     // Must use `baseLayer` with ImageryLayer.fromProviderAsync + TileMapServiceImageryProvider.fromUrl
     const viewer = new Cesium.Viewer(containerRef.current, {
       baseLayer: Cesium.ImageryLayer.fromProviderAsync(
-        Cesium.TileMapServiceImageryProvider.fromUrl(
-          Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII")
+        Promise.resolve(
+          new Cesium.UrlTemplateImageryProvider({
+            url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            maximumLevel: 19,
+            credit: "© OpenStreetMap contributors",
+          })
         )
       ),
       baseLayerPicker: false,
