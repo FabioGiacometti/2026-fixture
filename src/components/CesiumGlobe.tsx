@@ -43,10 +43,14 @@ export default function CesiumGlobe({
 
     Cesium.Ion.defaultAccessToken = "";
 
+    // In CesiumJS 1.107+, `imageryProvider` in Viewer constructor is deprecated.
+    // Must use `baseLayer` with ImageryLayer.fromProviderAsync + TileMapServiceImageryProvider.fromUrl
     const viewer = new Cesium.Viewer(containerRef.current, {
-      imageryProvider: new Cesium.TileMapServiceImageryProvider({
-        url: Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII"),
-      }),
+      baseLayer: Cesium.ImageryLayer.fromProviderAsync(
+        Cesium.TileMapServiceImageryProvider.fromUrl(
+          Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII")
+        )
+      ),
       baseLayerPicker: false,
       geocoder: false,
       homeButton: false,
@@ -67,7 +71,7 @@ export default function CesiumGlobe({
     viewer.scene.skyBox.show = false;
     viewer.scene.sun.show = false;
     viewer.scene.moon.show = false;
-    viewer.scene.skyAtmosphere.show = true;
+    viewer.scene.skyAtmosphere.show = false; // off — prevents blue haze over tiles
 
     // Initial camera
     viewer.camera.flyTo({
