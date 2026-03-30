@@ -40,6 +40,13 @@ export default function SafariSelectionModal({
       .filter((e): e is HistoricalEvent => !!e);
   };
 
+  const getOptimizedWikiUrl = (url: string, size: number) => {
+    if (url.includes("upload.wikimedia.org") && url.includes("/thumb/")) {
+      return url.replace(/\/\d+px-/, `/${size}px-`);
+    }
+    return url;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[700px] bg-[#111319] border-white/10 text-white p-0 overflow-hidden gap-0">
@@ -73,7 +80,7 @@ export default function SafariSelectionModal({
                   <div className="aspect-video w-full bg-black/40 relative">
                     {safari.thumbnail ? (
                       <img 
-                        src={safari.thumbnail} 
+                        src={getOptimizedWikiUrl(safari.thumbnail, 330)} 
                         alt={safari.name} 
                         className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
                       />

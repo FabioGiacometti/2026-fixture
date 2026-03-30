@@ -279,7 +279,7 @@ export const historicalEvents: HistoricalEvent[] = [
       {
         id: "christ-image-1",
         type: "image",
-        url: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Crucifixion_by_Velazquez.jpg/800px-Crucifixion_by_Velazquez.jpg",
+        url: "https://upload.wikimedia.org/wikipedia/commons/d/d7/Cristo_crucificado.jpg",
         title: "Cristo crucificado (Velázquez)",
         description: "Obra maestra de Diego Velázquez conservada en el Museo del Prado.",
         sourceName: "Wikimedia Commons"
@@ -287,7 +287,7 @@ export const historicalEvents: HistoricalEvent[] = [
       {
         id: "christ-video-1",
         type: "video",
-        url: "https://www.youtube.com/watch?v=Sj_9CiNk960",
+        url: "https://www.youtube.com/watch?v=wp2p9sIOyVM",
         title: "Documental: La Crucifixión",
         description: "Un análisis histórico sobre los métodos de ejecución romanos.",
         sourceName: "YouTube"
@@ -1035,7 +1035,7 @@ export const safaris: Safari[] = [
     overview: "Este safari recorre los momentos clave en los que una pequeña secta perseguida se transformó en la fuerza cultural y espiritual más poderosa de Occidente. Analizaremos cómo eventos teológicos se tradujeron en giros geopolíticos masivos, desde la visión de Pablo en Damasco hasta la legitimación imperial de Constantino y Teodosio.",
     eventIds: ["birth-christianity", "paul-conversion", "edict-milan", "christianity-official-religion"],
     color: "#EAB308",
-    thumbnail: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Crucifixion_by_Velazquez.jpg/800px-Crucifixion_by_Velazquez.jpg"
+    thumbnail: "https://www.biblword.net/wp-content/uploads/sites/45/2026/01/what-is-christianity-about-picture.jpg"
   },
   {
     id: "world-wars-safari",

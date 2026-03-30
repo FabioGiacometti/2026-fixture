@@ -404,7 +404,15 @@ export default function EventsListPanel({
                       >
                         {item.type === "image" && item.url ? (
                           <img 
-                            src={item.url} 
+                            src={(() => {
+                              const getOptimizedWikiUrl = (url: string, size: number) => {
+                                if (url.includes("upload.wikimedia.org") && url.includes("/thumb/")) {
+                                  return url.replace(/\/\d+px-/, `/${size}px-`);
+                                }
+                                return url;
+                              };
+                              return getOptimizedWikiUrl(item.url, 330);
+                            })()} 
                             alt={item.title}
                             className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                           />
