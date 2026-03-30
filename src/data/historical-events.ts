@@ -1,3 +1,15 @@
+export type MediaType = 'image' | 'video' | 'link';
+
+export interface MediaItem {
+  id: string;
+  type: MediaType;
+  url: string;
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  sourceName?: string;
+}
+
 export interface HistoricalEvent {
   id: string;
   title: string;
@@ -6,6 +18,9 @@ export interface HistoricalEvent {
   lat: number;
   lng: number;
   region: string;
+  importance: number; // 1: Global/Major, 2: Continental, 3: Regional/Local
+  relatedEvents?: string[]; // IDs of related events
+  media?: MediaItem[];
 }
 
 export const historicalEvents: HistoricalEvent[] = [
@@ -17,7 +32,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -3100,
     lat: 26.82,
     lng: 30.8,
-    region: "África"
+    region: "África",
+    importance: 1
   },
   {
     id: "sumerian-writing",
@@ -26,7 +42,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -3000,
     lat: 31.99,
     lng: 45.85,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "stonehenge",
@@ -35,7 +52,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -2800,
     lat: 51.18,
     lng: -1.83,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "pyramids-giza",
@@ -44,7 +62,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -2560,
     lat: 29.98,
     lng: 31.13,
-    region: "África"
+    region: "África",
+    importance: 1
   },
   {
     id: "indus-valley",
@@ -53,7 +72,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -2500,
     lat: 27.33,
     lng: 68.14,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "akkadian-empire",
@@ -62,7 +82,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -2334,
     lat: 33.35,
     lng: 44.41,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "hammurabi-code",
@@ -71,7 +92,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -1754,
     lat: 32.54,
     lng: 44.42,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "shang-dynasty",
@@ -80,7 +102,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -1600,
     lat: 34.75,
     lng: 113.65,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "battle-kadesh",
@@ -89,7 +112,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -1274,
     lat: 34.57,
     lng: 36.52,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "trojan-war",
@@ -98,7 +122,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -1200,
     lat: 39.96,
     lng: 26.24,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "phoenician-alphabet",
@@ -107,7 +132,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -1050,
     lat: 33.89,
     lng: 35.5,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "founding-rome",
@@ -116,7 +142,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -753,
     lat: 41.89,
     lng: 12.5,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "assyrian-empire",
@@ -125,7 +152,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -720,
     lat: 36.36,
     lng: 43.15,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "cyrus-persia",
@@ -134,7 +162,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -550,
     lat: 30.19,
     lng: 53.08,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "athenian-democracy",
@@ -143,7 +172,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -508,
     lat: 37.97,
     lng: 23.73,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
 
   // ── CLASSICAL PERIOD (500 BC – 500 AD) ───────────────────────────────────
@@ -154,7 +184,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -490,
     lat: 38.15,
     lng: 24.02,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "confucius-analects",
@@ -163,7 +194,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -479,
     lat: 35.6,
     lng: 117.0,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "alexander-conquests",
@@ -172,7 +204,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -334,
     lat: 37.96,
     lng: 58.3,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "qin-unification",
@@ -181,7 +214,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -221,
     lat: 34.38,
     lng: 108.93,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "punic-wars",
@@ -190,7 +224,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -202,
     lat: 36.26,
     lng: 9.4,
-    region: "África"
+    region: "África",
+    importance: 1
   },
   {
     id: "silk-road",
@@ -199,7 +234,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -130,
     lat: 39.9,
     lng: 75.0,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "julius-caesar",
@@ -208,7 +244,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: -44,
     lat: 41.9,
     lng: 12.47,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "birth-christianity",
@@ -217,7 +254,35 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 33,
     lat: 31.78,
     lng: 35.21,
-    region: "Asia"
+    region: "Asia",
+    importance: 1,
+    relatedEvents: ["paul-conversion", "edict-milan", "christianity-official-religion"],
+    media: [
+      {
+        id: "christ-wikipedia",
+        type: "link",
+        url: "https://es.wikipedia.org/wiki/Crucifixi%C3%B3n_de_Jes%C3%BAs",
+        title: "Wikipedia: Crucifixión de Jesús",
+        description: "Artículo detallado sobre los aspectos históricos y teológicos de la crucifixión.",
+        sourceName: "Wikipedia"
+      },
+      {
+        id: "christ-image-1",
+        type: "image",
+        url: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Crucifixion_by_Velazquez.jpg/800px-Crucifixion_by_Velazquez.jpg",
+        title: "Cristo crucificado (Velázquez)",
+        description: "Obra maestra de Diego Velázquez conservada en el Museo del Prado.",
+        sourceName: "Wikimedia Commons"
+      },
+      {
+        id: "christ-video-1",
+        type: "video",
+        url: "https://www.youtube.com/watch?v=Sj_9CiNk960",
+        title: "Documental: La Crucifixión",
+        description: "Un análisis histórico sobre los métodos de ejecución romanos.",
+        sourceName: "YouTube"
+      }
+    ]
   },
   {
     id: "vesuvius",
@@ -226,7 +291,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 79,
     lat: 40.82,
     lng: 14.43,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "rome-divided",
@@ -235,7 +301,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 395,
     lat: 41.01,
     lng: 28.97,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "fall-western-rome",
@@ -244,7 +311,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 476,
     lat: 45.45,
     lng: 12.33,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
 
   // ── MIDDLE AGES (500 – 1400) ──────────────────────────────────────────────
@@ -255,7 +323,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 622,
     lat: 24.47,
     lng: 39.61,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "battle-tours",
@@ -264,7 +333,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 732,
     lat: 46.71,
     lng: 0.34,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "charlemagne",
@@ -273,7 +343,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 800,
     lat: 41.9,
     lng: 12.47,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "viking-discovery",
@@ -282,7 +353,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1000,
     lat: 51.6,
     lng: -55.6,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "battle-hastings",
@@ -291,7 +363,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1066,
     lat: 50.91,
     lng: 0.49,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "magna-carta",
@@ -300,7 +373,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1215,
     lat: 51.44,
     lng: -0.56,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "genghis-khan",
@@ -309,7 +383,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1206,
     lat: 47.9,
     lng: 106.9,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "black-death",
@@ -318,7 +393,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1347,
     lat: 43.3,
     lng: 5.37,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "aztec-tenochtitlan",
@@ -327,7 +403,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1325,
     lat: 19.43,
     lng: -99.13,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "hundred-years-war",
@@ -336,7 +413,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1429,
     lat: 47.9,
     lng: 1.9,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "gutenberg-press",
@@ -345,7 +423,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1450,
     lat: 49.99,
     lng: 8.27,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
 
   // ── EARLY MODERN (1400 – 1700) ────────────────────────────────────────────
@@ -356,7 +435,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1453,
     lat: 41.01,
     lng: 28.97,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "columbus",
@@ -365,7 +445,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1492,
     lat: 23.7,
     lng: -75.4,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "vasco-da-gama",
@@ -374,7 +455,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1498,
     lat: 11.26,
     lng: 75.78,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "reformation-luther",
@@ -383,7 +465,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1517,
     lat: 51.86,
     lng: 12.64,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "magellan-circumnavigation",
@@ -392,7 +475,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1522,
     lat: -10.0,
     lng: -80.0,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "spanish-conquest-aztec",
@@ -401,7 +485,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1521,
     lat: 19.43,
     lng: -99.13,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "copernicus",
@@ -410,7 +495,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1543,
     lat: 53.77,
     lng: 20.48,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "ottoman-suleiman",
@@ -419,7 +505,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1550,
     lat: 41.01,
     lng: 28.97,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "armada-invencible",
@@ -428,7 +515,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1588,
     lat: 54.0,
     lng: -5.0,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "galileo",
@@ -437,7 +525,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1610,
     lat: 45.41,
     lng: 11.88,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "mayflower",
@@ -446,7 +535,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1620,
     lat: 41.96,
     lng: -70.67,
-    region: "América"
+    region: "América",
+    importance: 1
   },
 
   // ── MODERN ERA (1700 – 1900) ───────────────────────────────────────────────
@@ -457,7 +547,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1687,
     lat: 52.2,
     lng: 0.12,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "american-independence",
@@ -466,7 +557,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1776,
     lat: 39.95,
     lng: -75.17,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "french-revolution",
@@ -475,7 +567,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1789,
     lat: 48.85,
     lng: 2.37,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "haitian-revolution",
@@ -484,7 +577,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1791,
     lat: 19.43,
     lng: -72.33,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "napoleon-empire",
@@ -493,7 +587,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1804,
     lat: 48.85,
     lng: 2.35,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "latin-american-independence",
@@ -502,7 +597,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1819,
     lat: 4.71,
     lng: -74.07,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "industrial-revolution",
@@ -511,7 +607,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1830,
     lat: 52.48,
     lng: -1.9,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "darwin-origin",
@@ -520,7 +617,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1859,
     lat: 51.5,
     lng: -0.12,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "us-civil-war",
@@ -529,7 +627,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1865,
     lat: 38.9,
     lng: -77.04,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "meiji-restoration",
@@ -538,7 +637,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1868,
     lat: 35.69,
     lng: 139.69,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "suez-canal",
@@ -547,7 +647,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1869,
     lat: 30.7,
     lng: 32.34,
-    region: "África"
+    region: "África",
+    importance: 1
   },
   {
     id: "scramble-africa",
@@ -556,7 +657,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1884,
     lat: 52.52,
     lng: 13.4,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
 
   // ── 20TH CENTURY ──────────────────────────────────────────────────────────
@@ -567,7 +669,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1903,
     lat: 36.02,
     lng: -75.67,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "ww1",
@@ -576,7 +679,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1914,
     lat: 43.85,
     lng: 18.42,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "russian-revolution",
@@ -585,7 +689,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1917,
     lat: 59.94,
     lng: 30.32,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "spanish-flu",
@@ -594,7 +699,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1918,
     lat: 48.85,
     lng: 2.35,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "ww2-start",
@@ -603,7 +709,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1939,
     lat: 52.23,
     lng: 21.01,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "hiroshima",
@@ -612,7 +719,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1945,
     lat: 34.39,
     lng: 132.45,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "un-founded",
@@ -621,7 +729,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1945,
     lat: 37.79,
     lng: -122.41,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "india-independence",
@@ -630,7 +739,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1947,
     lat: 28.61,
     lng: 77.21,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "israel-founded",
@@ -639,7 +749,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1948,
     lat: 32.08,
     lng: 34.78,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "dna-discovery",
@@ -648,7 +759,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1953,
     lat: 52.2,
     lng: 0.12,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "sputnik",
@@ -657,7 +769,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1957,
     lat: 45.92,
     lng: 63.34,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "cuban-missile-crisis",
@@ -666,7 +779,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1962,
     lat: 22.5,
     lng: -79.5,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "moon-landing",
@@ -675,7 +789,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1969,
     lat: 0.68,
     lng: 23.47,
-    region: "Espacio"
+    region: "Espacio",
+    importance: 1
   },
   {
     id: "internet-arpanet",
@@ -684,7 +799,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1969,
     lat: 34.07,
     lng: -118.44,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "fall-berlin-wall",
@@ -693,7 +809,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1989,
     lat: 52.51,
     lng: 13.38,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "ussr-dissolution",
@@ -702,7 +819,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1991,
     lat: 55.75,
     lng: 37.62,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "south-africa-apartheid",
@@ -711,7 +829,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1994,
     lat: -25.74,
     lng: 28.19,
-    region: "África"
+    region: "África",
+    importance: 1
   },
   {
     id: "www-invented",
@@ -720,7 +839,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 1991,
     lat: 46.23,
     lng: 6.05,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "9-11",
@@ -729,7 +849,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 2001,
     lat: 40.71,
     lng: -74.01,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "iphone-launch",
@@ -738,7 +859,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 2007,
     lat: 37.78,
     lng: -122.4,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "global-financial-crisis",
@@ -747,7 +869,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 2008,
     lat: 40.71,
     lng: -74.01,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "arab-spring",
@@ -756,7 +879,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 2011,
     lat: 33.88,
     lng: 9.54,
-    region: "África"
+    region: "África",
+    importance: 1
   },
   {
     id: "paris-agreement",
@@ -765,7 +889,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 2015,
     lat: 48.85,
     lng: 2.35,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "covid-pandemic",
@@ -774,7 +899,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 2020,
     lat: 30.59,
     lng: 114.3,
-    region: "Asia"
+    region: "Asia",
+    importance: 1
   },
   {
     id: "ukraine-war",
@@ -783,7 +909,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 2022,
     lat: 50.45,
     lng: 30.52,
-    region: "Europa"
+    region: "Europa",
+    importance: 1
   },
   {
     id: "chatgpt-launch",
@@ -792,7 +919,8 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 2022,
     lat: 37.79,
     lng: -122.39,
-    region: "América"
+    region: "América",
+    importance: 1
   },
   {
     id: "ai-era-2024",
@@ -801,7 +929,41 @@ export const historicalEvents: HistoricalEvent[] = [
     year: 2024,
     lat: 37.79,
     lng: -122.39,
-    region: "América"
+    region: "América",
+    importance: 1
+  },
+  {
+    id: "paul-conversion",
+    title: "Conversión de San Pablo",
+    description: "Saulo de Tarso, un perseguidor de cristianos, tiene una visión en el camino a Damasco que lo transforma en Pablo, el 'Apóstol de los Gentiles' y figura clave en la difusión del cristianismo.",
+    year: 34,
+    lat: 33.51,
+    lng: 36.29,
+    region: "Asia",
+    importance: 2,
+    relatedEvents: ["birth-christianity"]
+  },
+  {
+    id: "edict-milan",
+    title: "Edicto de Milán",
+    description: "Los emperadores Constantino I y Licinio proclaman la libertad religiosa en todo el Imperio Romano, poniendo fin a las persecuciones cristianas y devolviendo sus bienes a la Iglesia.",
+    year: 313,
+    lat: 45.46,
+    lng: 9.19,
+    region: "Europa",
+    importance: 1,
+    relatedEvents: ["birth-christianity", "christianity-official-religion"]
+  },
+  {
+    id: "christianity-official-religion",
+    title: "Edicto de Tesalónica",
+    description: "El emperador Teodosio I declara al cristianismo niceno como la única religión oficial del Imperio Romano mediante el Edicto de Tesalónica.",
+    year: 380,
+    lat: 40.64,
+    lng: 22.94,
+    region: "Europa",
+    importance: 1,
+    relatedEvents: ["birth-christianity", "edict-milan"]
   }
 ];
 

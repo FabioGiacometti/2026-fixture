@@ -204,6 +204,7 @@ export default function CesiumGlobe({
           outlineWidth: isSelected ? 6 : 0,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, event.importance === 1 ? 30000000.0 : event.importance === 2 ? 9000000.0 : 3000000.0),
         },
         label: {
           text: event.title,
@@ -217,6 +218,7 @@ export default function CesiumGlobe({
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
           show: isMobile, // always show on mobile, hide on desktop (tooltip handles it)
           scale: 0.9,
+          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, event.importance === 1 ? 30000000.0 : event.importance === 2 ? 9000000.0 : 3000000.0),
         },
       });
 

@@ -52,6 +52,7 @@ export default function Index() {
 
   const handleSelectEvent = useCallback((event: HistoricalEvent) => {
     setSelectedEvent(event);
+    setCurrentYear(event.year);
   }, []);
 
   const handleClosePanel = useCallback(() => {
@@ -221,9 +222,11 @@ export default function Index() {
       {/* ── Events List Panel (right side, replaces old EventPanel) ── */}
       <EventsListPanel
         visibleEvents={visibleEvents}
+        allEvents={historicalEvents}
         selectedEvent={selectedEvent}
         currentYear={currentYear}
         onSelectEvent={handleSelectEvent}
+        onYearChange={handleYearChange}
         onClose={handleClosePanel}
         forceOpen={timelineHoverActive}
       />

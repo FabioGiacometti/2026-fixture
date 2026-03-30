@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List, Play, Image as ImageIcon, ExternalLink, Globe, Video, Maximize2 } from "lucide-react";
 import type { HistoricalEvent } from "@/data/historical-events";
 import { formatYear } from "@/data/historical-events";
 
@@ -7,9 +7,11 @@ type PanelState = "collapsed" | "list" | "detail";
 
 interface EventsListPanelProps {
   visibleEvents: HistoricalEvent[];
+  allEvents: HistoricalEvent[];
   selectedEvent: HistoricalEvent | null;
   currentYear: number;
   onSelectEvent: (event: HistoricalEvent) => void;
+  onYearChange: (year: number) => void;
   onClose: () => void;
   forceOpen?: boolean; // triggered by timeline hover
 }
@@ -24,13 +26,16 @@ const regionColors: Record<string, string> = {
 
 export default function EventsListPanel({
   visibleEvents,
+  allEvents,
   selectedEvent,
   currentYear,
   onSelectEvent,
+  onYearChange,
   onClose,
   forceOpen,
 }: EventsListPanelProps) {
   const [panelState, setPanelState] = useState<PanelState>("collapsed");
+  const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
 
   // When a marker is clicked (selectedEvent changes), open detail
   useEffect(() => {
@@ -57,6 +62,7 @@ export default function EventsListPanel({
   const handleSelectEvent = (event: HistoricalEvent) => {
     onSelectEvent(event);
     setPanelState("detail");
+    onYearChange(event.year);
   };
 
   const handleBack = () => {
@@ -72,7 +78,29 @@ export default function EventsListPanel({
   const panelWidth =
     panelState === "collapsed" ? "36px" : "300px";
 
-  const sortedEvents = [...visibleEvents].sort((a, b) => a.year - b.year);
+  const sortedEventsList = [...visibleEvents].sort((a, b) => a.year - b.year);
+  
+  // For navigation (Back/Next), use all events sorted by year
+  const sortedAllEvents = [...allEvents].sort((a, b) => a.year - b.year);
+  const selectedIndex = selectedEvent ? sortedAllEvents.findIndex(e => e.id === selectedEvent.id) : -1;
+  const hasPrev = selectedIndex > 0;
+  const hasNext = selectedIndex !== -1 && selectedIndex < sortedAllEvents.length - 1;
+
+  const handlePrev = () => {
+    if (hasPrev) {
+      const prevEvent = sortedAllEvents[selectedIndex - 1];
+      onSelectEvent(prevEvent);
+      onYearChange(prevEvent.year);
+    }
+  };
+
+  const handleNext = () => {
+    if (hasNext) {
+      const nextEvent = sortedAllEvents[selectedIndex + 1];
+      onSelectEvent(nextEvent);
+      onYearChange(nextEvent.year);
+    }
+  };
 
   return (
     <div
@@ -176,7 +204,7 @@ export default function EventsListPanel({
 
             {/* Events list */}
             <div className="flex-1 overflow-y-auto">
-              {sortedEvents.length === 0 ? (
+              {sortedEventsList.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-32 gap-2">
                   <Calendar
                     className="w-5 h-5"
@@ -191,7 +219,7 @@ export default function EventsListPanel({
                 </div>
               ) : (
                 <ul className="divide-y" style={{ borderColor: "hsl(var(--border) / 0.5)" }}>
-                  {sortedEvents.map((event) => {
+                  {sortedEventsList.map((event) => {
                     const regionColor =
                       regionColors[event.region] ?? "hsl(var(--muted-foreground))";
                     return (
@@ -290,29 +318,29 @@ export default function EventsListPanel({
                 </span>
               </div>
 
-              {/* Region chip */}
-              <div className="flex items-center gap-1.5 mb-3">
-                <MapPin
-                  className="w-3 h-3 shrink-0"
-                  style={{ color: "hsl(var(--muted-foreground))" }}
-                />
+              {/* Region & Coordinates */}
+              <div className="flex items-center gap-4 mb-3">
+                <div className="flex items-center gap-1.5">
+                  <MapPin
+                    className="w-3 h-3 shrink-0"
+                    style={{ color: "hsl(var(--muted-foreground))" }}
+                  />
+                  <span
+                    className="font-mono-space text-xs font-bold uppercase tracking-wider"
+                    style={{
+                      color:
+                        regionColors[selectedEvent.region] ??
+                        "hsl(var(--muted-foreground))",
+                    }}
+                  >
+                    {selectedEvent.region}
+                  </span>
+                </div>
                 <span
-                  className="font-mono-space text-xs px-2 py-0.5 rounded-full"
-                  style={{
-                    color:
-                      regionColors[selectedEvent.region] ??
-                      "hsl(var(--muted-foreground))",
-                    background: `${
-                      regionColors[selectedEvent.region] ??
-                      "hsl(var(--muted-foreground))"
-                    }22`,
-                    border: `1px solid ${
-                      regionColors[selectedEvent.region] ??
-                      "hsl(var(--muted-foreground))"
-                    }55`,
-                  }}
+                  className="font-mono-space text-[10px] opacity-60"
+                  style={{ color: "hsl(var(--muted-foreground))" }}
                 >
-                  {selectedEvent.region}
+                  {selectedEvent.lat.toFixed(2)}° N, {selectedEvent.lng.toFixed(2)}° E
                 </span>
               </div>
 
@@ -332,27 +360,278 @@ export default function EventsListPanel({
                 {selectedEvent.description}
               </p>
 
-              {/* Coordinates */}
-              <div
-                className="mt-6 pt-3 flex items-center gap-2"
-                style={{ borderTop: "1px solid hsl(var(--border))" }}
-              >
-                <MapPin
-                  className="w-3 h-3 shrink-0"
-                  style={{ color: "hsl(var(--muted-foreground))" }}
-                />
-                <span
-                  className="font-mono-space text-[10px]"
-                  style={{ color: "hsl(var(--muted-foreground))" }}
-                >
-                  {selectedEvent.lat.toFixed(2)}° N,{" "}
-                  {selectedEvent.lng.toFixed(2)}° E
-                </span>
+              {/* Multimedia Section */}
+              {selectedEvent.media && selectedEvent.media.length > 0 && (
+                <div className="mt-8 border-t border-border pt-6">
+                  <p className="font-mono-space text-[10px] font-bold uppercase tracking-widest mb-4" style={{ color: "hsl(var(--muted-foreground))" }}>
+                    MULTIMEDIA
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedEvent.media.map((item, index) => (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveMediaIndex(index)}
+                        className="group relative aspect-video rounded-lg overflow-hidden border border-border/50 bg-muted/20 transition-all hover:border-primary/50 hover:bg-muted/40"
+                      >
+                        {item.type === "image" && item.url ? (
+                          <img 
+                            src={item.url} 
+                            alt={item.title}
+                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-full gap-2 p-3">
+                            {item.type === "video" && <Play className="w-6 h-6 text-primary/70" />}
+                            {item.type === "link" && <ExternalLink className="w-6 h-6 text-primary/70" />}
+                            <span className="text-[10px] font-medium text-center line-clamp-2 leading-tight">
+                              {item.title}
+                            </span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Maximize2 className="w-5 h-5 text-white" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation & Related Events Section */}
+              <div className="mt-8 pt-6 border-t border-border">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="font-mono-space text-[10px] font-bold uppercase tracking-widest" style={{ color: "hsl(var(--muted-foreground))" }}>
+                    {selectedEvent.relatedEvents && selectedEvent.relatedEvents.length > 0 
+                      ? "EVENTOS RELACIONADOS" 
+                      : "NAVEGACIÓN HISTÓRICA"}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handlePrev}
+                      disabled={!hasPrev}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+                      style={{
+                        background: hasPrev ? "hsl(var(--primary) / 0.1)" : "transparent",
+                        color: hasPrev ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.2)",
+                        border: `1px solid ${hasPrev ? "hsl(var(--primary) / 0.4)" : "hsl(var(--border) / 0.5)"}`,
+                        cursor: hasPrev ? "pointer" : "default",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (hasPrev) {
+                          e.currentTarget.style.background = "hsl(var(--primary) / 0.2)";
+                          e.currentTarget.style.borderColor = "hsl(var(--primary))";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (hasPrev) {
+                          e.currentTarget.style.background = "hsl(var(--primary) / 0.1)";
+                          e.currentTarget.style.borderColor = "hsl(var(--primary) / 0.4)";
+                        }
+                      }}
+                      aria-label="Evento anterior"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={handleNext}
+                      disabled={!hasNext}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+                      style={{
+                        background: hasNext ? "hsl(var(--primary) / 0.1)" : "transparent",
+                        color: hasNext ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.2)",
+                        border: `1px solid ${hasNext ? "hsl(var(--primary) / 0.4)" : "hsl(var(--border) / 0.5)"}`,
+                        cursor: hasNext ? "pointer" : "default",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (hasNext) {
+                          e.currentTarget.style.background = "hsl(var(--primary) / 0.2)";
+                          e.currentTarget.style.borderColor = "hsl(var(--primary))";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (hasNext) {
+                          e.currentTarget.style.background = "hsl(var(--primary) / 0.1)";
+                          e.currentTarget.style.borderColor = "hsl(var(--primary) / 0.4)";
+                        }
+                      }}
+                      aria-label="Próximo evento"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {selectedEvent.relatedEvents && selectedEvent.relatedEvents.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {selectedEvent.relatedEvents.map(relatedId => {
+                      const relatedEvent = allEvents.find(e => e.id === relatedId);
+                      if (!relatedEvent) return null;
+                      return (
+                        <button
+                          key={relatedId}
+                          onClick={() => handleSelectEvent(relatedEvent)}
+                          className="text-left p-2 rounded border transition-all hover:bg-muted/50 group"
+                          style={{ borderColor: "hsl(var(--border) / 0.5)" }}
+                        >
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="font-mono-space text-[10px] font-bold" style={{ color: "hsl(var(--primary))" }}>
+                              {formatYear(relatedEvent.year)}
+                            </span>
+                            <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "hsl(var(--muted-foreground))" }} />
+                          </div>
+                          <p className="text-[11px] leading-tight font-medium line-clamp-1 group-hover:text-foreground">
+                            {relatedEvent.title}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
+
+
             </div>
           </>
         )}
       </div>
+
+      {/* ── MULTIMEDIA MODAL ── */}
+      {activeMediaIndex !== null && selectedEvent && selectedEvent.media && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
+          style={{ background: "hsl(0 0% 0% / 0.85)", backdropFilter: "blur(8px)" }}
+        >
+          {/* Close Backdrop Click */}
+          <div className="absolute inset-0" onClick={() => setActiveMediaIndex(null)} />
+          
+          <div className="relative w-full max-w-5xl aspect-video md:aspect-auto md:max-h-[90vh] flex flex-col items-center gap-6 z-10">
+            {/* Header / Controls */}
+            <div className="absolute -top-12 left-0 right-0 flex items-center justify-between pointer-events-none px-2">
+              <h3 className="text-white font-mono-space text-lg font-bold pointer-events-auto drop-shadow-lg">
+                {selectedEvent.media[activeMediaIndex].title}
+              </h3>
+              <button 
+                onClick={() => setActiveMediaIndex(null)}
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors pointer-events-auto"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Media Content */}
+            <div className="relative w-full h-full flex items-center justify-center bg-black/50 rounded-xl overflow-hidden border border-white/10 shadow-2xl">
+              {/* Previous Button */}
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveMediaIndex((prev) => (prev! > 0 ? prev! - 1 : selectedEvent.media!.length - 1));
+                }}
+                className="absolute left-4 z-20 p-3 rounded-full bg-black/40 hover:bg-black/60 text-white transition-all border border-white/10"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+
+              {/* Content Rendering */}
+              <div className="w-full h-full flex flex-col">
+                <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
+                  {selectedEvent.media[activeMediaIndex].type === "image" && (
+                    <img 
+                      src={selectedEvent.media[activeMediaIndex].url}
+                      alt={selectedEvent.media[activeMediaIndex].title}
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  )}
+                  {selectedEvent.media[activeMediaIndex].type === "video" && (
+                    <div className="w-full h-full flex items-center justify-center">
+                      {selectedEvent.media[activeMediaIndex].url.includes("youtube.com") || selectedEvent.media[activeMediaIndex].url.includes("youtu.be") ? (
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          src={`https://www.youtube.com/embed/${selectedEvent.media[activeMediaIndex].url.split("v=")[1] || selectedEvent.media[activeMediaIndex].url.split("/").pop()}`}
+                          title="YouTube video player"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full aspect-video"
+                        />
+                      ) : (
+                        <div className="text-white flex flex-col items-center gap-4">
+                          <Play className="w-16 h-16 opacity-50" />
+                          <p>Video de plataforma externa</p>
+                          <a 
+                            href={selectedEvent.media[activeMediaIndex].url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="bg-primary text-primary-foreground px-6 py-2 rounded-full font-bold"
+                          >
+                            Ver en la plataforma
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {selectedEvent.media[activeMediaIndex].type === "link" && (
+                    <div className="text-white flex flex-col items-center justify-center gap-6 p-12 text-center max-w-xl mx-auto">
+                      <Globe className="w-24 h-24 text-primary opacity-50" />
+                      <div>
+                        <h4 className="text-2xl font-bold mb-2">{selectedEvent.media[activeMediaIndex].title}</h4>
+                        <p className="text-zinc-400 mb-8">{selectedEvent.media[activeMediaIndex].description}</p>
+                        <a 
+                          href={selectedEvent.media[activeMediaIndex].url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-8 py-3 rounded-full font-bold text-lg hover:scale-105 transition-transform"
+                        >
+                          <ExternalLink className="w-5 h-5" />
+                          Visitar sitio web
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Description Footer */}
+                {(selectedEvent.media[activeMediaIndex].description || selectedEvent.media[activeMediaIndex].sourceName) && (
+                  <div className="bg-black/80 p-6 border-t border-white/10">
+                    {selectedEvent.media[activeMediaIndex].description && (
+                      <p className="text-white text-base leading-relaxed mb-2 text-center">
+                        {selectedEvent.media[activeMediaIndex].description}
+                      </p>
+                    )}
+                    {selectedEvent.media[activeMediaIndex].sourceName && (
+                      <p className="text-zinc-500 text-xs font-mono-space text-center uppercase tracking-widest">
+                        Fuente: {selectedEvent.media[activeMediaIndex].sourceName}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Next Button */}
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveMediaIndex((prev) => (prev! < selectedEvent.media!.length - 1 ? prev! + 1 : 0));
+                }}
+                className="absolute right-4 z-20 p-3 rounded-full bg-black/40 hover:bg-black/60 text-white transition-all border border-white/10"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Pagination dots */}
+            <div className="flex gap-2">
+              {selectedEvent.media.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveMediaIndex(idx)}
+                  className={`w-2 h-2 rounded-full transition-all ${idx === activeMediaIndex ? "bg-primary w-6" : "bg-white/30 hover:bg-white/50"}`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
