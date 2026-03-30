@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List, Play, Image as ImageIcon, ExternalLink, Globe, Video, Maximize2 } from "lucide-react";
-import type { HistoricalEvent } from "@/data/historical-events";
-import { formatYear } from "@/data/historical-events";
+import { Safari, HistoricalEvent, formatYear } from "@/data/historical-events";
 
 type PanelState = "collapsed" | "list" | "detail";
 
@@ -10,9 +9,11 @@ interface EventsListPanelProps {
   allEvents: HistoricalEvent[];
   selectedEvent: HistoricalEvent | null;
   currentYear: number;
+  activeSafari?: Safari | null;
   onSelectEvent: (event: HistoricalEvent) => void;
   onYearChange: (year: number) => void;
   onClose: () => void;
+  onCloseSafari?: () => void;
   forceOpen?: boolean; // triggered by timeline hover
 }
 
@@ -29,9 +30,11 @@ export default function EventsListPanel({
   allEvents,
   selectedEvent,
   currentYear,
+  activeSafari,
   onSelectEvent,
   onYearChange,
   onClose,
+  onCloseSafari,
   forceOpen,
 }: EventsListPanelProps) {
   const [panelState, setPanelState] = useState<PanelState>("collapsed");
@@ -80,15 +83,24 @@ export default function EventsListPanel({
 
   const sortedEventsList = [...visibleEvents].sort((a, b) => a.year - b.year);
   
-  // For navigation (Back/Next), use all events sorted by year
-  const sortedAllEvents = [...allEvents].sort((a, b) => a.year - b.year);
-  const selectedIndex = selectedEvent ? sortedAllEvents.findIndex(e => e.id === selectedEvent.id) : -1;
+  // For navigation (Back/Next), use all events sorted by year, OR safari events if active
+  const navigationEvents = activeSafari 
+    ? activeSafari.eventIds
+        .map(id => allEvents.find(e => e.id === id))
+        .filter((e): e is HistoricalEvent => !!e)
+    : [...allEvents].sort((a, b) => a.year - b.year);
+
+  const selectedIndex = selectedEvent 
+    ? navigationEvents.findIndex(e => e.id === selectedEvent.id) 
+    : -1;
+
   const hasPrev = selectedIndex > 0;
-  const hasNext = selectedIndex !== -1 && selectedIndex < sortedAllEvents.length - 1;
+  const hasNext = selectedIndex !== -1 && selectedIndex < navigationEvents.length - 1;
+  const isFinalSafariEvent = activeSafari && selectedIndex === navigationEvents.length - 1;
 
   const handlePrev = () => {
     if (hasPrev) {
-      const prevEvent = sortedAllEvents[selectedIndex - 1];
+      const prevEvent = navigationEvents[selectedIndex - 1];
       onSelectEvent(prevEvent);
       onYearChange(prevEvent.year);
     }
@@ -96,9 +108,11 @@ export default function EventsListPanel({
 
   const handleNext = () => {
     if (hasNext) {
-      const nextEvent = sortedAllEvents[selectedIndex + 1];
+      const nextEvent = navigationEvents[selectedIndex + 1];
       onSelectEvent(nextEvent);
       onYearChange(nextEvent.year);
+    } else if (isFinalSafariEvent && onCloseSafari) {
+      onCloseSafari();
     }
   };
 
@@ -176,17 +190,32 @@ export default function EventsListPanel({
               style={{ borderBottom: "1px solid hsl(var(--border))" }}
             >
               <div>
-                <p
-                  className="font-mono-space text-xs font-bold uppercase tracking-widest"
-                  style={{ color: "hsl(var(--primary))" }}
-                >
-                  Eventos
-                </p>
+                {activeSafari ? (
+                  <div className="flex items-center gap-2 px-2.5 py-1 rounded-full border border-primary/30 bg-primary/10 mb-1 w-fit">
+                    <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
+                    <span className="font-mono-space text-[9px] uppercase font-bold text-primary tracking-widest whitespace-nowrap">
+                      {activeSafari.name}
+                    </span>
+                    <button 
+                      onClick={onCloseSafari}
+                      className="hover:text-white text-primary/60 transition-colors ml-1"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <p
+                    className="font-mono-space text-xs font-bold uppercase tracking-widest"
+                    style={{ color: "hsl(var(--primary))" }}
+                  >
+                    Eventos
+                  </p>
+                )}
                 <p
                   className="font-mono-space text-[10px] mt-0.5"
                   style={{ color: "hsl(var(--muted-foreground))" }}
                 >
-                  ± 300 años de {formatYear(currentYear)}
+                  {activeSafari ? `Narrativa Curada` : `± 300 años de ${formatYear(currentYear)}`}
                 </p>
               </div>
               <button
@@ -401,9 +430,11 @@ export default function EventsListPanel({
               <div className="mt-8 pt-6 border-t border-border">
                 <div className="flex items-center justify-between mb-4">
                   <p className="font-mono-space text-[10px] font-bold uppercase tracking-widest" style={{ color: "hsl(var(--muted-foreground))" }}>
-                    {selectedEvent.relatedEvents && selectedEvent.relatedEvents.length > 0 
-                      ? "EVENTOS RELACIONADOS" 
-                      : "NAVEGACIÓN HISTÓRICA"}
+                    {activeSafari 
+                      ? activeSafari.name 
+                      : (selectedEvent.relatedEvents && selectedEvent.relatedEvents.length > 0 
+                        ? "EVENTOS RELACIONADOS" 
+                        : "NAVEGACIÓN HISTÓRICA")}
                   </p>
                   <div className="flex items-center gap-2">
                     <button
@@ -434,29 +465,29 @@ export default function EventsListPanel({
                     </button>
                     <button
                       onClick={handleNext}
-                      disabled={!hasNext}
+                      disabled={!hasNext && !isFinalSafariEvent}
                       className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
                       style={{
-                        background: hasNext ? "hsl(var(--primary) / 0.1)" : "transparent",
-                        color: hasNext ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.2)",
-                        border: `1px solid ${hasNext ? "hsl(var(--primary) / 0.4)" : "hsl(var(--border) / 0.5)"}`,
-                        cursor: hasNext ? "pointer" : "default",
+                        background: (hasNext || isFinalSafariEvent) ? "hsl(var(--primary) / 0.1)" : "transparent",
+                        color: (hasNext || isFinalSafariEvent) ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.2)",
+                        border: `1px solid ${(hasNext || isFinalSafariEvent) ? "hsl(var(--primary) / 0.4)" : "hsl(var(--border) / 0.5)"}`,
+                        cursor: (hasNext || isFinalSafariEvent) ? "pointer" : "default",
                       }}
                       onMouseEnter={(e) => {
-                        if (hasNext) {
+                        if (hasNext || isFinalSafariEvent) {
                           e.currentTarget.style.background = "hsl(var(--primary) / 0.2)";
                           e.currentTarget.style.borderColor = "hsl(var(--primary))";
                         }
                       }}
                       onMouseLeave={(e) => {
-                        if (hasNext) {
+                        if (hasNext || isFinalSafariEvent) {
                           e.currentTarget.style.background = "hsl(var(--primary) / 0.1)";
                           e.currentTarget.style.borderColor = "hsl(var(--primary) / 0.4)";
                         }
                       }}
-                      aria-label="Próximo evento"
+                      aria-label={isFinalSafariEvent ? "Finalizar safari" : "Próximo evento"}
                     >
-                      <ChevronRight className="w-4 h-4" />
+                      {isFinalSafariEvent ? <X className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>

@@ -4,7 +4,8 @@ import { Switch } from "@/components/ui/switch";
 import CesiumGlobe from "@/components/CesiumGlobe";
 import TimelineBar from "@/components/TimelineBar";
 import EventsListPanel from "@/components/EventsListPanel";
-import { historicalEvents, getEventsInRange } from "@/data/historical-events";
+import SafariSelectionModal from "@/components/SafariSelectionModal";
+import { historicalEvents, getEventsInRange, safaris } from "@/data/historical-events";
 import type { HistoricalEvent } from "@/data/historical-events";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -26,6 +27,15 @@ export default function Index() {
   const [mapStyle, setMapStyle] = useState<"political" | "geographic">("political");
   const isMobile = useIsMobile();
 
+  // Safari State
+  const [activeSafariId, setActiveSafariId] = useState<string | null>(null);
+  const [showSafariModal, setShowSafariModal] = useState(true);
+
+  const activeSafari = useMemo(() => 
+    safaris.find(s => s.id === activeSafariId) || null,
+    [activeSafariId]
+  );
+
   // Poll for CesiumJS
   useEffect(() => {
     checkRef.current = setInterval(() => {
@@ -37,10 +47,14 @@ export default function Index() {
     return () => { if (checkRef.current) clearInterval(checkRef.current); };
   }, []);
 
-  const visibleEvents = useMemo(
-    () => getEventsInRange(currentYear, 300),
-    [currentYear]
-  );
+  const visibleEvents = useMemo(() => {
+    if (activeSafariId && activeSafari) {
+      // In safari mode, we ONLY show events belonging to that safari
+      return historicalEvents.filter(e => activeSafari.eventIds.includes(e.id));
+    }
+    // Global mode: filter by year range
+    return getEventsInRange(currentYear, 300);
+  }, [currentYear, activeSafariId, activeSafari]);
 
   const handleYearChange = useCallback((year: number) => {
     setCurrentYear(year);
@@ -70,6 +84,25 @@ export default function Index() {
     []
   );
 
+  const handleSelectSafari = useCallback((safariId: string) => {
+    setActiveSafariId(safariId);
+    setShowSafariModal(false);
+    
+    // Auto-select the first event of the safari
+    const safari = safaris.find(s => s.id === safariId);
+    if (safari && safari.eventIds.length > 0) {
+      const firstEvent = historicalEvents.find(e => e.id === safari.eventIds[0]);
+      if (firstEvent) {
+        handleSelectEvent(firstEvent);
+      }
+    }
+  }, [handleSelectEvent]);
+
+  const handleCloseSafari = useCallback(() => {
+    setActiveSafariId(null);
+    setShowSafariModal(true); // Allow re-selecting from modal if needed
+  }, []);
+
   return (
     <div
       className="relative w-full h-full overflow-hidden"
@@ -79,7 +112,9 @@ export default function Index() {
       {cesiumReady ? (
         <CesiumGlobe
           events={visibleEvents}
+          allEvents={historicalEvents}
           selectedEvent={selectedEvent}
+          activeSafari={activeSafari}
           onSelectEvent={handleSelectEvent}
           onHoverEvent={handleHoverEvent}
           isMobile={isMobile}
@@ -138,12 +173,13 @@ export default function Index() {
 
       {/* ── App badge (top-left) ── */}
       <div
-        className="fixed top-5 left-6 z-40 flex items-center gap-3 px-4 py-2 rounded-full"
+        className="fixed top-5 left-6 z-40 flex items-center gap-3 px-4 py-2 rounded-full cursor-pointer hover:bg-white/5 transition-colors"
         style={{
           background: "hsl(var(--card) / 0.85)",
           border: "1px solid hsl(var(--border))",
           backdropFilter: "blur(8px)",
         }}
+        onClick={() => setShowSafariModal(true)}
       >
         <div
           className="w-2 h-2 rounded-full animate-pulse"
@@ -153,7 +189,7 @@ export default function Index() {
           className="font-mono-space text-xs"
           style={{ color: "hsl(var(--foreground))" }}
         >
-          Taller Terreno
+          Safari Histórico
         </span>
         <span
           className="font-mono-space text-xs"
@@ -225,9 +261,11 @@ export default function Index() {
         allEvents={historicalEvents}
         selectedEvent={selectedEvent}
         currentYear={currentYear}
+        activeSafari={activeSafari}
         onSelectEvent={handleSelectEvent}
         onYearChange={handleYearChange}
         onClose={handleClosePanel}
+        onCloseSafari={handleCloseSafari}
         forceOpen={timelineHoverActive}
       />
 
@@ -236,6 +274,14 @@ export default function Index() {
         currentYear={currentYear}
         onYearChange={handleYearChange}
         onHoverYear={handleHoverYear}
+      />
+
+      <SafariSelectionModal
+        isOpen={showSafariModal}
+        safaris={safaris}
+        allEvents={historicalEvents}
+        onSelectSafari={handleSelectSafari}
+        onClose={() => setShowSafariModal(false)}
       />
     </div>
   );

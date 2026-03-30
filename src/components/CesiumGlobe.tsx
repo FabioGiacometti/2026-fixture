@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import type { HistoricalEvent } from "@/data/historical-events";
+import { useEffect, useRef } from "react";
+import type { HistoricalEvent, Safari } from "@/data/historical-events";
 
 declare global {
   interface Window {
@@ -9,7 +9,9 @@ declare global {
 
 interface CesiumGlobeProps {
   events: HistoricalEvent[];
+  allEvents: HistoricalEvent[];
   selectedEvent: HistoricalEvent | null;
+  activeSafari: Safari | null;
   onSelectEvent: (event: HistoricalEvent) => void;
   onHoverEvent: (event: HistoricalEvent | null, x: number, y: number) => void;
   isMobile: boolean;
@@ -18,7 +20,9 @@ interface CesiumGlobeProps {
 
 export default function CesiumGlobe({
   events,
+  allEvents,
   selectedEvent,
+  activeSafari,
   onSelectEvent,
   onHoverEvent,
   isMobile,
@@ -27,6 +31,7 @@ export default function CesiumGlobe({
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const entitiesRef = useRef<Map<string, any>>(new Map());
+  const polylineRef = useRef<any>(null);
   const onSelectRef = useRef(onSelectEvent);
   const onHoverRef = useRef(onHoverEvent);
 
@@ -260,15 +265,45 @@ export default function CesiumGlobe({
     }
   }, [selectedEvent, isMobile]);
 
-  /* ── Toggle mobile labels ── */
+  /* ── Render Safari Polyline ── */
   useEffect(() => {
-    if (!viewerRef.current || !window.Cesium) return;
-    entitiesRef.current.forEach((entity, id) => {
-      if (entity.label) {
-        entity.label.show = isMobile || selectedEvent?.id === id;
+    const viewer = viewerRef.current;
+    if (!viewer || !window.Cesium) return;
+    const Cesium = window.Cesium;
+
+    // Remove old polyline if it exists
+    if (polylineRef.current) {
+      viewer.entities.remove(polylineRef.current);
+      polylineRef.current = null;
+    }
+
+    // Only draw if we have an active safari with at least 2 events
+    if (activeSafari && activeSafari.eventIds.length > 1) {
+      const safariEvents = activeSafari.eventIds
+        .map(id => allEvents.find(e => e.id === id))
+        .filter((e): e is HistoricalEvent => !!e);
+
+      if (safariEvents.length > 1) {
+        const positions = safariEvents.map(e => 
+          Cesium.Cartesian3.fromDegrees(e.lng, e.lat)
+        );
+
+        polylineRef.current = viewer.entities.add({
+          polyline: {
+            positions: positions,
+            width: 4,
+            material: new Cesium.PolylineDashMaterialProperty({
+              color: Cesium.Color.fromCssColorString(activeSafari.color || "#F2A900"),
+              dashLength: 20,
+              gapColor: Cesium.Color.TRANSPARENT,
+            }),
+            arcType: Cesium.ArcType.GEODESIC,
+            clampToGround: true,
+          }
+        });
       }
-    });
-  }, [isMobile, selectedEvent]);
+    }
+  }, [activeSafari, allEvents]);
 
   return (
     <div

@@ -23,6 +23,16 @@ export interface HistoricalEvent {
   media?: MediaItem[];
 }
 
+export interface Safari {
+  id: string;
+  name: string;
+  description: string;
+  overview: string;
+  eventIds: string[];
+  color?: string;
+  thumbnail?: string;
+}
+
 export const historicalEvents: HistoricalEvent[] = [
   // ── ANCIENT WORLD (3000 BC – 500 BC) ──────────────────────────────────────
   {
@@ -283,6 +293,36 @@ export const historicalEvents: HistoricalEvent[] = [
         sourceName: "YouTube"
       }
     ]
+  },
+  {
+    id: "paul-conversion",
+    title: "Conversión de Pablo de Tarso",
+    description: "Saulo de Tarso experimenta una visión en el camino a Damasco que lo transforma de perseguidor de cristianos en el apóstol más influyente del cristianismo primitivo.",
+    year: 35,
+    lat: 33.51,
+    lng: 36.29,
+    region: "Asia",
+    importance: 2
+  },
+  {
+    id: "edict-milan",
+    title: "Edicto de Milán",
+    description: "Los emperadores Constantino y Licinio proclaman la libertad religiosa en el Imperio Romano, poniendo fin a las persecuciones de cristianos y marcando un giro histórico para la Iglesia.",
+    year: 313,
+    lat: 45.46,
+    lng: 9.19,
+    region: "Europa",
+    importance: 1
+  },
+  {
+    id: "christianity-official-religion",
+    title: "El Cristianismo como Religión Oficial",
+    description: "El emperador Teodosio I promulga el Edicto de Tesalónica, convirtiendo el cristianismo niceno en la única religión oficial del Imperio Romano.",
+    year: 380,
+    lat: 40.64,
+    lng: 22.94,
+    region: "Europa",
+    importance: 1
   },
   {
     id: "vesuvius",
@@ -713,6 +753,26 @@ export const historicalEvents: HistoricalEvent[] = [
     importance: 1
   },
   {
+    id: "d-day",
+    title: "Desembarco de Normandía (Día D)",
+    description: "Las fuerzas aliadas lanzan la mayor invasión anfibia de la historia en las playas de Normandía, abriendo un segundo frente en Europa y marcando el inicio del fin de la ocupación nazi.",
+    year: 1944,
+    lat: 49.36,
+    lng: -0.87,
+    region: "Europa",
+    importance: 1
+  },
+  {
+    id: "d-day",
+    title: "Desembarco de Normandía (Día D)",
+    description: "Las fuerzas aliadas lanzan la mayor invasión anfibia de la historia en las playas de Normandía, abriendo un segundo frente en Europa y marcando el inicio del fin de la ocupación nazi.",
+    year: 1944,
+    lat: 49.36,
+    lng: -0.87,
+    region: "Europa",
+    importance: 1
+  },
+  {
     id: "hiroshima",
     title: "Bombardeo Atómico de Hiroshima",
     description: "EE.UU. lanza la primera bomba atómica usada en guerra sobre Hiroshima, matando a 80.000 personas al instante y acelerando la rendición japonesa y el fin de la Segunda Guerra Mundial.",
@@ -964,6 +1024,26 @@ export const historicalEvents: HistoricalEvent[] = [
     region: "Europa",
     importance: 1,
     relatedEvents: ["birth-christianity", "edict-milan"]
+  }
+];
+
+export const safaris: Safari[] = [
+  {
+    id: "christianity-safari",
+    name: "El Auge del Cristianismo",
+    description: "De la crucifixión a religión oficial del Imperio Romano.",
+    overview: "Este safari recorre los momentos clave en los que una pequeña secta perseguida se transformó en la fuerza cultural y espiritual más poderosa de Occidente. Analizaremos cómo eventos teológicos se tradujeron en giros geopolíticos masivos, desde la visión de Pablo en Damasco hasta la legitimación imperial de Constantino y Teodosio.",
+    eventIds: ["birth-christianity", "paul-conversion", "edict-milan", "christianity-official-religion"],
+    color: "#EAB308",
+    thumbnail: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Crucifixion_by_Velazquez.jpg/800px-Crucifixion_by_Velazquez.jpg"
+  },
+  {
+    id: "world-wars-safari",
+    name: "Las Guerras Mundiales",
+    description: "El colapso del viejo orden y el nacimiento de la era moderna.",
+    overview: "Un viaje a través de los conflictos que definieron el siglo XX. Exploraremos las causas y consecuencias de la Gran Guerra, el ascenso del totalitarismo, la devastación de la Segunda Guerra Mundial y la creación de un nuevo orden global liderado por las Naciones Unidas bajo la sombra de la era nuclear.",
+    eventIds: ["ww1", "ww2-start", "d-day", "hiroshima", "un-founded"],
+    color: "#EF4444",
   }
 ];
 
