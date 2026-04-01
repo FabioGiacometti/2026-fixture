@@ -22,6 +22,7 @@ export default function Index() {
   const [windowSize, setWindowSize] = useState<number>(300);
   const [selectedEvent, setSelectedEvent] = useState<HistoricalEvent | null>(null);
   const [cesiumReady, setCesiumReady] = useState(false);
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [hoveredEventState, setHoveredEventState] = useState<HoveredEventState | null>(null);
   const [timelineHoverActive, setTimelineHoverActive] = useState(false);
   const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -268,6 +269,7 @@ export default function Index() {
         onClose={handleClosePanel}
         onCloseSafari={handleCloseSafari}
         forceOpen={timelineHoverActive}
+        onMediaModalChange={setIsMediaModalOpen}
       />
 
       {/* ── Timeline Bar ── */}
@@ -277,6 +279,7 @@ export default function Index() {
         onYearChange={handleYearChange}
         onHoverYear={handleHoverYear}
         onChangeWindowSize={setWindowSize}
+        isMediaModalOpen={isMediaModalOpen}
       />
 
       <SafariSelectionModal

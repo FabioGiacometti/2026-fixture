@@ -12,12 +12,13 @@ interface TimelineBarProps {
   onYearChange: (year: number) => void;
   onHoverYear?: (year: number | null) => void;
   onChangeWindowSize: (size: number) => void;
+  isMediaModalOpen?: boolean;
 }
 
 const MIN_YEAR = -3000;
 const MAX_YEAR = 2024;
 
-export default function TimelineBar({ currentYear, windowSize, onYearChange, onHoverYear, onChangeWindowSize }: TimelineBarProps) {
+export default function TimelineBar({ currentYear, windowSize, onYearChange, onHoverYear, onChangeWindowSize, isMediaModalOpen }: TimelineBarProps) {
   const sliderRef = useRef<HTMLInputElement>(null);
 
   const handleChange = useCallback(
@@ -70,7 +71,9 @@ export default function TimelineBar({ currentYear, windowSize, onYearChange, onH
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50 flex flex-col gap-2 px-8 py-4"
+      className={`fixed bottom-0 left-0 right-0 z-50 flex flex-col gap-2 px-8 py-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+        isMediaModalOpen ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
+      }`}
       style={{
         background:
           "linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.97) 80%, transparent 100%)",

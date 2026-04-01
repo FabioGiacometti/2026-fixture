@@ -15,6 +15,7 @@ interface EventsListPanelProps {
   onClose: () => void;
   onCloseSafari?: () => void;
   forceOpen?: boolean; // triggered by timeline hover
+  onMediaModalChange?: (isOpen: boolean) => void;
 }
 
 const regionColors: Record<string, string> = {
@@ -36,6 +37,7 @@ export default function EventsListPanel({
   onClose,
   onCloseSafari,
   forceOpen,
+  onMediaModalChange,
 }: EventsListPanelProps) {
   const [panelState, setPanelState] = useState<PanelState>("collapsed");
   const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
@@ -46,6 +48,13 @@ export default function EventsListPanel({
       setPanelState("detail");
     }
   }, [selectedEvent]);
+
+  // Report media modal state
+  useEffect(() => {
+    if (onMediaModalChange) {
+      onMediaModalChange(activeMediaIndex !== null);
+    }
+  }, [activeMediaIndex, onMediaModalChange]);
 
   // When forceOpen (timeline hover), open list if collapsed
   useEffect(() => {
