@@ -763,16 +763,6 @@ export const historicalEvents: HistoricalEvent[] = [
     importance: 1
   },
   {
-    id: "d-day",
-    title: "Desembarco de Normandía (Día D)",
-    description: "Las fuerzas aliadas lanzan la mayor invasión anfibia de la historia en las playas de Normandía, abriendo un segundo frente en Europa y marcando el inicio del fin de la ocupación nazi.",
-    year: 1944,
-    lat: 49.36,
-    lng: -0.87,
-    region: "Europa",
-    importance: 1
-  },
-  {
     id: "hiroshima",
     title: "Bombardeo Atómico de Hiroshima",
     description: "EE.UU. lanza la primera bomba atómica usada en guerra sobre Hiroshima, matando a 80.000 personas al instante y acelerando la rendición japonesa y el fin de la Segunda Guerra Mundial.",
@@ -1024,6 +1014,812 @@ export const historicalEvents: HistoricalEvent[] = [
     region: "Europa",
     importance: 1,
     relatedEvents: ["birth-christianity", "edict-milan"]
+  },
+
+  // ── NEW EVENTS: CHRISTIANITY EXPANSION ────────────────────────────────────
+  {
+    id: "council-nicaea",
+    title: "Concilio de Nicea",
+    description: "El emperador Constantino convoca el primer concilio ecuménico en Nicea, donde se define el Credo Niceno y se establece la doctrina ortodoxa del cristianismo.",
+    year: 325,
+    lat: 40.43,
+    lng: 29.72,
+    region: "Asia",
+    importance: 2
+  },
+
+  // ── NEW EVENTS: WWI ───────────────────────────────────────────────────────
+  {
+    id: "assassination-archduke",
+    title: "Asesinato del Archiduque Francisco Fernando",
+    description: "Gavrilo Princip asesina al archiduque Francisco Fernando de Austria-Hungría y a su esposa Sofía en Sarajevo, encendiendo la mecha de la Primera Guerra Mundial.",
+    year: 1914,
+    lat: 43.86,
+    lng: 18.43,
+    region: "Europa",
+    importance: 1
+  },
+  {
+    id: "battle-verdun",
+    title: "Batalla de Verdún",
+    description: "Francia y Alemania se enfrentan durante 303 días en la batalla más larga de la Gran Guerra, con casi 700.000 bajas combinadas convertida en símbolo del horror de la guerra de trincheras.",
+    year: 1916,
+    lat: 49.16,
+    lng: 5.39,
+    region: "Europa",
+    importance: 2
+  },
+  {
+    id: "us-enters-ww1",
+    title: "EE.UU. entra en la Primera Guerra Mundial",
+    description: "Tras el hundimiento de barcos mercantes por submarinos alemanes y el telegrama Zimmermann, Estados Unidos declara la guerra a Alemania, inclinando decisivamente la balanza del conflicto.",
+    year: 1917,
+    lat: 38.9,
+    lng: -77.04,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "treaty-versailles",
+    title: "Tratado de Versalles",
+    description: "Las potencias vencedoras imponen duras condiciones a Alemania: pérdidas territoriales, desarme y reparaciones económicas aplastantes que sembrarán el resentimiento que alimentará al nazismo.",
+    year: 1919,
+    lat: 48.8,
+    lng: 2.12,
+    region: "Europa",
+    importance: 1
+  },
+  {
+    id: "league-of-nations",
+    title: "Fundación de la Sociedad de Naciones",
+    description: "Se crea la Sociedad de Naciones en Ginebra con el objetivo de mantener la paz mundial, pero la ausencia de EE.UU. y su debilidad institucional la condenarán al fracaso.",
+    year: 1920,
+    lat: 46.23,
+    lng: 6.15,
+    region: "Europa",
+    importance: 2
+  },
+
+  // ── NEW EVENTS: WWII ──────────────────────────────────────────────────────
+  {
+    id: "rise-of-hitler",
+    title: "Ascenso de Adolf Hitler al Poder",
+    description: "Adolf Hitler es nombrado Canciller de Alemania, iniciando la transformación de la República de Weimar en la dictadura del Tercer Reich que llevaría al mundo a la guerra más devastadora de la historia.",
+    year: 1933,
+    lat: 52.52,
+    lng: 13.4,
+    region: "Europa",
+    importance: 1
+  },
+  {
+    id: "fall-of-france",
+    title: "Caída de Francia",
+    description: "La Wehrmacht ejecuta una blitzkrieg arrolladora a través de las Ardenas, derrotando al ejército francés en seis semanas y ocupando París, dejando a Gran Bretaña sola frente al Eje.",
+    year: 1940,
+    lat: 48.85,
+    lng: 2.35,
+    region: "Europa",
+    importance: 2
+  },
+  {
+    id: "pearl-harbor",
+    title: "Ataque a Pearl Harbor",
+    description: "La Armada Imperial Japonesa lanza un devastador ataque sorpresa contra la base naval estadounidense en Hawái, destruyendo gran parte de la flota del Pacífico y forzando la entrada de EE.UU. en la guerra.",
+    year: 1941,
+    lat: 21.36,
+    lng: -157.95,
+    region: "América",
+    importance: 1
+  },
+  {
+    id: "battle-stalingrad",
+    title: "Batalla de Stalingrado",
+    description: "El Ejército Rojo rodea y destruye al 6.º Ejército alemán en Stalingrado tras meses de combate cuerpo a cuerpo, marcando el punto de inflexión decisivo en el Frente Oriental.",
+    year: 1943,
+    lat: 48.71,
+    lng: 44.51,
+    region: "Europa",
+    importance: 1
+  },
+
+  // ── NEW EVENTS: COLD WAR ──────────────────────────────────────────────────
+  {
+    id: "berlin-blockade",
+    title: "Bloqueo de Berlín y Puente Aéreo",
+    description: "La URSS bloquea todos los accesos terrestres a Berlín Occidental. EE.UU. y sus aliados organizan un puente aéreo de 11 meses que abastece a 2 millones de berlineses y marca la primera gran crisis de la Guerra Fría.",
+    year: 1948,
+    lat: 52.52,
+    lng: 13.4,
+    region: "Europa",
+    importance: 2
+  },
+  {
+    id: "korean-war",
+    title: "Guerra de Corea",
+    description: "Corea del Norte, apoyada por China y la URSS, invade Corea del Sur desencadenando un conflicto que causará millones de muertes y dividirá la península coreana hasta hoy.",
+    year: 1950,
+    lat: 37.57,
+    lng: 126.98,
+    region: "Asia",
+    importance: 1
+  },
+  {
+    id: "berlin-wall-built",
+    title: "Construcción del Muro de Berlín",
+    description: "La RDA levanta un muro de hormigón que divide Berlín y a Alemania entera, convirtiéndose en el símbolo más potente de la división del mundo durante la Guerra Fría.",
+    year: 1961,
+    lat: 52.51,
+    lng: 13.38,
+    region: "Europa",
+    importance: 1
+  },
+  {
+    id: "vietnam-war-end",
+    title: "Caída de Saigón — Fin de la Guerra de Vietnam",
+    description: "Las fuerzas norvietnamitas toman Saigón, poniendo fin a dos décadas de guerra en Vietnam. La evacuación caótica de la embajada estadounidense simboliza la primera derrota militar de EE.UU.",
+    year: 1975,
+    lat: 10.78,
+    lng: 106.7,
+    region: "Asia",
+    importance: 1
+  },
+
+  // ── NEW EVENTS: MAO'S REVOLUTION ──────────────────────────────────────────
+  {
+    id: "fall-qing-dynasty",
+    title: "Caída de la Dinastía Qing — República de China",
+    description: "La Revolución de Xinhai derroca a la última dinastía imperial china tras 2.000 años de gobierno monárquico, proclamando la República de China bajo Sun Yat-sen.",
+    year: 1912,
+    lat: 32.06,
+    lng: 118.8,
+    region: "Asia",
+    importance: 1
+  },
+  {
+    id: "chinese-civil-war",
+    title: "Inicio de la Guerra Civil China",
+    description: "El Partido Comunista de China y el Kuomintang de Chiang Kai-shek inician una guerra civil que durará intermitentemente más de veinte años y transformará el destino de Asia.",
+    year: 1927,
+    lat: 32.06,
+    lng: 118.8,
+    region: "Asia",
+    importance: 2
+  },
+  {
+    id: "long-march",
+    title: "La Larga Marcha de Mao Zedong",
+    description: "El Ejército Rojo de Mao recorre 9.000 km a pie durante un año para escapar del cerco nacionalista. Solo 8.000 de los 80.000 soldados sobreviven, pero el evento forja la leyenda fundacional de la China comunista.",
+    year: 1934,
+    lat: 28.23,
+    lng: 104.77,
+    region: "Asia",
+    importance: 2
+  },
+  {
+    id: "japan-invades-china",
+    title: "Invasión Japonesa de China",
+    description: "Japón lanza una invasión a gran escala de China que incluirá la Masacre de Nankín. El conflicto causa millones de muertes y obliga a comunistas y nacionalistas a cooperar temporalmente.",
+    year: 1937,
+    lat: 32.06,
+    lng: 118.8,
+    region: "Asia",
+    importance: 1
+  },
+  {
+    id: "peoples-republic-china",
+    title: "Fundación de la República Popular China",
+    description: "Mao Zedong proclama la República Popular China desde la Puerta de Tiananmén en Pekín, completando la revolución comunista y transformando al país más poblado del mundo.",
+    year: 1949,
+    lat: 39.91,
+    lng: 116.39,
+    region: "Asia",
+    importance: 1
+  },
+  {
+    id: "great-leap-forward",
+    title: "El Gran Salto Adelante",
+    description: "Mao lanza una campaña de industrialización y colectivización forzada que provoca la peor hambruna de la historia, causando entre 15 y 55 millones de muertes en tres años.",
+    year: 1958,
+    lat: 39.91,
+    lng: 116.39,
+    region: "Asia",
+    importance: 1
+  },
+  {
+    id: "cultural-revolution",
+    title: "La Revolución Cultural",
+    description: "Mao lanza la Revolución Cultural para purgar a sus rivales políticos, movilizando a los Guardias Rojos en una ola de fanatismo ideológico que destruye patrimonio cultural y causa millones de persecuciones.",
+    year: 1966,
+    lat: 39.91,
+    lng: 116.39,
+    region: "Asia",
+    importance: 1
+  },
+  {
+    id: "nixon-china",
+    title: "Nixon visita China — Apertura Diplomática",
+    description: "El presidente Richard Nixon visita la República Popular China por primera vez, normalizando relaciones entre las dos superpotencias y reconfigurando la geopolítica de la Guerra Fría.",
+    year: 1972,
+    lat: 39.91,
+    lng: 116.39,
+    region: "Asia",
+    importance: 1
+  },
+
+  // ── NEW EVENTS: INDUSTRIAL REVOLUTION ─────────────────────────────────────
+  {
+    id: "steam-engine",
+    title: "Máquina de Vapor de James Watt",
+    description: "James Watt patenta mejoras cruciales a la máquina de vapor, multiplicando su eficiencia y transformándola en el motor de la Revolución Industrial que cambiará el mundo para siempre.",
+    year: 1769,
+    lat: 55.86,
+    lng: -4.25,
+    region: "Europa",
+    importance: 1
+  },
+  {
+    id: "spinning-jenny",
+    title: "La Spinning Jenny y la Mecanización Textil",
+    description: "La invención de la Spinning Jenny por James Hargreaves multiplica la capacidad de hilado, iniciando la mecanización de la industria textil británica y desplazando a millones de artesanos.",
+    year: 1770,
+    lat: 53.75,
+    lng: -2.49,
+    region: "Europa",
+    importance: 2
+  },
+  {
+    id: "first-railroad",
+    title: "Primer Ferrocarril Público — Stockton a Darlington",
+    description: "George Stephenson inaugura el primer ferrocarril público de pasajeros y mercancías, revolucionando el transporte terrestre y acelerando exponencialmente la industrialización global.",
+    year: 1825,
+    lat: 54.52,
+    lng: -1.55,
+    region: "Europa",
+    importance: 1
+  },
+  {
+    id: "telephone-invention",
+    title: "Invención del Teléfono",
+    description: "Alexander Graham Bell patenta el teléfono, inaugurando la era de las telecomunicaciones instantáneas que transformará para siempre cómo la humanidad se comunica a distancia.",
+    year: 1876,
+    lat: 42.36,
+    lng: -71.06,
+    region: "América",
+    importance: 1
+  },
+  {
+    id: "electricity-age",
+    title: "Edison Enciende Nueva York — Era de la Electricidad",
+    description: "Thomas Edison inaugura la primera central eléctrica comercial en Pearl Street, Manhattan, iluminando 85 edificios y abriendo las puertas a la electrificación que transformaría la vida moderna.",
+    year: 1882,
+    lat: 40.71,
+    lng: -74.01,
+    region: "América",
+    importance: 1
+  },
+
+  // ── NEW EVENTS: AGE OF DISCOVERY ──────────────────────────────────────────
+  {
+    id: "spanish-conquest-inca",
+    title: "Conquista Española del Imperio Inca",
+    description: "Francisco Pizarro captura al emperador inca Atahualpa en Cajamarca con apenas 168 hombres, derrumbando el mayor imperio de América del Sur y iniciando el dominio colonial español en los Andes.",
+    year: 1533,
+    lat: -7.16,
+    lng: -78.51,
+    region: "América",
+    importance: 1
+  },
+  {
+    id: "dutch-east-india",
+    title: "Fundación de la Compañía Holandesa de las Indias Orientales",
+    description: "Los Países Bajos crean la VOC, la primera corporación multinacional y la primera en emitir acciones, inaugurando el capitalismo moderno y dominando el comercio de especias durante dos siglos.",
+    year: 1602,
+    lat: 52.37,
+    lng: 4.9,
+    region: "Europa",
+    importance: 1
+  },
+
+  // ── NEW EVENTS: FRENCH REVOLUTION & NAPOLEON ──────────────────────────────
+  {
+    id: "enlightenment",
+    title: "La Enciclopedia — Cumbre de la Ilustración",
+    description: "Diderot y d'Alembert publican los primeros volúmenes de la Enciclopedia, compilando todo el saber humano y difundiendo las ideas racionalistas que desafiarán al absolutismo y a la Iglesia.",
+    year: 1751,
+    lat: 48.85,
+    lng: 2.35,
+    region: "Europa",
+    importance: 1
+  },
+  {
+    id: "reign-of-terror",
+    title: "El Terror — Robespierre y la Guillotina",
+    description: "Maximilien Robespierre instaura un régimen de terror en Francia: decenas de miles son ejecutados en la guillotina, incluyendo al propio rey Luis XVI, en nombre de la 'virtud republicana'.",
+    year: 1793,
+    lat: 48.85,
+    lng: 2.35,
+    region: "Europa",
+    importance: 2
+  },
+  {
+    id: "battle-trafalgar",
+    title: "Batalla de Trafalgar",
+    description: "La Royal Navy del almirante Nelson destruye la flota franco-española frente al cabo Trafalgar, asegurando la supremacía naval británica por un siglo pero costándole la vida a Nelson.",
+    year: 1805,
+    lat: 36.18,
+    lng: -6.03,
+    region: "Europa",
+    importance: 2
+  },
+  {
+    id: "invasion-russia",
+    title: "Invasión Napoleónica de Rusia",
+    description: "Napoleón invade Rusia con la Grande Armée de 600.000 hombres. La toma de Moscú resulta inútil cuando los rusos incendian la ciudad, y el invierno letal destruye al 95% del ejército francés.",
+    year: 1812,
+    lat: 55.75,
+    lng: 37.62,
+    region: "Europa",
+    importance: 1
+  },
+  {
+    id: "battle-waterloo",
+    title: "Batalla de Waterloo — Caída de Napoleón",
+    description: "El ejército de Napoleón es derrotado definitivamente por las fuerzas británicas y prusianas en Waterloo, poniendo fin a las guerras napoleónicas y al sueño de una Europa unificada bajo Francia.",
+    year: 1815,
+    lat: 50.71,
+    lng: 4.41,
+    region: "Europa",
+    importance: 1
+  },
+  // ── NEW REGIONAL & CONTINENTAL EVENTS ────────────────────────────────────
+  {
+    id: "buenos-aires-foundation",
+    title: "Primera Fundación de Buenos Aires",
+    description: "Pedro de Mendoza funda la ciudad de Santa María del Buen Ayre, aunque sería abandonada años después por conflictos con los querandíes.",
+    year: 1536,
+    lat: -34.60,
+    lng: -58.38,
+    region: "América",
+    importance: 3
+  },
+  {
+    id: "cordoba-foundation",
+    title: "Fundación de Córdoba (Argentina)",
+    description: "Jerónimo Luis de Cabrera funda la ciudad de Córdoba de la Nueva Andalucía, importante centro cultural y religioso del cono sur.",
+    year: 1573,
+    lat: -31.41,
+    lng: -64.18,
+    region: "América",
+    importance: 3
+  },
+  {
+    id: "may-revolution",
+    title: "Revolución de Mayo",
+    description: "Semana de acontecimientos en Buenos Aires que concluyó con la destitución del virrey Cisneros y la asunción de la Primera Junta.",
+    year: 1810,
+    lat: -34.608,
+    lng: -58.37,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "crossing-andes",
+    title: "Cruce de los Andes",
+    description: "El general José de San Martín cruza la cordillera de los Andes con el Ejército de los Andes para liberar Chile y luego Perú.",
+    year: 1817,
+    lat: -32.65,
+    lng: -70.08,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "machu-picchu-discovery",
+    title: "Descubrimiento científico de Machu Picchu",
+    description: "Hiram Bingham llega a las ruinas de Machu Picchu en Perú, dándolas a conocer al mundo occidental.",
+    year: 1911,
+    lat: -13.16,
+    lng: -72.54,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "cuzco-foundation",
+    title: "Fundación del Cusco",
+    description: "Manco Cápac funda el Cusco, que se convertiría en la capital del Imperio Inca (Tawantinsuyu).",
+    year: 1200,
+    lat: -13.53,
+    lng: -71.96,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "teotihuacan-peak",
+    title: "Apogeo de Teotihuacán",
+    description: "Teotihuacán se convierte en la ciudad más grande de Mesoamérica, con la construcción de las Pirámides del Sol y la Luna.",
+    year: 400,
+    lat: 19.69,
+    lng: -98.84,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "chichen-itza",
+    title: "Esplendor de Chichén Itzá",
+    description: "La ciudad maya de Chichén Itzá se consolida como el principal centro de poder en la península de Yucatán.",
+    year: 900,
+    lat: 20.68,
+    lng: -88.56,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "battle-maipu",
+    title: "Batalla de Maipú",
+    description: "Victoria decisiva de las tropas patriotas lideradas por San Martín que asegura la independencia de Chile.",
+    year: 1818,
+    lat: -33.51,
+    lng: -70.76,
+    region: "América",
+    importance: 3
+  },
+  {
+    id: "la-paz-foundation",
+    title: "Fundación de La Paz",
+    description: "El capitán español Alonso de Mendoza funda la ciudad de Nuestra Señora de La Paz en Bolivia.",
+    year: 1548,
+    lat: -16.50,
+    lng: -68.11,
+    region: "América",
+    importance: 3
+  },
+  // ── MORE ANCIENT & CLASSICAL EVENTS ──────────────────────────────────────
+  {
+    id: "olmec-colossal-heads",
+    title: "Cabezas Colosales Olmecas",
+    description: "La civilización Olmeca, 'cultura madre' de Mesoamérica, esculpe sus características cabezas colosales de basalto en San Lorenzo y La Venta.",
+    year: -1200,
+    lat: 17.97,
+    lng: -94.03,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "carthage-foundation",
+    title: "Fundación de Cartago",
+    description: "Los fenicios de Tiro fundan Cartago en la costa del norte de África, que se convertiría en el mayor imperio comercial del Mediterráneo occidental.",
+    year: -814,
+    lat: 36.85,
+    lng: 10.33,
+    region: "África",
+    importance: 2
+  },
+  {
+    id: "sparta-thermopylae",
+    title: "Batalla de las Termópilas",
+    description: "El rey espartano Leónidas y sus 300 guerreros resisten heroicamente ante el masivo ejército persa de Jerjes I durante tres días.",
+    year: -480,
+    lat: 38.79,
+    lng: 22.53,
+    region: "Europa",
+    importance: 2
+  },
+  {
+    id: "ashoka-empire",
+    title: "Imperio Maurya bajo Ashoka",
+    description: "Tras la sangrienta guerra de Kalinga, el emperador indio Ashoka se convierte al budismo y promueve la paz, la tolerancia y el bienestar en todo el subcontinente.",
+    year: -260,
+    lat: 25.61,
+    lng: 85.14,
+    region: "Asia",
+    importance: 1
+  },
+  {
+    id: "nazca-lines",
+    title: "Creación de las Líneas de Nazca",
+    description: "La cultura Nazca traza enormes geoglifos en el desierto del sur de Perú, con formas de animales y figuras geométricas visibles solo desde el aire.",
+    year: 200,
+    lat: -14.73,
+    lng: -75.13,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "maya-tikal",
+    title: "Apogeo de Tikal (Civilización Maya)",
+    description: "Bajo el gobierno de Jasaw Chan K'awiil I, la ciudad maya de Tikal domina la región del Petén con sus imponentes templos piramidales.",
+    year: 700,
+    lat: 17.22,
+    lng: -89.62,
+    region: "América",
+    importance: 2
+  },
+
+  // ── MORE MIDDLE AGES ──────────────────────────────────────────────────────
+  {
+    id: "axum-empire",
+    title: "El Reino de Aksum",
+    description: "El Imperio de Aksum se convierte en una potencia comercial crucial entre el Imperio Romano y la India, adoptando el cristianismo de forma temprana.",
+    year: 350,
+    lat: 14.13,
+    lng: 38.71,
+    region: "África",
+    importance: 3
+  },
+  {
+    id: "islamic-golden-age",
+    title: "Fundación de la Casa de la Sabiduría",
+    description: "El califa abasí Al-Mamún funda en Bagdad la Casa de la Sabiduría (Bayt al-Hikmah), centro intelectual que tradujo y preservó el conocimiento clásico mundial.",
+    year: 830,
+    lat: 33.31,
+    lng: 44.36,
+    region: "Asia",
+    importance: 1
+  },
+  {
+    id: "srivijaya-empire",
+    title: "Imperio Srivijaya",
+    description: "El poderoso imperio marítimo de Srivijaya controla el Estrecho de Malaca, dominando el comercio entre India, China y el Sudeste Asiático.",
+    year: 850,
+    lat: -2.99,
+    lng: 104.75,
+    region: "Asia",
+    importance: 2
+  },
+  {
+    id: "angkor-wat",
+    title: "Construcción de Angkor Wat",
+    description: "El rey jemer Suryavarman II ordena la construcción de Angkor Wat en Camboya, el monumento religioso más grande jamás construido en el mundo.",
+    year: 1150,
+    lat: 13.41,
+    lng: 103.86,
+    region: "Asia",
+    importance: 1
+  },
+  {
+    id: "great-zimbabwe",
+    title: "Gran Zimbabue",
+    description: "Florece la ciudad de piedra del Gran Zimbabue, capital de un próspero reino comercial en el sur de África vinculado a la red del Océano Índico.",
+    year: 1300,
+    lat: -20.26,
+    lng: 30.93,
+    region: "África",
+    importance: 2
+  },
+  {
+    id: "mansa-musa",
+    title: "Peregrinaje de Mansa Musa",
+    description: "Mansa Musa, emperador del Imperio de Malí y posiblemente el hombre más rico de la historia, realiza su legendario viaje a La Meca repartiendo oro.",
+    year: 1324,
+    lat: 16.77,
+    lng: -3.00,
+    region: "África",
+    importance: 2
+  },
+  {
+    id: "polynesian-expansion",
+    title: "Asentamiento de Nueva Zelanda",
+    description: "Navegantes polinesios cruzan vastas extensiones del Océano Pacífico para establecerse en Aotearoa (Nueva Zelanda), desarrollando la cultura Maorí.",
+    year: 1300,
+    lat: -38.13,
+    lng: 176.24,
+    region: "Oceanía",
+    importance: 2
+  },
+
+  // ── EARLY MODERN TO 19TH CENTURY REFINEMENTS ──────────────────────────────
+  {
+    id: "taj-mahal",
+    title: "Construcción del Taj Mahal",
+    description: "El emperador mogol Shah Jahan erige el Taj Mahal en Agra como mausoleo para su esposa favorita, obra cumbre de la arquitectura indoislámica.",
+    year: 1648,
+    lat: 27.17,
+    lng: 78.04,
+    region: "Asia",
+    importance: 1
+  },
+  {
+    id: "battle-sekigahara",
+    title: "Batalla de Sekigahara",
+    description: "Tokugawa Ieyasu logra una victoria decisiva que unifica Japón bajo el shogunato Tokugawa, iniciando un largo período de paz y aislamiento.",
+    year: 1600,
+    lat: 35.37,
+    lng: 136.46,
+    region: "Asia",
+    importance: 2
+  },
+  {
+    id: "cook-australia",
+    title: "Expedición de James Cook",
+    description: "El capitán James Cook llega a la costa este de Australia (Bahía Botánica), reclamando el territorio para Gran Bretaña y allanando el camino a la colonización.",
+    year: 1770,
+    lat: -34.00,
+    lng: 151.22,
+    region: "Oceanía",
+    importance: 2
+  },
+  {
+    id: "waterloo",
+    title: "Batalla de Waterloo",
+    description: "Las fuerzas de coalición comandadas por el Duque de Wellington derrotan definitivamente a Napoleón Bonaparte, poniendo fin a sus Guerras Napoleónicas.",
+    year: 1815,
+    lat: 50.67,
+    lng: 4.40,
+    region: "Europa",
+    importance: 2
+  },
+  {
+    id: "treaty-waitangi",
+    title: "Tratado de Waitangi",
+    description: "Jefes maoríes y representantes de la Corona británica firman el documento fundacional de Nueva Zelanda, trayendo profundas consecuencias sobre tierras y soberanía.",
+    year: 1840,
+    lat: -35.26,
+    lng: 174.08,
+    region: "Oceanía",
+    importance: 3
+  },
+  {
+    id: "gettysburg",
+    title: "Batalla de Gettysburg",
+    description: "El punto de inflexión de la Guerra Civil Estadounidense, donde el ejército de la Unión detiene la invasión del general confederado Robert E. Lee.",
+    year: 1863,
+    lat: 39.82,
+    lng: -77.23,
+    region: "América",
+    importance: 3
+  },
+
+  // ── MORE LATIN AMERICAN & SPANISH EVENTS ──────────────────────────────────
+  {
+    id: "bogota-foundation",
+    title: "Fundación de Bogotá",
+    description: "Gonzalo Jiménez de Quesada funda Santa Fe de Bogotá en el territorio del pueblo Muisca tras la expedición a la cordillera de los Andes.",
+    year: 1538,
+    lat: 4.59,
+    lng: -74.07,
+    region: "América",
+    importance: 3
+  },
+  {
+    id: "lima-foundation",
+    title: "Fundación de Lima",
+    description: "Francisco Pizarro funda la Ciudad de los Reyes (Lima), que rápidamente se convierte en el centro del poder español y capital del Virreinato del Perú.",
+    year: 1535,
+    lat: -12.04,
+    lng: -77.02,
+    region: "América",
+    importance: 3
+  },
+  {
+    id: "santiago-foundation",
+    title: "Fundación de Santiago de Chile",
+    description: "Pedro de Valdivia funda la ciudad de Santiago del Nuevo Extremo a los pies del cerro Santa Lucía (Huelén).",
+    year: 1541,
+    lat: -33.43,
+    lng: -70.64,
+    region: "América",
+    importance: 3
+  },
+  {
+    id: "grito-de-dolores",
+    title: "Grito de Dolores",
+    description: "El cura Miguel Hidalgo lanza su famoso llamado a las armas en el pueblo de Dolores, marcando el inicio de la Guerra de Independencia de México.",
+    year: 1810,
+    lat: 21.15,
+    lng: -100.93,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "battle-ayacucho",
+    title: "Batalla de Ayacucho",
+    description: "Un ejército independentista al mando de Antonio José de Sucre derrota a las fuerzas realistas del Virreinato, sellando la independencia del Perú y Sudamérica.",
+    year: 1824,
+    lat: -13.13,
+    lng: -74.19,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "guerra-pacifico",
+    title: "Guerra del Pacífico",
+    description: "Conflicto bélico en el que Chile se enfreta a Perú y Bolivia por el control del desierto de Atacama y sus valiosos yacimientos de salitre.",
+    year: 1879,
+    lat: -23.65,
+    lng: -70.39,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "mexican-revolution",
+    title: "Revolución Mexicana",
+    description: "Francisco I. Madero promulga el Plan de San Luis para derrocar al dictador Porfirio Díaz, detonando uno de los mayores conflictos armados y sociales de América.",
+    year: 1910,
+    lat: 19.43,
+    lng: -99.13,
+    region: "América",
+    importance: 2
+  },
+
+  // ── MORE 20TH & 21ST CENTURY ─────────────────────────────────────────────
+  {
+    id: "panama-canal",
+    title: "Apertura del Canal de Panamá",
+    description: "Se completa una de las obras de ingeniería más grandes del mundo, transformando drásticamente las rutas comerciales marítimas globales al unir el Atlántico y el Pacífico.",
+    year: 1914,
+    lat: 9.10,
+    lng: -79.68,
+    region: "América",
+    importance: 1
+  },
+  {
+    id: "battle-stalingrad",
+    title: "Batalla de Stalingrado",
+    description: "El Ejército Rojo soviético frena y derrota a la Wehrmacht alemana tras el sitio urbano más mortífero de la historia, revirtiendo el rumbo de la 2ª Guerra Mundial.",
+    year: 1943,
+    lat: 48.70,
+    lng: 44.51,
+    region: "Europa",
+    importance: 2
+  },
+  {
+    id: "cuban-revolution",
+    title: "Triunfo de la Revolución Cubana",
+    description: "Las fuerzas rebeldes lideradas por Fidel Castro derrocan al dictador Fulgencio Batista, instaurando el primer estado socialista del hemisferio occidental.",
+    year: 1959,
+    lat: 23.11,
+    lng: -82.36,
+    region: "América",
+    importance: 2
+  },
+  {
+    id: "sputnik-soyuz",
+    title: "Vostok 1: Yuri Gagarin al espacio",
+    description: "El cosmonauta soviético Yuri Gagarin se convierte en el primer ser humano en viajar al espacio exterior y orbitar la Tierra.",
+    year: 1961,
+    lat: 45.96,
+    lng: 63.30,
+    region: "Asia",
+    importance: 1
+  },
+  {
+    id: "falklands-war",
+    title: "Guerra de las Malvinas",
+    description: "Conflicto armado de diez semanas entre Argentina y el Reino Unido por la soberanía de los archipiélagos del Atlántico Sur.",
+    year: 1982,
+    lat: -51.69,
+    lng: -57.85,
+    region: "América",
+    importance: 3
+  },
+  {
+    id: "chernobyl",
+    title: "Desastre Nuclear de Chernóbil",
+    description: "Explosión del reactor nuclear número 4 de la central de Chernóbil en Ucrania soviética, siendo el peor accidente nuclear civil de la historia.",
+    year: 1986,
+    lat: 51.38,
+    lng: 30.09,
+    region: "Europa",
+    importance: 1
+  },
+  {
+    id: "rwanda-genocide",
+    title: "Genocidio de Ruanda",
+    description: "Masacre planificada de aproximadamente 800.000 miembros de la minoría tutsi por extremistas hutus en tan solo 100 días.",
+    year: 1994,
+    lat: -1.94,
+    lng: 30.06,
+    region: "África",
+    importance: 2
+  },
+  {
+    id: "fukushima",
+    title: "Terremoto y Tsunami de Tōhoku",
+    description: "Un terremoto de magnitud 9.0 desata un tsunami enorme en la costa este de Japón, desencadenando la fusión de tres reactores en la planta nuclear de Fukushima.",
+    year: 2011,
+    lat: 38.29,
+    lng: 141.02,
+    region: "Asia",
+    importance: 2
   }
 ];
 
@@ -1031,19 +1827,67 @@ export const safaris: Safari[] = [
   {
     id: "christianity-safari",
     name: "El Auge del Cristianismo",
-    description: "De la crucifixión a religión oficial del Imperio Romano.",
-    overview: "Este safari recorre los momentos clave en los que una pequeña secta perseguida se transformó en la fuerza cultural y espiritual más poderosa de Occidente. Analizaremos cómo eventos teológicos se tradujeron en giros geopolíticos masivos, desde la visión de Pablo en Damasco hasta la legitimación imperial de Constantino y Teodosio.",
-    eventIds: ["birth-christianity", "paul-conversion", "edict-milan", "christianity-official-religion"],
+    description: "De secta perseguida a religión que redefinió Occidente.",
+    overview: "Este safari recorre los momentos clave en los que una pequeña secta perseguida se transformó en la fuerza cultural y espiritual más poderosa de Occidente. Desde la crucifixión de Jesús hasta la Reforma de Lutero, analizaremos cómo eventos teológicos se tradujeron en giros geopolíticos masivos.",
+    eventIds: ["birth-christianity", "paul-conversion", "council-nicaea", "edict-milan", "christianity-official-religion", "fall-western-rome", "charlemagne", "reformation-luther"],
     color: "#EAB308",
     thumbnail: "https://www.biblword.net/wp-content/uploads/sites/45/2026/01/what-is-christianity-about-picture.jpg"
   },
   {
-    id: "world-wars-safari",
-    name: "Las Guerras Mundiales",
-    description: "El colapso del viejo orden y el nacimiento de la era moderna.",
-    overview: "Un viaje a través de los conflictos que definieron el siglo XX. Exploraremos las causas y consecuencias de la Gran Guerra, el ascenso del totalitarismo, la devastación de la Segunda Guerra Mundial y la creación de un nuevo orden global liderado por las Naciones Unidas bajo la sombra de la era nuclear.",
-    eventIds: ["ww1", "ww2-start", "d-day", "hiroshima", "un-founded"],
-    color: "#EF4444",
+    id: "ww1-safari",
+    name: "La Gran Guerra",
+    description: "El conflicto que destruyó imperios y redibujó el mapa de Europa.",
+    overview: "La Primera Guerra Mundial fue el primer conflicto verdaderamente industrial de la historia. Un asesinato en Sarajevo desencadenó una reacción en cadena de alianzas que arrastró a millones a las trincheras. Este safari recorre los momentos decisivos que destruyeron cuatro imperios y sembraron las semillas de un conflicto aún mayor.",
+    eventIds: ["assassination-archduke", "ww1", "battle-verdun", "us-enters-ww1", "russian-revolution", "treaty-versailles", "spanish-flu", "league-of-nations"],
+    color: "#78716C"
+  },
+  {
+    id: "ww2-safari",
+    name: "La Segunda Guerra Mundial",
+    description: "El conflicto más devastador de la historia humana.",
+    overview: "Un viaje a través de la guerra que definió al siglo XX. Desde el ascenso del nazismo hasta la era atómica, exploraremos cómo la ambición totalitaria llevó al mundo al borde de la destrucción y cómo las cenizas del conflicto forjaron un nuevo orden mundial.",
+    eventIds: ["rise-of-hitler", "ww2-start", "fall-of-france", "pearl-harbor", "battle-stalingrad", "d-day", "hiroshima", "un-founded"],
+    color: "#EF4444"
+  },
+  {
+    id: "cold-war-safari",
+    name: "La Guerra Fría",
+    description: "El mundo al borde del abismo nuclear durante cuatro décadas.",
+    overview: "Tras la Segunda Guerra Mundial, EE.UU. y la URSS dividieron el planeta en dos bloques ideológicos rivales. Este safari recorre las crisis, guerras proxy y la carrera espacial que mantuvieron a la humanidad al borde de la aniquilación nuclear, hasta la caída del muro que simbolizó el fin de una era.",
+    eventIds: ["berlin-blockade", "korean-war", "sputnik", "berlin-wall-built", "cuban-missile-crisis", "moon-landing", "vietnam-war-end", "fall-berlin-wall", "ussr-dissolution"],
+    color: "#3B82F6"
+  },
+  {
+    id: "mao-safari",
+    name: "La Revolución de Mao",
+    description: "La transformación radical de la nación más poblada del planeta.",
+    overview: "Este safari narra la épica y trágica historia de cómo Mao Zedong transformó China de un imperio en ruinas en una potencia comunista. Desde la caída de la última dinastía hasta la apertura diplomática con Nixon, cada evento redefinió el destino de más de mil millones de personas.",
+    eventIds: ["fall-qing-dynasty", "chinese-civil-war", "long-march", "japan-invades-china", "peoples-republic-china", "great-leap-forward", "cultural-revolution", "nixon-china"],
+    color: "#DC2626"
+  },
+  {
+    id: "industrial-revolution-safari",
+    name: "La Revolución Industrial",
+    description: "La transformación que creó el mundo moderno tal y como lo conocemos.",
+    overview: "En apenas un siglo, la humanidad pasó del caballo y la vela a la máquina de vapor y la electricidad. Este safari recorre los inventos, descubrimientos e infraestructuras que transformaron una sociedad agraria en la civilización industrial que heredamos hoy.",
+    eventIds: ["steam-engine", "spinning-jenny", "industrial-revolution", "first-railroad", "darwin-origin", "suez-canal", "telephone-invention", "electricity-age"],
+    color: "#F97316"
+  },
+  {
+    id: "discovery-safari",
+    name: "La Era de los Descubrimientos",
+    description: "Cuando Europa se lanzó a explorar y conquistar el mundo.",
+    overview: "La caída de Constantinopla cerró las rutas terrestres a Asia y empujó a las potencias europeas al océano. Este safari recorre la épica era de exploración que conectó continentes, destruyó imperios ancestrales y estableció las bases del mundo globalizado que habitamos hoy.",
+    eventIds: ["fall-constantinople", "columbus", "vasco-da-gama", "spanish-conquest-aztec", "magellan-circumnavigation", "spanish-conquest-inca", "dutch-east-india", "mayflower"],
+    color: "#14B8A6"
+  },
+  {
+    id: "french-revolution-safari",
+    name: "Revolución Francesa y Napoleón",
+    description: "La caída del Antiguo Régimen y el nacimiento del mundo moderno.",
+    overview: "Las ideas de la Ilustración prendieron la mecha de una revolución que decapitó a un rey y redefinió los derechos del ciudadano. Este safari recorre desde la Enciclopedia de Diderot hasta la derrota de Napoleón en Waterloo, un arco que transformó para siempre la política, la sociedad y las fronteras de Europa.",
+    eventIds: ["enlightenment", "american-independence", "french-revolution", "reign-of-terror", "napoleon-empire", "battle-trafalgar", "invasion-russia", "battle-waterloo"],
+    color: "#8B5CF6"
   }
 ];
 

@@ -19,6 +19,7 @@ interface HoveredEventState {
 
 export default function Index() {
   const [currentYear, setCurrentYear] = useState<number>(0);
+  const [windowSize, setWindowSize] = useState<number>(300);
   const [selectedEvent, setSelectedEvent] = useState<HistoricalEvent | null>(null);
   const [cesiumReady, setCesiumReady] = useState(false);
   const [hoveredEventState, setHoveredEventState] = useState<HoveredEventState | null>(null);
@@ -53,8 +54,8 @@ export default function Index() {
       return historicalEvents.filter(e => activeSafari.eventIds.includes(e.id));
     }
     // Global mode: filter by year range
-    return getEventsInRange(currentYear, 300);
-  }, [currentYear, activeSafariId, activeSafari]);
+    return getEventsInRange(currentYear, windowSize);
+  }, [currentYear, windowSize, activeSafariId, activeSafari]);
 
   const handleYearChange = useCallback((year: number) => {
     setCurrentYear(year);
@@ -272,8 +273,10 @@ export default function Index() {
       {/* ── Timeline Bar ── */}
       <TimelineBar
         currentYear={currentYear}
+        windowSize={windowSize}
         onYearChange={handleYearChange}
         onHoverYear={handleHoverYear}
+        onChangeWindowSize={setWindowSize}
       />
 
       <SafariSelectionModal

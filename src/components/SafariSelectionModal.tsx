@@ -1,10 +1,27 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronRight, ArrowLeft, Globe, Map, BookOpen, Clock } from "lucide-react";
+import { ChevronRight, ArrowLeft, Globe, Map, BookOpen, Clock, Check } from "lucide-react";
 import { Safari, HistoricalEvent, formatYear } from "@/data/historical-events";
+
+const STORAGE_KEY = "safari-historico-read";
+
+function getReadSafaris(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function markSafariAsRead(safariId: string) {
+  const read = getReadSafaris();
+  read.add(safariId);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...read]));
+}
 
 interface SafariSelectionModalProps {
   isOpen: boolean;
@@ -23,10 +40,25 @@ export default function SafariSelectionModal({
 }: SafariSelectionModalProps) {
   const [view, setView] = useState<"list" | "detail">("list");
   const [selectedSafari, setSelectedSafari] = useState<Safari | null>(null);
+  const [readIds, setReadIds] = useState<Set<string>>(() => getReadSafaris());
+
+  const sortedSafaris = useMemo(() => {
+    return [...safaris].sort((a, b) => {
+      const aRead = readIds.has(a.id) ? 1 : 0;
+      const bRead = readIds.has(b.id) ? 1 : 0;
+      return aRead - bRead;
+    });
+  }, [safaris, readIds]);
 
   const handleSelectCard = (safari: Safari) => {
     setSelectedSafari(safari);
     setView("detail");
+  };
+
+  const handleStartSafari = (safariId: string) => {
+    markSafariAsRead(safariId);
+    setReadIds(getReadSafaris());
+    onSelectSafari(safariId);
   };
 
   const handleBack = () => {
@@ -70,59 +102,69 @@ export default function SafariSelectionModal({
 
         <div className="max-h-[60vh] overflow-hidden flex flex-col">
           {view === "list" ? (
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {safaris.map((safari) => (
-                <Card 
-                  key={safari.id}
-                  className="bg-white/5 border-white/10 hover:border-primary/50 transition-all cursor-pointer group overflow-hidden"
-                  onClick={() => handleSelectCard(safari)}
-                >
-                  <div className="aspect-video w-full bg-black/40 relative">
-                    {safari.thumbnail ? (
-                      <img 
-                        src={getOptimizedWikiUrl(safari.thumbnail, 330)} 
-                        alt={safari.name} 
-                        className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center opacity-20">
-                        <Globe className="w-12 h-12" />
+            <ScrollArea className="flex-1">
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {sortedSafaris.map((safari) => {
+                  const isRead = readIds.has(safari.id);
+                  return (
+                    <Card 
+                      key={safari.id}
+                      className={`bg-white/5 border-white/10 hover:border-primary/50 transition-all cursor-pointer group overflow-hidden ${isRead ? 'opacity-60' : ''}`}
+                      onClick={() => handleSelectCard(safari)}
+                    >
+                      <div className="aspect-video w-full bg-black/40 relative">
+                        {safari.thumbnail ? (
+                          <img 
+                            src={getOptimizedWikiUrl(safari.thumbnail, 330)} 
+                            alt={safari.name} 
+                            className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center opacity-20">
+                            <Globe className="w-12 h-12" />
+                          </div>
+                        )}
+                        <div 
+                          className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"
+                        />
+                        {isRead && (
+                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-green-500/80 flex items-center justify-center">
+                            <Check className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        )}
+                        <div className="absolute bottom-3 left-4">
+                          <div 
+                            className="w-8 h-1 rounded-full mb-2" 
+                            style={{ backgroundColor: safari.color || "hsl(var(--primary))" }}
+                          />
+                          <h3 className="font-mono-space font-bold text-sm uppercase tracking-wider text-white">
+                            {safari.name}
+                          </h3>
+                        </div>
                       </div>
-                    )}
-                    <div 
-                      className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"
-                    />
-                    <div className="absolute bottom-3 left-4">
-                      <div 
-                        className="w-8 h-1 rounded-full mb-2" 
-                        style={{ backgroundColor: safari.color || "hsl(var(--primary))" }}
-                      />
-                      <h3 className="font-mono-space font-bold text-sm uppercase tracking-wider text-white">
-                        {safari.name}
-                      </h3>
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <p className="text-xs text-white/60 leading-relaxed line-clamp-2">
-                      {safari.description}
-                    </p>
-                  </CardContent>
+                      <CardContent className="p-4">
+                        <p className="text-xs text-white/60 leading-relaxed line-clamp-2">
+                          {safari.description}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+                
+                <Card 
+                  className="bg-white/5 border-dashed border-white/10 hover:border-white/30 transition-all cursor-pointer flex flex-col items-center justify-center p-6 text-center"
+                  onClick={onClose}
+                >
+                  <Map className="w-8 h-8 text-white/20 mb-3" />
+                  <h3 className="font-mono-space text-xs uppercase tracking-wider text-white/60">
+                    Exploración Libre
+                  </h3>
+                  <p className="text-[10px] text-white/40 mt-1">
+                    Navega por el mapa global sin narrativa guiada
+                  </p>
                 </Card>
-              ))}
-              
-              <Card 
-                className="bg-white/5 border-dashed border-white/10 hover:border-white/30 transition-all cursor-pointer flex flex-col items-center justify-center p-6 text-center"
-                onClick={onClose}
-              >
-                <Map className="w-8 h-8 text-white/20 mb-3" />
-                <h3 className="font-mono-space text-xs uppercase tracking-wider text-white/60">
-                  Exploración Libre
-                </h3>
-                <p className="text-[10px] text-white/40 mt-1">
-                  Navega por el mapa global sin narrativa guiada
-                </p>
-              </Card>
-            </div>
+              </div>
+            </ScrollArea>
           ) : (
             selectedSafari && (
               <ScrollArea className="flex-1">
@@ -183,7 +225,7 @@ export default function SafariSelectionModal({
           </Button>
           {view === "detail" && selectedSafari && (
             <Button 
-              onClick={() => onSelectSafari(selectedSafari.id)}
+              onClick={() => handleStartSafari(selectedSafari.id)}
               className="bg-primary text-black hover:bg-primary/90 font-mono-space text-[10px] uppercase tracking-wider px-8"
             >
               Empezar Safari

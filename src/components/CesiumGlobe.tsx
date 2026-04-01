@@ -291,7 +291,7 @@ export default function CesiumGlobe({
         polylineRef.current = viewer.entities.add({
           polyline: {
             positions: positions,
-            width: 4,
+            width: 1,
             material: new Cesium.PolylineDashMaterialProperty({
               color: Cesium.Color.fromCssColorString(activeSafari.color || "#F2A900"),
               dashLength: 20,

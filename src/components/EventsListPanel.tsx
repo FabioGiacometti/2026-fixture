@@ -537,42 +537,42 @@ export default function EventsListPanel({
       {/* ── MULTIMEDIA MODAL ── */}
       {activeMediaIndex !== null && selectedEvent && selectedEvent.media && (
         <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-8"
           style={{ background: "hsl(0 0% 0% / 0.85)", backdropFilter: "blur(8px)" }}
         >
           {/* Close Backdrop Click */}
           <div className="absolute inset-0" onClick={() => setActiveMediaIndex(null)} />
           
-          <div className="relative w-full max-w-5xl aspect-video md:aspect-auto md:max-h-[90vh] flex flex-col items-center gap-6 z-10">
+          <div className="relative w-full h-full md:h-auto max-w-5xl md:aspect-auto md:max-h-[90vh] flex flex-col items-center z-10 pt-2 md:pt-0 pb-4 md:pb-0">
             {/* Header / Controls */}
-            <div className="absolute -top-12 left-0 right-0 flex items-center justify-between pointer-events-none px-2">
-              <h3 className="text-white font-mono-space text-lg font-bold pointer-events-auto drop-shadow-lg">
+            <div className="w-full flex items-center justify-between p-4 md:absolute md:-top-12 md:left-0 md:right-0 md:p-0 md:px-2 pointer-events-none shrink-0 z-30 gap-3">
+              <h3 className="text-white font-mono-space text-base md:text-lg font-bold pointer-events-auto drop-shadow-lg pr-4 line-clamp-2 md:line-clamp-1">
                 {selectedEvent.media[activeMediaIndex].title}
               </h3>
               <button 
                 onClick={() => setActiveMediaIndex(null)}
-                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors pointer-events-auto"
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors pointer-events-auto shrink-0 z-40"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             {/* Media Content */}
-            <div className="relative w-full h-full flex items-center justify-center bg-black/50 rounded-xl overflow-hidden border border-white/10 shadow-2xl">
+            <div className="relative w-full flex-1 md:flex-none md:aspect-video flex items-center justify-center bg-black/80 md:bg-black/50 md:rounded-xl overflow-hidden md:border border-white/10 md:shadow-2xl">
               {/* Previous Button */}
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   setActiveMediaIndex((prev) => (prev! > 0 ? prev! - 1 : selectedEvent.media!.length - 1));
                 }}
-                className="absolute left-4 z-20 p-3 rounded-full bg-black/40 hover:bg-black/60 text-white transition-all border border-white/10"
+                className="absolute left-2 md:left-4 z-20 p-2 md:p-3 rounded-full bg-black/40 hover:bg-black/60 text-white transition-all border border-white/10"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
 
               {/* Content Rendering */}
               <div className="w-full h-full flex flex-col">
-                <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
+                <div className="flex-1 flex items-center justify-center overflow-hidden p-2 md:p-4">
                   {selectedEvent.media[activeMediaIndex].type === "image" && (
                     <img 
                       src={selectedEvent.media[activeMediaIndex].url}
@@ -631,14 +631,14 @@ export default function EventsListPanel({
                 
                 {/* Description Footer */}
                 {(selectedEvent.media[activeMediaIndex].description || selectedEvent.media[activeMediaIndex].sourceName) && (
-                  <div className="bg-black/80 p-6 border-t border-white/10">
+                  <div className="bg-black/90 md:bg-black/80 p-4 md:p-6 border-t border-white/10 shrink-0">
                     {selectedEvent.media[activeMediaIndex].description && (
-                      <p className="text-white text-base leading-relaxed mb-2 text-center">
+                      <p className="text-white text-sm md:text-base leading-relaxed mb-2 text-center">
                         {selectedEvent.media[activeMediaIndex].description}
                       </p>
                     )}
                     {selectedEvent.media[activeMediaIndex].sourceName && (
-                      <p className="text-zinc-500 text-xs font-mono-space text-center uppercase tracking-widest">
+                      <p className="text-zinc-500 text-[10px] md:text-xs font-mono-space text-center uppercase tracking-widest">
                         Fuente: {selectedEvent.media[activeMediaIndex].sourceName}
                       </p>
                     )}
@@ -652,14 +652,14 @@ export default function EventsListPanel({
                   e.stopPropagation();
                   setActiveMediaIndex((prev) => (prev! < selectedEvent.media!.length - 1 ? prev! + 1 : 0));
                 }}
-                className="absolute right-4 z-20 p-3 rounded-full bg-black/40 hover:bg-black/60 text-white transition-all border border-white/10"
+                className="absolute right-2 md:right-4 z-20 p-2 md:p-3 rounded-full bg-black/40 hover:bg-black/60 text-white transition-all border border-white/10"
               >
                 <ChevronRight className="w-6 h-6" />
               </button>
             </div>
 
             {/* Pagination dots */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 p-4 md:p-0 md:mt-6 pb-6 md:pb-0 justify-center w-full shrink-0 z-20">
               {selectedEvent.media.map((_, idx) => (
                 <button
                   key={idx}

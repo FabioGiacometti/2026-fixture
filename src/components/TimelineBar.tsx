@@ -1,16 +1,23 @@
 import { useCallback, useMemo, useRef } from "react";
 import { historicalEvents, formatYear } from "@/data/historical-events";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface TimelineBarProps {
   currentYear: number;
+  windowSize: number;
   onYearChange: (year: number) => void;
   onHoverYear?: (year: number | null) => void;
+  onChangeWindowSize: (size: number) => void;
 }
 
 const MIN_YEAR = -3000;
 const MAX_YEAR = 2024;
 
-export default function TimelineBar({ currentYear, onYearChange, onHoverYear }: TimelineBarProps) {
+export default function TimelineBar({ currentYear, windowSize, onYearChange, onHoverYear, onChangeWindowSize }: TimelineBarProps) {
   const sliderRef = useRef<HTMLInputElement>(null);
 
   const handleChange = useCallback(
@@ -38,9 +45,9 @@ export default function TimelineBar({ currentYear, onYearChange, onHoverYear }: 
   // Count events visible near current year
   const nearbyEventCount = useMemo(() => {
     return historicalEvents.filter(
-      (e) => e.year >= currentYear - 300 && e.year <= currentYear + 300
+      (e) => e.year >= currentYear - windowSize && e.year <= currentYear + windowSize
     ).length;
-  }, [currentYear]);
+  }, [currentYear, windowSize]);
 
   // Progress percentage for fill bar
   const progressPct = useMemo(
@@ -95,12 +102,46 @@ export default function TimelineBar({ currentYear, onYearChange, onHoverYear }: 
           </span>
         </div>
 
-        <span
-          className="font-mono-space text-xs tracking-widest uppercase"
-          style={{ color: "hsl(var(--muted-foreground))" }}
-        >
-          3000 a.C. → 2024 d.C.
-        </span>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              className="font-mono-space text-xs tracking-widest uppercase cursor-pointer transition-colors hover:text-white"
+              style={{ color: "hsl(var(--muted-foreground))" }}
+            >
+              Rango: ±{windowSize} años
+            </button>
+          </PopoverTrigger>
+          <PopoverContent 
+            className="w-64 p-4 mb-2 shadow-xl" 
+            side="top" 
+            align="end"
+            style={{
+              background: "hsl(var(--card) / 0.97)",
+              border: "1px solid hsl(var(--border))",
+              backdropFilter: "blur(10px)",
+            }}
+          >
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <label className="font-mono-space text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>Rango temporal</label>
+                <span className="font-mono-space text-xs font-bold" style={{ color: "hsl(var(--primary))" }}>±{windowSize} años</span>
+              </div>
+              <input
+                type="range"
+                min={10}
+                max={1500}
+                step={10}
+                value={windowSize}
+                onChange={(e) => onChangeWindowSize(Number(e.target.value))}
+                className="w-full"
+                style={{ accentColor: "hsl(var(--primary))" }}
+              />
+              <p className="text-[10px] leading-tight" style={{ color: "hsl(var(--muted-foreground))" }}>
+                Define la cantidad de años antes y después del año seleccionado que se muestran en el globo.
+              </p>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* ── Slider row ── */}
