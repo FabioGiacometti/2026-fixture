@@ -25,9 +25,9 @@ export default function Index() {
   const [datasetMode, setDatasetMode] = useState<DatasetMode>(() => {
     try {
       const rawMode = localStorage.getItem(DATASET_MODE_KEY);
-      return rawMode === "worldcup" ? "worldcup" : "historical";
+      return rawMode === "historical" ? "historical" : "worldcup";
     } catch {
-      return "historical";
+      return "worldcup";
     }
   });
   const [currentYear, setCurrentYear] = useState<number>(
