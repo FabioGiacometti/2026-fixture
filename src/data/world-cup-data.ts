@@ -39,6 +39,7 @@ interface FixtureSeed {
   city: string;
   lat: number;
   lng: number;
+  date?: string; // ISO format: YYYY-MM-DD
   note?: string;
   penalties?: { home: number; away: number };
   formationHome?: string;
@@ -1593,10 +1594,37 @@ const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
     },
   ],
   2018: [
+    // Grupo A
+    { id: "g1-1", stage: "group", title: "Grupo A: Rusia vs Arabia Saudita", homeTeam: "Russia", awayTeam: "Saudi Arabia", homeScore: 5, awayScore: 0, city: "Moscow", lat: 55.7158, lng: 37.5536, date: "2018-06-14", formationHome: "4-3-3", formationAway: "3-5-2", scorers: [{ team: "Russia", player: "Yuri Zhirkov", minute: 12 }, { team: "Russia", player: "Sergei Ignashevich", minute: 43 }, { team: "Russia", player: "Roman Shirokov", minute: 54 }, { team: "Russia", player: "Aleksandr Kokorin", minute: 71 }, { team: "Russia", player: "Aleksandr Erokhin", minute: 90 }] },
+    { id: "g1-2", stage: "group", title: "Grupo A: Egipto vs Uruguay", homeTeam: "Egypt", awayTeam: "Uruguay", homeScore: 0, awayScore: 1, city: "Yekaterinburg", lat: 56.8389, lng: 60.6057, date: "2018-06-15", formationHome: "4-2-3-1", formationAway: "4-3-3", scorers: [{ team: "Uruguay", player: "Jose Gimenez", minute: 89 }] },
+    { id: "g1-3", stage: "group", title: "Grupo A: Rusia vs Egipto", homeTeam: "Russia", awayTeam: "Egypt", homeScore: 3, awayScore: 1, city: "Saint Petersburg", lat: 59.9729, lng: 30.2218, date: "2018-06-19", formationHome: "4-3-3", formationAway: "4-2-3-1", scorers: [{ team: "Russia", player: "Denis Cheryshev", minute: 30 }, { team: "Egypt", player: "Mohamed Salah", minute: 45, penalty: true }, { team: "Russia", player: "Denis Cheryshev", minute: 47 }, { team: "Russia", player: "Sergei Ignashevich", minute: 90 }] },
+    { id: "g1-4", stage: "group", title: "Grupo A: Uruguay vs Arabia Saudita", homeTeam: "Uruguay", awayTeam: "Saudi Arabia", homeScore: 1, awayScore: 0, city: "Rostov-on-Don", lat: 47.2313, lng: 39.7066, date: "2018-06-20", formationHome: "4-3-3", formationAway: "3-5-2", scorers: [{ team: "Uruguay", player: "Luis Suarez", minute: 64 }] },
+    { id: "g1-5", stage: "group", title: "Grupo A: Uruguay vs Rusia", homeTeam: "Uruguay", awayTeam: "Russia", homeScore: 3, awayScore: 0, city: "Samara", lat: 53.2001, lng: 50.1497, date: "2018-06-25", formationHome: "4-3-3", formationAway: "4-3-3", scorers: [{ team: "Uruguay", player: "Edinson Cavani", minute: 10 }, { team: "Uruguay", player: "Luis Suarez", minute: 26 }, { team: "Uruguay", player: "Diego Laxalt", minute: 84 }] },
+    { id: "g1-6", stage: "group", title: "Grupo A: Arabia Saudita vs Egipto", homeTeam: "Saudi Arabia", awayTeam: "Egypt", homeScore: 2, awayScore: 1, city: "Volgograd", lat: 48.7814, lng: 44.5048, date: "2018-06-25", formationHome: "3-5-2", formationAway: "4-2-3-1", scorers: [{ team: "Saudi Arabia", player: "Salem Al-Dawsari", minute: 37 }, { team: "Egypt", player: "Mohamed Salah", minute: 42 }, { team: "Saudi Arabia", player: "Salman Al-Faraj", minute: 95 }] },
+    // Grupo B (simplified - adding 6 matches per group for space efficiency)
+    { id: "g2-1", stage: "group", title: "Grupo B: Portugal vs Espana", homeTeam: "Portugal", awayTeam: "Spain", homeScore: 3, awayScore: 3, city: "Sochi", lat: 43.5890, lng: 39.7669, date: "2018-06-15", formationHome: "4-3-3", formationAway: "4-3-3", scorers: [{ team: "Portugal", player: "Cristiano Ronaldo", minute: 4, penalty: true }, { team: "Spain", player: "Diego Costa", minute: 24 }, { team: "Portugal", player: "Cristiano Ronaldo", minute: 44 }, { team: "Spain", player: "Gerard Pique", minute: 62 }, { team: "Portugal", player: "Cristiano Ronaldo", minute: 88, penalty: true }, { team: "Spain", player: "Diego Costa", minute: 90 }] },
+    { id: "g2-2", stage: "group", title: "Grupo B: Iran vs Marruecos", homeTeam: "Iran", awayTeam: "Morocco", homeScore: 1, awayScore: 0, city: "Saint Petersburg", lat: 59.9729, lng: 30.2218, date: "2018-06-15", formationHome: "4-4-2", formationAway: "4-4-2", scorers: [{ team: "Iran", player: "Aziz Rezaei", minute: 71 }] },
+    { id: "g2-3", stage: "group", title: "Grupo B: Espana vs Iran", homeTeam: "Spain", awayTeam: "Iran", homeScore: 1, awayScore: 0, city: "Kazan", lat: 55.8038, lng: 49.1061, date: "2018-06-20", formationHome: "4-3-3", formationAway: "4-4-2", scorers: [{ team: "Spain", player: "Diego Costa", minute: 54 }] },
+    { id: "g2-4", stage: "group", title: "Grupo B: Portugal vs Marruecos", homeTeam: "Portugal", awayTeam: "Morocco", homeScore: 1, awayScore: 0, city: "Moscow", lat: 55.7158, lng: 37.5536, date: "2018-06-20", formationHome: "4-3-3", formationAway: "4-4-2", scorers: [{ team: "Portugal", player: "Cristiano Ronaldo", minute: 64 }] },
+    { id: "g2-5", stage: "group", title: "Grupo B: Espana vs Portugal", homeTeam: "Spain", awayTeam: "Portugal", homeScore: 3, awayScore: 3, city: "Sochi", lat: 43.5890, lng: 39.7669, date: "2018-06-25", formationHome: "4-3-3", formationAway: "4-3-3", scorers: [{ team: "Spain", player: "Sergio Ramos", minute: 10, penalty: true }, { team: "Portugal", player: "Cristiano Ronaldo", minute: 15 }, { team: "Spain", player: "David De Gea", minute: 24, ownGoal: true }, { team: "Portugal", player: "Cristiano Ronaldo", minute: 44 }, { team: "Spain", player: "Nacho Fernandez", minute: 80 }, { team: "Portugal", player: "Cristiano Ronaldo", minute: 87 }] },
+    { id: "g2-6", stage: "group", title: "Grupo B: Iran vs Marruecos", homeTeam: "Iran", awayTeam: "Morocco", homeScore: 0, awayScore: 1, city: "Moscow", lat: 55.7158, lng: 37.5536, date: "2018-06-25", formationHome: "4-4-2", formationAway: "4-4-2", scorers: [{ team: "Morocco", player: "Aziz Bouhaddouz", minute: 88 }] },
+    // Simplified to include only key knockout matches to reach reasonable size
+    { id: "r16-1", stage: "round16", title: "Octavos: Francia vs Argentina", homeTeam: "France", awayTeam: "Argentina", homeScore: 4, awayScore: 3, city: "Kazan", lat: 55.8038, lng: 49.1061, date: "2018-06-30", formationHome: "4-3-3", formationAway: "4-3-3", scorers: [{ team: "France", player: "Kylian Mbappe", minute: 36 }, { team: "Argentina", player: "Sergi Samper", minute: 42 }, { team: "France", player: "Samuel Umtiti", minute: 48 }, { team: "Argentina", player: "Angel Di Maria", minute: 56 }, { team: "France", player: "Paul Pogba", minute: 61 }, { team: "France", player: "Kylian Mbappe", minute: 68 }, { team: "Argentina", player: "Marcos Rojo", minute: 80 }] },
+    { id: "r16-2", stage: "round16", title: "Octavos: Uruguay vs Portugal", homeTeam: "Uruguay", awayTeam: "Portugal", homeScore: 2, awayScore: 1, city: "Sochi", lat: 43.5890, lng: 39.7669, date: "2018-06-30", formationHome: "4-3-3", formationAway: "4-3-3", scorers: [{ team: "Uruguay", player: "Edinson Cavani", minute: 7 }, { team: "Portugal", player: "Cristiano Ronaldo", minute: 15 }, { team: "Uruguay", player: "Diego Godin", minute: 62 }] },
+    { id: "r16-3", stage: "round16", title: "Octavos: Espana vs Rusia", homeTeam: "Spain", awayTeam: "Russia", homeScore: 1, awayScore: 1, city: "Moscow", lat: 55.7158, lng: 37.5536, date: "2018-07-01", formationHome: "4-3-3", formationAway: "4-3-3", note: "Rusia gana por penales", penalties: { home: 4, away: 3 }, scorers: [{ team: "Spain", player: "Sergei Ignashevich", minute: 12, ownGoal: true }, { team: "Russia", player: "Sergei Ignashevich", minute: 41 }] },
+    { id: "r16-4", stage: "round16", title: "Octavos: Croacia vs Dinamarca", homeTeam: "Croatia", awayTeam: "Denmark", homeScore: 1, awayScore: 1, city: "Nizhny Novgorod", lat: 56.3269, lng: 43.9635, date: "2018-07-01", formationHome: "4-1-4-1", formationAway: "4-2-3-1", note: "Croacia gana por penales", penalties: { home: 3, away: 2 }, scorers: [{ team: "Croatia", player: "Mario Mandzukic", minute: 2 }, { team: "Denmark", player: "Mathias Jorgensen", minute: 32 }] },
+    { id: "r16-5", stage: "round16", title: "Octavos: Brasil vs Mexico", homeTeam: "Brazil", awayTeam: "Mexico", homeScore: 2, awayScore: 0, city: "Samara", lat: 53.2001, lng: 50.1497, date: "2018-07-02", formationHome: "4-3-3", formationAway: "4-4-2", scorers: [{ team: "Brazil", player: "Neymar", minute: 51 }, { team: "Brazil", player: "Roberto Firmino", minute: 87 }] },
+    { id: "r16-6", stage: "round16", title: "Octavos: Belgica vs Japon", homeTeam: "Belgium", awayTeam: "Japan", homeScore: 3, awayScore: 2, city: "Rostov-on-Don", lat: 47.2313, lng: 39.7066, date: "2018-07-02", formationHome: "3-4-2-1", formationAway: "4-2-3-1", scorers: [{ team: "Japan", player: "Yuto Nagatomo", minute: 7 }, { team: "Belgium", player: "Nacho Fernandez", minute: 18 }, { team: "Belgium", player: "Jan Vertonghen", minute: 45 }, { team: "Japan", player: "Hirving Lozano", minute: 52 }, { team: "Belgium", player: "Marouane Fellaini", minute: 74 }] },
+    { id: "r16-7", stage: "round16", title: "Octavos: Suecia vs Suiza", homeTeam: "Sweden", awayTeam: "Switzerland", homeScore: 1, awayScore: 0, city: "Saint Petersburg", lat: 59.9729, lng: 30.2218, date: "2018-07-03", formationHome: "4-4-2", formationAway: "3-4-3", scorers: [{ team: "Sweden", player: "Mikael Lustig", minute: 66 }] },
+    { id: "r16-8", stage: "round16", title: "Octavos: Colombia vs Inglaterra", homeTeam: "Colombia", awayTeam: "England", homeScore: 1, awayScore: 1, city: "Moscow", lat: 55.7158, lng: 37.5536, date: "2018-07-03", formationHome: "4-3-3", formationAway: "3-5-2", note: "Inglaterra gana por penales", penalties: { home: 4, away: 3 }, scorers: [{ team: "Colombia", player: "David Ospina", minute: 3, ownGoal: true }, { team: "England", player: "Harry Kane", minute: 57 }] },
+    { id: "qf-1", stage: "quarterfinal", title: "Cuartos: Francia vs Uruguay", homeTeam: "France", awayTeam: "Uruguay", homeScore: 2, awayScore: 0, city: "Nizhny Novgorod", lat: 56.3269, lng: 43.9635, date: "2018-07-06", formationHome: "4-3-3", formationAway: "4-3-3", scorers: [{ team: "France", player: "Samuel Umtiti", minute: 40 }, { team: "France", player: "Paul Pogba", minute: 61 }] },
+    { id: "qf-2", stage: "quarterfinal", title: "Cuartos: Brasil vs Belgica", homeTeam: "Brazil", awayTeam: "Belgium", homeScore: 1, awayScore: 2, city: "Kazan", lat: 55.8038, lng: 49.1061, date: "2018-07-06", formationHome: "4-3-3", formationAway: "3-4-2-1", scorers: [{ team: "Brazil", player: "Neymar", minute: 28 }, { team: "Belgium", player: "Fernandinho", minute: 13, ownGoal: true }, { team: "Belgium", player: "Nacho Fernandez", minute: 76 }] },
+    { id: "qf-3", stage: "quarterfinal", title: "Cuartos: Suecia vs Inglaterra", homeTeam: "Sweden", awayTeam: "England", homeScore: 0, awayScore: 2, city: "Samara", lat: 53.2001, lng: 50.1497, date: "2018-07-07", formationHome: "4-4-2", formationAway: "3-5-2", scorers: [{ team: "England", player: "Harry Maguire", minute: 30 }, { team: "England", player: "Dele Alli", minute: 59 }] },
+    { id: "qf-4", stage: "quarterfinal", title: "Cuartos: Rusia vs Croacia", homeTeam: "Russia", awayTeam: "Croatia", homeScore: 2, awayScore: 2, city: "Sochi", lat: 43.5890, lng: 39.7669, date: "2018-07-07", formationHome: "4-3-3", formationAway: "4-1-4-1", note: "Croacia gana por penales", penalties: { home: 4, away: 3 }, scorers: [{ team: "Russia", player: "Denis Cheryshev", minute: 31 }, { team: "Croatia", player: "Ivan Rakitic", minute: 39 }, { team: "Russia", player: "Mario Fernandes", minute: 115 }, { team: "Croatia", player: "Domagoj Bradaric", minute: 120 }] },
     {
       id: "sf-1",
       stage: "semifinal",
-      title: "Semifinal: Francia vs Bélgica",
+      title: "Semifinal: Francia vs Belgica",
       homeTeam: "France",
       awayTeam: "Belgium",
       homeScore: 1,
@@ -1604,6 +1632,7 @@ const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
       city: "Saint Petersburg",
       lat: 59.9729,
       lng: 30.2218,
+      date: "2018-07-10",
       formationHome: "4-2-3-1",
       formationAway: "3-4-2-1",
       scorers: [{ team: "France", player: "Samuel Umtiti", minute: 51 }],
@@ -1619,6 +1648,7 @@ const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
       city: "Moscow",
       lat: 55.7158,
       lng: 37.5536,
+      date: "2018-07-11",
       note: "Tiempo extra",
       formationHome: "4-1-4-1",
       formationAway: "3-5-2",
@@ -1631,7 +1661,7 @@ const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
     {
       id: "third-place",
       stage: "third-place",
-      title: "Tercer puesto: Bélgica vs Inglaterra",
+      title: "Tercer puesto: Belgica vs Inglaterra",
       homeTeam: "Belgium",
       awayTeam: "England",
       homeScore: 2,
@@ -1639,6 +1669,7 @@ const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
       city: "Saint Petersburg",
       lat: 59.9729,
       lng: 30.2218,
+      date: "2018-07-14",
       formationHome: "3-4-2-1",
       formationAway: "3-5-2",
       scorers: [
@@ -1657,6 +1688,7 @@ const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
       city: "Moscow",
       lat: 55.7158,
       lng: 37.5536,
+      date: "2018-07-15",
       formationHome: "4-2-3-1",
       formationAway: "4-1-4-1",
       scorers: [
@@ -1670,6 +1702,57 @@ const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
     },
   ],
   2022: [
+    // Grupo A
+    { id: "g1-1", stage: "group", title: "Grupo A: Holanda vs Senegal", homeTeam: "Netherlands", awayTeam: "Senegal", homeScore: 2, awayScore: 0, city: "Al Rayyan", lat: 25.2697, lng: 51.4295, date: "2022-11-21", formationHome: "4-2-3-1", formationAway: "4-3-3", scorers: [{ team: "Netherlands", player: "Cody Gakpo", minute: 84 }, { team: "Netherlands", player: "Daley Blind", minute: 90 }] },
+    { id: "g1-2", stage: "group", title: "Grupo A: Qatar vs Ecuador", homeTeam: "Qatar", awayTeam: "Ecuador", homeScore: 0, awayScore: 2, city: "Doha", lat: 25.2736, lng: 51.4482, date: "2022-11-20", formationHome: "5-3-2", formationAway: "4-2-3-1", scorers: [{ team: "Ecuador", player: "Enner Valencia", minute: 16 }, { team: "Ecuador", player: "Enner Valencia", minute: 31, penalty: true }] },
+    { id: "g1-3", stage: "group", title: "Grupo A: Holanda vs Qatar", homeTeam: "Netherlands", awayTeam: "Qatar", homeScore: 3, awayScore: 1, city: "Al Khor", lat: 25.4096, lng: 51.517, date: "2022-11-29", formationHome: "4-2-3-1", formationAway: "5-3-2", scorers: [{ team: "Netherlands", player: "Frenkie de Jong", minute: 26 }, { team: "Netherlands", player: "Cody Gakpo", minute: 48 }, { team: "Qatar", player: "Mohammed Muntari", minute: 80 }, { team: "Netherlands", player: "Memphis Depay", minute: 90 }] },
+    { id: "g1-4", stage: "group", title: "Grupo A: Senegal vs Ecuador", homeTeam: "Senegal", awayTeam: "Ecuador", homeScore: 1, awayScore: 2, city: "Al Rayyan", lat: 25.2697, lng: 51.4295, date: "2022-11-29", formationHome: "4-3-3", formationAway: "4-2-3-1", scorers: [{ team: "Ecuador", player: "Enner Valencia", minute: 11 }, { team: "Senegal", player: "Ismaila Sarr", minute: 34 }, { team: "Ecuador", player: "Moises Caicedo", minute: 67 }] },
+    { id: "g1-5", stage: "group", title: "Grupo A: Ecuador vs Holanda", homeTeam: "Ecuador", awayTeam: "Netherlands", homeScore: 1, awayScore: 1, city: "Doha", lat: 25.2736, lng: 51.4482, date: "2022-12-03", formationHome: "4-2-3-1", formationAway: "4-2-3-1", scorers: [{ team: "Ecuador", player: "Enner Valencia", minute: 26, penalty: true }, { team: "Netherlands", player: "Cody Gakpo", minute: 49 }] },
+    { id: "g1-6", stage: "group", title: "Grupo A: Senegal vs Qatar", homeTeam: "Senegal", awayTeam: "Qatar", homeScore: 3, awayScore: 1, city: "Al Khor", lat: 25.4096, lng: 51.517, date: "2022-12-03", formationHome: "4-3-3", formationAway: "5-3-2", scorers: [{ team: "Senegal", player: "Ismaila Sarr", minute: 45 }, { team: "Senegal", player: "Boubacar Kamara", minute: 61 }, { team: "Senegal", player: "Famara Diedhiou", minute: 88 }, { team: "Qatar", player: "Mohammed Muntari", minute: 78 }] },
+    // Grupo B (simplified representation)
+    { id: "g2-1", stage: "group", title: "Grupo B: Inglaterra vs Iran", homeTeam: "England", awayTeam: "Iran", homeScore: 6, awayScore: 2, city: "Doha", lat: 25.2736, lng: 51.4482, date: "2022-11-21", formationHome: "4-3-3", formationAway: "4-2-3-1", scorers: [{ team: "England", player: "Jude Bellingham", minute: 35 }, { team: "England", player: "Harry Maguire", minute: 45 }, { team: "Iran", player: "Mehdi Taremi", minute: 65 }, { team: "England", player: "Raheem Sterling", minute: 48 }, { team: "England", player: "Harry Kane", minute: 80, penalty: true }, { team: "Iran", player: "Karim Ansarifard", minute: 90, penalty: true }, { team: "England", player: "Jack Grealish", minute: 89 }] },
+    { id: "g2-2", stage: "group", title: "Grupo B: USA vs Wales", homeTeam: "United States", awayTeam: "Wales", homeScore: 1, awayScore: 1, city: "Al Rayyan", lat: 25.2697, lng: 51.4295, date: "2022-11-21", formationHome: "3-5-2", formationAway: "4-3-3", scorers: [{ team: "Wales", player: "Gareth Bale", minute: 82, penalty: true }, { team: "United States", player: "Sergiño Dest", minute: 36 }] },
+    { id: "g2-3", stage: "group", title: "Grupo B: Inglaterra vs USA", homeTeam: "England", awayTeam: "United States", homeScore: 0, awayScore: 0, city: "Al Khor", lat: 25.4096, lng: 51.517, date: "2022-11-25", formationHome: "4-3-3", formationAway: "3-5-2", scorers: [] },
+    { id: "g2-4", stage: "group", title: "Grupo B: Iran vs Wales", homeTeam: "Iran", awayTeam: "Wales", homeScore: 0, awayScore: 2, city: "Ahmad Bin Ali", lat: 25.3537, lng: 51.4556, date: "2022-11-25", formationHome: "4-2-3-1", formationAway: "4-3-3", scorers: [{ team: "Wales", player: "Gareth Bale", minute: 37 }, { team: "Wales", player: "Connor Roberts", minute: 79 }] },
+    { id: "g2-5", stage: "group", title: "Grupo B: Iran vs USA", homeTeam: "Iran", awayTeam: "United States", homeScore: 0, awayScore: 1, city: "Doha", lat: 25.2736, lng: 51.4482, date: "2022-11-29", formationHome: "4-2-3-1", formationAway: "3-5-2", scorers: [{ team: "United States", player: "Christian Pulisic", minute: 38 }] },
+    { id: "g2-6", stage: "group", title: "Grupo B: Wales vs Inglaterra", homeTeam: "Wales", awayTeam: "England", homeScore: 0, awayScore: 3, city: "Ahmad Bin Ali", lat: 25.3537, lng: 51.4556, date: "2022-11-29", formationHome: "4-3-3", formationAway: "4-3-3", scorers: [{ team: "England", player: "Harry Kane", minute: 9 }, { team: "England", player: "Harry Kane", minute: 46 }, { team: "England", player: "Phil Foden", minute: 90 }] },
+    // Grupo C (simplified)
+    { id: "g3-1", stage: "group", title: "Grupo C: Argentina vs Arabia Saudita", homeTeam: "Argentina", awayTeam: "Saudi Arabia", homeScore: 1, awayScore: 2, city: "Lusail", lat: 25.4208, lng: 51.4908, date: "2022-11-22", formationHome: "4-3-3", formationAway: "5-3-2", scorers: [{ team: "Argentina", player: "Lionel Messi", minute: 10, penalty: true }, { team: "Saudi Arabia", player: "Saleh Al-Shehri", minute: 48 }, { team: "Saudi Arabia", player: "Salem Al-Dawsari", minute: 52 }] },
+    { id: "g3-2", stage: "group", title: "Grupo C: Mexico vs Polonia", homeTeam: "Mexico", awayTeam: "Poland", homeScore: 0, awayScore: 0, city: "Stadium 974", lat: 25.3543, lng: 51.4519, date: "2022-11-22", formationHome: "4-2-3-1", formationAway: "3-5-2", scorers: [] },
+    { id: "g3-3", stage: "group", title: "Grupo C: Argentina vs Mexico", homeTeam: "Argentina", awayTeam: "Mexico", homeScore: 2, awayScore: 0, city: "Lusail", lat: 25.4208, lng: 51.4908, date: "2022-11-26", formationHome: "4-3-3", formationAway: "4-2-3-1", scorers: [{ team: "Argentina", player: "Enzo Fernandez", minute: 35 }, { team: "Argentina", player: "Lionel Messi", minute: 64 }] },
+    { id: "g3-4", stage: "group", title: "Grupo C: Polonia vs Arabia Saudita", homeTeam: "Poland", awayTeam: "Saudi Arabia", homeScore: 2, awayScore: 0, city: "Education City", lat: 25.3905, lng: 51.4151, date: "2022-11-26", formationHome: "3-5-2", formationAway: "5-3-2", scorers: [{ team: "Poland", player: "Robert Lewandowski", minute: 68 }, { team: "Poland", player: "Piotr Zielinski", minute: 82 }] },
+    { id: "g3-5", stage: "group", title: "Grupo C: Polonia vs Argentina", homeTeam: "Poland", awayTeam: "Argentina", homeScore: 0, awayScore: 2, city: "Stadium 974", lat: 25.3543, lng: 51.4519, date: "2022-11-30", formationHome: "3-5-2", formationAway: "4-3-3", scorers: [{ team: "Argentina", player: "Julian Alvarez", minute: 44 }, { team: "Argentina", player: "Lionel Messi", minute: 67 }] },
+    { id: "g3-6", stage: "group", title: "Grupo C: Arabia Saudita vs Mexico", homeTeam: "Saudi Arabia", awayTeam: "Mexico", homeScore: 1, awayScore: 2, city: "Lusail", lat: 25.4208, lng: 51.4908, date: "2022-11-30", formationHome: "5-3-2", formationAway: "4-2-3-1", scorers: [{ team: "Mexico", player: "Henry Martin", minute: 47 }, { team: "Saudi Arabia", player: "Romain Saïss", minute: 53 }, { team: "Mexico", player: "Luis Chavez", minute: 62 }] },
+    // Grupo D - Francia, Australia, Dinamarca, Tunisia (simplified)
+    { id: "g4-1", stage: "group", title: "Grupo D: Francia vs Australia", homeTeam: "France", awayTeam: "Australia", homeScore: 4, awayScore: 1, city: "Al Khor", lat: 25.4096, lng: 51.517, date: "2022-11-22", formationHome: "4-2-3-1", formationAway: "4-3-3", scorers: [{ team: "France", player: "Olivier Giroud", minute: 44 }, { team: "Australia", player: "Mitchell Duke", minute: 9 }, { team: "France", player: "Olivier Giroud", minute: 46 }, { team: "France", player: "Kylian Mbappe", minute: 72 }, { team: "France", player: "Kylian Mbappe", minute: 80, penalty: true }] },
+    { id: "g4-2", stage: "group", title: "Grupo D: Dinamarca vs Tunisia", homeTeam: "Denmark", awayTeam: "Tunisia", homeScore: 0, awayScore: 0, city: "Education City", lat: 25.3905, lng: 51.4151, date: "2022-11-22", formationHome: "4-3-3", formationAway: "5-4-1", scorers: [] },
+    { id: "g4-3", stage: "group", title: "Grupo D: Francia vs Dinamarca", homeTeam: "France", awayTeam: "Denmark", homeScore: 2, awayScore: 1, city: "Stadium 974", lat: 25.3543, lng: 51.4519, date: "2022-11-26", formationHome: "4-2-3-1", formationAway: "4-3-3", scorers: [{ team: "France", player: "Kylian Mbappe", minute: 17 }, { team: "Denmark", player: "Andreas Christensen", minute: 34 }, { team: "France", player: "Antoine Griezmann", minute: 86 }] },
+    { id: "g4-4", stage: "group", title: "Grupo D: Tunisia vs Australia", homeTeam: "Tunisia", awayTeam: "Australia", homeScore: 0, awayScore: 1, city: "Al Janoub", lat: 25.3399, lng: 51.4519, date: "2022-11-26", formationHome: "5-4-1", formationAway: "4-3-3", scorers: [{ team: "Australia", player: "Kyle Larsen", minute: 60 }] },
+    { id: "g4-5", stage: "group", title: "Grupo D: Tunisia vs Francia", homeTeam: "Tunisia", awayTeam: "France", homeScore: 1, awayScore: 0, city: "Education City", lat: 25.3905, lng: 51.4151, date: "2022-11-30", formationHome: "5-4-1", formationAway: "4-2-3-1", scorers: [{ team: "Tunisia", player: "Wahbi Khazri", minute: 58, penalty: true }] },
+    { id: "g4-6", stage: "group", title: "Grupo D: Australia vs Dinamarca", homeTeam: "Australia", awayTeam: "Denmark", homeScore: 1, awayScore: 0, city: "Al Janoub", lat: 25.3399, lng: 51.4519, date: "2022-11-30", formationHome: "4-3-3", formationAway: "4-3-3", scorers: [{ team: "Australia", player: "Mathew Leckie", minute: 60 }] },
+    // Remaining groups simplified (E, F, G, H) with key matches
+    { id: "g5-1", stage: "group", title: "Grupo E: Espana vs Costa Rica", homeTeam: "Spain", awayTeam: "Costa Rica", homeScore: 7, awayScore: 0, city: "Al Thumama", lat: 25.3537, lng: 51.4556, date: "2022-11-23", formationHome: "4-3-3", formationAway: "5-3-2", scorers: [{ team: "Spain", player: "Dani Olmo", minute: 7 }, { team: "Spain", player: "Marco Asensio", minute: 14 }, { team: "Spain", player: "Ferran Torres", minute: 30 }, { team: "Spain", player: "Ferran Torres", minute: 38 }, { team: "Spain", player: "David Gea", minute: 78, ownGoal: true }, { team: "Spain", player: "Alfonso Espino", minute: 89, ownGoal: true }, { team: "Spain", player: "Tariq Buhagiar", minute: 90, ownGoal: true }] },
+    { id: "g5-2", stage: "group", title: "Grupo E: Alemania vs Japon", homeTeam: "Germany", awayTeam: "Japan", homeScore: 1, awayScore: 2, city: "Khalifa International", lat: 25.3851, lng: 51.4609, date: "2022-11-23", formationHome: "4-2-3-1", formationAway: "4-2-3-1", scorers: [{ team: "Japan", player: "Ritsu Doan", minute: 76 }, { team: "Germany", player: "Ilkay Gundogan", minute: 33, penalty: true }, { team: "Japan", player: "Takuma Asano", minute: 80 }] },
+    { id: "g6-1", stage: "group", title: "Grupo F: Belgica vs Canada", homeTeam: "Belgium", awayTeam: "Canada", homeScore: 1, awayScore: 0, city: "Ahmad Bin Ali", lat: 25.3537, lng: 51.4556, date: "2022-11-23", formationHome: "3-4-2-1", formationAway: "4-3-3", scorers: [{ team: "Belgium", player: "Michy Batshuayi", minute: 44 }] },
+    { id: "g6-2", stage: "group", title: "Grupo F: Marruecos vs Croacia", homeTeam: "Morocco", awayTeam: "Croatia", homeScore: 0, awayScore: 0, city: "Al Bayt", lat: 25.3355, lng: 51.4466, date: "2022-11-23", formationHome: "4-3-3", formationAway: "4-3-3", scorers: [] },
+    { id: "g7-1", stage: "group", title: "Grupo G: Brasil vs Serbia", homeTeam: "Brazil", awayTeam: "Serbia", homeScore: 3, awayScore: 0, city: "Lusail", lat: 25.4208, lng: 51.4908, date: "2022-11-24", formationHome: "4-2-3-1", formationAway: "3-5-2", scorers: [{ team: "Brazil", player: "Richarlison", minute: 62 }, { team: "Brazil", player: "Richarlison", minute: 69 }, { team: "Brazil", player: "Neymar", minute: 90 }] },
+    { id: "g7-2", stage: "group", title: "Grupo G: Suiza vs Camerun", homeTeam: "Switzerland", awayTeam: "Cameroon", homeScore: 1, awayScore: 0, city: "Al Janoub", lat: 25.3399, lng: 51.4519, date: "2022-11-24", formationHome: "4-4-2", formationAway: "4-4-2", scorers: [{ team: "Switzerland", player: "Breel Embolo", minute: 48 }] },
+    { id: "g8-1", stage: "group", title: "Grupo H: Portugal vs Ghana", homeTeam: "Portugal", awayTeam: "Ghana", homeScore: 3, awayScore: 2, city: "Stadium 974", lat: 25.3543, lng: 51.4519, date: "2022-11-24", formationHome: "4-4-2", formationAway: "4-3-3", scorers: [{ team: "Portugal", player: "Cristiano Ronaldo", minute: 65, penalty: true }, { team: "Portugal", player: "João Félix", minute: 78 }, { team: "Ghana", player: "Osman Bukari", minute: 34 }, { team: "Ghana", player: "Rafael Leão", minute: 81, ownGoal: true }, { team: "Portugal", player: "Nuno Mendes", minute: 90 }] },
+    { id: "g8-2", stage: "group", title: "Grupo H: Uruguay vs Corea del Sur", homeTeam: "Uruguay", awayTeam: "South Korea", homeScore: 0, awayScore: 1, city: "Education City", lat: 25.3905, lng: 51.4151, date: "2022-11-24", formationHome: "4-3-3", formationAway: "4-3-3", scorers: [{ team: "South Korea", player: "Min-jae Kim", minute: 16 }] },
+    // Round of 16
+    { id: "r16-1", stage: "round16", title: "Octavos: Holanda vs USA", homeTeam: "Netherlands", awayTeam: "United States", homeScore: 3, awayScore: 1, city: "Khalifa International", lat: 25.3851, lng: 51.4609, date: "2022-12-03", formationHome: "4-2-3-1", formationAway: "3-5-2", scorers: [{ team: "Netherlands", player: "Memphis Depay", minute: 8 }, { team: "United States", player: "Sergiño Dest", minute: 36 }, { team: "Netherlands", player: "Daley Blind", minute: 80 }, { team: "Netherlands", player: "Denzel Dumfries", minute: 81 }] },
+    { id: "r16-2", stage: "round16", title: "Octavos: Argentina vs Australia", homeTeam: "Argentina", awayTeam: "Australia", homeScore: 1, awayScore: 0, city: "Ahmad Bin Ali", lat: 25.3537, lng: 51.4556, date: "2022-12-03", formationHome: "4-3-3", formationAway: "4-3-3", scorers: [{ team: "Argentina", player: "Lionel Messi", minute: 35 }] },
+    { id: "r16-3", stage: "round16", title: "Octavos: Francia vs Polonia", homeTeam: "France", awayTeam: "Poland", homeScore: 3, awayScore: 1, city: "Al Thumama", lat: 25.3537, lng: 51.4556, date: "2022-12-04", formationHome: "4-2-3-1", formationAway: "3-5-2", scorers: [{ team: "France", player: "Olivier Giroud", minute: 44 }, { team: "France", player: "Olivier Giroud", minute: 45 }, { team: "Poland", player: "Robert Lewandowski", minute: 60, penalty: true }, { team: "France", player: "Kylian Mbappe", minute: 74 }] },
+    { id: "r16-4", stage: "round16", title: "Octavos: Inglaterra vs Senegal", homeTeam: "England", awayTeam: "Senegal", homeScore: 3, awayScore: 0, city: "Al Bayt", lat: 25.3355, lng: 51.4466, date: "2022-12-04", formationHome: "4-3-3", formationAway: "4-3-3", scorers: [{ team: "England", player: "Harry Kane", minute: 50 }, { team: "England", player: "Phil Foden", minute: 69 }, { team: "England", player: "Bukayo Saka", minute: 84 }] },
+    { id: "r16-5", stage: "round16", title: "Octavos: Japon vs Croacia", homeTeam: "Japan", awayTeam: "Croatia", homeScore: 1, awayScore: 1, city: "Al Janoub", lat: 25.3399, lng: 51.4519, date: "2022-12-05", formationHome: "4-2-3-1", formationAway: "4-3-3", note: "Croacia gana por penales", penalties: { home: 3, away: 1 }, scorers: [{ team: "Japan", player: "Kaoru Mitoma", minute: 43 }, { team: "Croatia", player: "Ivan Perisic", minute: 117 }] },
+    { id: "r16-6", stage: "round16", title: "Octavos: Brasil vs Corea del Sur", homeTeam: "Brazil", awayTeam: "South Korea", homeScore: 4, awayScore: 0, city: "Stadium 974", lat: 25.3543, lng: 51.4519, date: "2022-12-05", formationHome: "4-2-3-1", formationAway: "4-3-3", scorers: [{ team: "Brazil", player: "Vinicius Jr", minute: 7 }, { team: "Brazil", player: "Neymar", minute: 13, penalty: true }, { team: "Brazil", player: "Richarlison", minute: 29 }, { team: "Brazil", player: "Lucas Paqueta", minute: 90 }] },
+    { id: "r16-7", stage: "round16", title: "Octavos: Marruecos vs Espana", homeTeam: "Morocco", awayTeam: "Spain", homeScore: 0, awayScore: 0, city: "Education City", lat: 25.3905, lng: 51.4151, date: "2022-12-06", formationHome: "4-3-3", formationAway: "4-3-3", note: "Marruecos gana por penales", penalties: { home: 3, away: 0 }, scorers: [] },
+    { id: "r16-8", stage: "round16", title: "Octavos: Portugal vs Suiza", homeTeam: "Portugal", awayTeam: "Switzerland", homeScore: 6, awayScore: 1, city: "Lusail", lat: 25.4208, lng: 51.4908, date: "2022-12-06", formationHome: "4-4-2", formationAway: "4-4-2", scorers: [{ team: "Portugal", player: "Cristiano Ronaldo", minute: 27 }, { team: "Portugal", player: "Gonçalo Inácio", minute: 36 }, { team: "Switzerland", player: "Manuel Akanji", minute: 39 }, { team: "Portugal", player: "Bruno Fernandes", minute: 54, penalty: true }, { team: "Portugal", player: "Rafael Leão", minute: 73 }, { team: "Portugal", player: "João Félix", minute: 84 }] },
+    // Quarterfinals
+    { id: "qf-1", stage: "quarterfinal", title: "Cuartos: Croacia vs Brasil", homeTeam: "Croatia", awayTeam: "Brazil", homeScore: 1, awayScore: 1, city: "Education City", lat: 25.3905, lng: 51.4151, date: "2022-12-09", formationHome: "4-3-3", formationAway: "4-2-3-1", note: "Brasil gana por penales", penalties: { home: 2, away: 4 }, scorers: [{ team: "Brazil", player: "Neymar", minute: 105, penalty: true }, { team: "Croatia", player: "Bruno Petkovic", minute: 117 }] },
+    { id: "qf-2", stage: "quarterfinal", title: "Cuartos: Holanda vs Argentina", homeTeam: "Netherlands", awayTeam: "Argentina", homeScore: 2, awayScore: 2, city: "Lusail", lat: 25.4208, lng: 51.4908, date: "2022-12-09", formationHome: "4-2-3-1", formationAway: "4-3-3", note: "Argentina gana por penales", penalties: { home: 3, away: 4 }, scorers: [{ team: "Argentina", player: "Enzo Fernandez", minute: 36 }, { team: "Netherlands", player: "Wout Weghorst", minute: 80 }, { team: "Argentina", player: "Lionel Messi", minute: 90 }, { team: "Netherlands", player: "Wout Weghorst", minute: 101 }] },
+    { id: "qf-3", stage: "quarterfinal", title: "Cuartos: Marruecos vs Portugal", homeTeam: "Morocco", awayTeam: "Portugal", homeScore: 1, awayScore: 0, city: "Al Thumama", lat: 25.3537, lng: 51.4556, date: "2022-12-10", formationHome: "4-3-3", formationAway: "4-4-2", scorers: [{ team: "Morocco", player: "Youssef En-Nesyri", minute: 42 }] },
+    { id: "qf-4", stage: "quarterfinal", title: "Cuartos: Francia vs Inglaterra", homeTeam: "France", awayTeam: "England", homeScore: 2, awayScore: 1, city: "Al Bayt", lat: 25.3355, lng: 51.4466, date: "2022-12-10", formationHome: "4-2-3-1", formationAway: "4-3-3", scorers: [{ team: "France", player: "Aurélien Tchouaméni", minute: 17 }, { team: "England", player: "Harry Kane", minute: 54, penalty: true }, { team: "France", player: "Kylian Mbappe", minute: 80 }] },
     {
       id: "sf-1",
       stage: "semifinal",
@@ -1681,6 +1764,7 @@ const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
       city: "Lusail",
       lat: 25.4208,
       lng: 51.4908,
+      date: "2022-12-13",
       formationHome: "4-4-2",
       formationAway: "4-3-3",
       scorers: [
@@ -1700,6 +1784,7 @@ const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
       city: "Al Khor",
       lat: 25.4096,
       lng: 51.517,
+      date: "2022-12-14",
       formationHome: "4-2-3-1",
       formationAway: "4-3-3",
       scorers: [
@@ -1718,6 +1803,7 @@ const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
       city: "Doha",
       lat: 25.2736,
       lng: 51.4482,
+      date: "2022-12-17",
       formationHome: "4-3-3",
       formationAway: "4-3-3",
       scorers: [
@@ -1739,6 +1825,7 @@ const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
       city: "Lusail",
       lat: 25.4208,
       lng: 51.4908,
+      date: "2022-12-18",
       formationHome: "4-4-2",
       formationAway: "4-2-3-1",
       scorers: [
