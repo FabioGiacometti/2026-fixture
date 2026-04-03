@@ -3,10 +3,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronRight, ArrowLeft, Globe, Map, BookOpen, Clock, Check } from "lucide-react";
+import { ChevronRight, ArrowLeft, Globe, Map as MapIcon, BookOpen, Clock, Check } from "lucide-react";
 import { Safari, HistoricalEvent, formatYear } from "@/data/historical-events";
 
 const STORAGE_KEY = "safari-historico-read";
+
+const stageOrder: Record<string, number> = {
+  group: 1,
+  round16: 2,
+  quarterfinal: 3,
+  semifinal: 4,
+  "third-place": 5,
+  final: 6,
+};
+
+const stageLabel: Record<string, string> = {
+  group: "Grupos",
+  round16: "Octavos",
+  quarterfinal: "Cuartos",
+  semifinal: "Semifinales",
+  "third-place": "Tercer puesto",
+  final: "Final",
+};
 
 function getReadSafaris(): Set<string> {
   try {
@@ -28,7 +46,9 @@ interface SafariSelectionModalProps {
   safaris: Safari[];
   allEvents: HistoricalEvent[];
   onSelectSafari: (safariId: string) => void;
+  onJumpToEvent?: (safariId: string, eventId: string) => void;
   onClose: () => void;
+  title?: string;
 }
 
 export default function SafariSelectionModal({
@@ -36,7 +56,9 @@ export default function SafariSelectionModal({
   safaris,
   allEvents,
   onSelectSafari,
-  onClose
+  onJumpToEvent,
+  onClose,
+  title = "Safaris Históricos",
 }: SafariSelectionModalProps) {
   const [view, setView] = useState<"list" | "detail">("list");
   const [selectedSafari, setSelectedSafari] = useState<Safari | null>(null);
@@ -46,7 +68,9 @@ export default function SafariSelectionModal({
     return [...safaris].sort((a, b) => {
       const aRead = readIds.has(a.id) ? 1 : 0;
       const bRead = readIds.has(b.id) ? 1 : 0;
-      return aRead - bRead;
+      if (aRead !== bRead) return aRead - bRead;
+      // Preserve caller-supplied order (worldCupSafaris is already newest-first)
+      return 0;
     });
   }, [safaris, readIds]);
 
@@ -66,10 +90,44 @@ export default function SafariSelectionModal({
     setSelectedSafari(null);
   };
 
+  const handleJumpToEvent = (safariId: string, eventId: string) => {
+    markSafariAsRead(safariId);
+    setReadIds(getReadSafaris());
+    if (onJumpToEvent) {
+      onJumpToEvent(safariId, eventId);
+      return;
+    }
+    onSelectSafari(safariId);
+  };
+
   const getSafariEvents = (safari: Safari) => {
     return safari.eventIds
       .map(id => allEvents.find(e => e.id === id))
       .filter((e): e is HistoricalEvent => !!e);
+  };
+
+  const getFixtureOverview = (safari: Safari) => {
+    const matchEvents = getSafariEvents(safari)
+      .filter((event) => event.eventType === "match")
+      .sort((a, b) => {
+        const stageA = stageOrder[a.stage ?? "group"] ?? 99;
+        const stageB = stageOrder[b.stage ?? "group"] ?? 99;
+        if (stageA !== stageB) return stageA - stageB;
+        return a.title.localeCompare(b.title);
+      });
+
+    const grouped = new Map<string, HistoricalEvent[]>();
+    matchEvents.forEach((event) => {
+      const key = event.stage ?? "group";
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(event);
+    });
+
+    return Array.from(grouped.entries()).map(([stage, events]) => ({
+      stage,
+      label: stageLabel[stage] ?? stage,
+      events,
+    }));
   };
 
   const getOptimizedWikiUrl = (url: string, size: number) => {
@@ -78,6 +136,11 @@ export default function SafariSelectionModal({
     }
     return url;
   };
+
+  const fixtureOverview = useMemo(() => {
+    if (!selectedSafari) return [] as Array<{ stage: string; label: string; events: HistoricalEvent[] }>;
+    return getFixtureOverview(selectedSafari);
+  }, [selectedSafari, allEvents]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -95,7 +158,7 @@ export default function SafariSelectionModal({
               </Button>
             )}
             <DialogTitle className="font-mono-space text-lg uppercase tracking-[0.2em] text-primary">
-              {view === "list" ? "Safaris Históricos" : selectedSafari?.name}
+              {view === "list" ? title : selectedSafari?.name}
             </DialogTitle>
           </div>
         </DialogHeader>
@@ -120,8 +183,11 @@ export default function SafariSelectionModal({
                             className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center opacity-20">
-                            <Globe className="w-12 h-12" />
+                          <div className="w-full h-full flex flex-col items-center justify-center opacity-80 px-4 text-center">
+                            <Globe className="w-10 h-10 mb-2 text-white/30" />
+                            <span className="font-mono-space text-[10px] uppercase tracking-widest text-white/60">
+                              {safari.thumbnailLabel ?? "No thumbnail"}
+                            </span>
                           </div>
                         )}
                         <div 
@@ -155,7 +221,7 @@ export default function SafariSelectionModal({
                   className="bg-white/5 border-dashed border-white/10 hover:border-white/30 transition-all cursor-pointer flex flex-col items-center justify-center p-6 text-center"
                   onClick={onClose}
                 >
-                  <Map className="w-8 h-8 text-white/20 mb-3" />
+                  <MapIcon className="w-8 h-8 text-white/20 mb-3" />
                   <h3 className="font-mono-space text-xs uppercase tracking-wider text-white/60">
                     Exploración Libre
                   </h3>
@@ -189,9 +255,10 @@ export default function SafariSelectionModal({
                       </div>
                       <div className="flex flex-col gap-2">
                         {getSafariEvents(selectedSafari).map((event, idx) => (
-                          <div 
+                          <button
                             key={event.id}
-                            className="bg-white/5 border border-white/5 rounded-lg p-3 flex items-center justify-between group hover:bg-white/10 transition-colors"
+                            onClick={() => handleJumpToEvent(selectedSafari.id, event.id)}
+                            className="w-full text-left bg-white/5 border border-white/5 rounded-lg p-3 flex items-center justify-between group hover:bg-white/10 transition-colors"
                           >
                             <div className="flex flex-col">
                               <span className="text-[10px] text-primary/70 font-mono-space">
@@ -204,10 +271,44 @@ export default function SafariSelectionModal({
                             <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-[10px] text-white/40 group-hover:bg-primary group-hover:text-black transition-colors">
                               {idx + 1}
                             </div>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>
+
+                    {/* Fixture overview by stage for World Cup safaris */}
+                    {fixtureOverview.length > 0 && (
+                      <div className="flex flex-col gap-4 mt-2">
+                        <div className="flex items-center gap-2 text-white/40">
+                          <Clock className="w-4 h-4" />
+                          <span className="font-mono-space text-[10px] uppercase tracking-[0.1em]">Fixture del torneo</span>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                          {fixtureOverview.map((group) => (
+                            <div key={group.stage} className="bg-white/[0.03] border border-white/5 rounded-lg p-3">
+                              <p className="font-mono-space text-[10px] uppercase tracking-widest text-primary mb-2">
+                                {group.label}
+                              </p>
+                              <div className="flex flex-col gap-2">
+                                {group.events.map((event) => (
+                                  <button
+                                    key={event.id}
+                                    onClick={() => handleJumpToEvent(selectedSafari.id, event.id)}
+                                    className="w-full text-left flex items-center justify-between gap-3 text-xs text-white/80 hover:text-white transition-colors"
+                                  >
+                                    <span className="font-semibold line-clamp-1">{event.homeTeam} vs {event.awayTeam}</span>
+                                    <span className="font-mono-space text-primary shrink-0">
+                                      {event.score?.home ?? "-"}-{event.score?.away ?? "-"}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </ScrollArea>

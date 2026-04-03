@@ -34,9 +34,11 @@ export default function CesiumGlobe({
   const polylineRef = useRef<any>(null);
   const onSelectRef = useRef(onSelectEvent);
   const onHoverRef = useRef(onHoverEvent);
+  const allEventsRef = useRef(allEvents);
 
   useEffect(() => { onSelectRef.current = onSelectEvent; }, [onSelectEvent]);
   useEffect(() => { onHoverRef.current = onHoverEvent; }, [onHoverEvent]);
+  useEffect(() => { allEventsRef.current = allEvents; }, [allEvents]);
 
   /* ── Initialize Cesium viewer once ── */
   useEffect(() => {
@@ -101,10 +103,8 @@ export default function CesiumGlobe({
       const picked = viewer.scene.pick(click.position);
       if (Cesium.defined(picked) && picked.id && picked.id._customEventId) {
         const eventId: string = picked.id._customEventId;
-        import("@/data/historical-events").then(({ historicalEvents }) => {
-          const found = historicalEvents.find((e) => e.id === eventId);
-          if (found) onSelectRef.current(found);
-        });
+        const found = allEventsRef.current.find((e) => e.id === eventId);
+        if (found) onSelectRef.current(found);
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
@@ -113,21 +113,19 @@ export default function CesiumGlobe({
       const picked = viewer.scene.pick(move.endPosition);
       if (Cesium.defined(picked) && picked.id && picked.id._customEventId) {
         const eventId: string = picked.id._customEventId;
-        import("@/data/historical-events").then(({ historicalEvents }) => {
-          const found = historicalEvents.find((e) => e.id === eventId);
-          if (found) {
-            const rect = viewer.scene.canvas.getBoundingClientRect();
-            onHoverRef.current(
-              found,
-              move.endPosition.x + rect.left,
-              move.endPosition.y + rect.top
-            );
-            viewer.scene.canvas.style.cursor = "pointer";
-          } else {
-            onHoverRef.current(null, 0, 0);
-            viewer.scene.canvas.style.cursor = "default";
-          }
-        });
+        const found = allEventsRef.current.find((e) => e.id === eventId);
+        if (found) {
+          const rect = viewer.scene.canvas.getBoundingClientRect();
+          onHoverRef.current(
+            found,
+            move.endPosition.x + rect.left,
+            move.endPosition.y + rect.top
+          );
+          viewer.scene.canvas.style.cursor = "pointer";
+        } else {
+          onHoverRef.current(null, 0, 0);
+          viewer.scene.canvas.style.cursor = "default";
+        }
       } else {
         onHoverRef.current(null, 0, 0);
         viewer.scene.canvas.style.cursor = "default";

@@ -21,6 +21,36 @@ export interface HistoricalEvent {
   importance: number; // 1: Global/Major, 2: Continental, 3: Regional/Local
   relatedEvents?: string[]; // IDs of related events
   media?: MediaItem[];
+  dataset?: "historical" | "worldcup";
+  eventType?: "milestone" | "match";
+  tournamentId?: string;
+  stage?: "group" | "round16" | "quarterfinal" | "semifinal" | "third-place" | "final";
+  homeTeam?: string;
+  awayTeam?: string;
+  homeFlag?: string;
+  awayFlag?: string;
+  score?: {
+    home: number;
+    away: number;
+    penalties?: { home: number; away: number };
+    note?: string;
+  };
+  formationHome?: string;
+  formationAway?: string;
+  winnerTeam?: string;
+  scorers?: Array<{
+    team: string;
+    player: string;
+    minute: number;
+    penalty?: boolean;
+    ownGoal?: boolean;
+  }>;
+  matchTimeline?: Array<{
+    minute: number;
+    type: "kickoff" | "halftime" | "goal" | "fulltime" | "penalty-shootout";
+    description: string;
+    team?: string;
+  }>;
 }
 
 export interface Safari {
@@ -31,6 +61,7 @@ export interface Safari {
   eventIds: string[];
   color?: string;
   thumbnail?: string;
+  thumbnailLabel?: string;
 }
 
 export const historicalEvents: HistoricalEvent[] = [
@@ -1898,8 +1929,8 @@ export function formatYear(year: number): string {
   return `${year} d.C.`;
 }
 
-export function getEventsInRange(year: number, windowSize = 300): HistoricalEvent[] {
-  return historicalEvents.filter(
+export function getEventsInRange(year: number, windowSize = 300, sourceEvents: HistoricalEvent[] = historicalEvents): HistoricalEvent[] {
+  return sourceEvents.filter(
     (e) => e.year >= year - windowSize && e.year <= year + windowSize
   );
 }

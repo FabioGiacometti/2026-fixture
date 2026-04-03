@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List, Play, Image as ImageIcon, ExternalLink, Globe, Video, Maximize2 } from "lucide-react";
 import { Safari, HistoricalEvent, formatYear } from "@/data/historical-events";
 
@@ -9,6 +9,7 @@ interface EventsListPanelProps {
   allEvents: HistoricalEvent[];
   selectedEvent: HistoricalEvent | null;
   currentYear: number;
+  windowSize: number;
   activeSafari?: Safari | null;
   onSelectEvent: (event: HistoricalEvent) => void;
   onYearChange: (year: number) => void;
@@ -26,11 +27,30 @@ const regionColors: Record<string, string> = {
   Espacio: "hsl(200 80% 70%)",
 };
 
+const stageOrder: Record<string, number> = {
+  group: 1,
+  round16: 2,
+  quarterfinal: 3,
+  semifinal: 4,
+  "third-place": 5,
+  final: 6,
+};
+
+const stageLabel: Record<string, string> = {
+  group: "Grupos",
+  round16: "Octavos",
+  quarterfinal: "Cuartos",
+  semifinal: "Semifinal",
+  "third-place": "3er puesto",
+  final: "Final",
+};
+
 export default function EventsListPanel({
   visibleEvents,
   allEvents,
   selectedEvent,
   currentYear,
+  windowSize,
   activeSafari,
   onSelectEvent,
   onYearChange,
@@ -41,6 +61,29 @@ export default function EventsListPanel({
 }: EventsListPanelProps) {
   const [panelState, setPanelState] = useState<PanelState>("collapsed");
   const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
+  const [panelWidth, setPanelWidth] = useState(300);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+
+  const handleDragStart = useCallback((e: React.PointerEvent) => {
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = panelWidth;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }, [panelWidth]);
+
+  const handleDragMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    // Dragging left increases width (panel is on the right)
+    const delta = dragStartX.current - e.clientX;
+    const next = Math.min(600, Math.max(220, dragStartWidth.current + delta));
+    setPanelWidth(next);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    isDragging.current = false;
+  }, []);
 
   // When a marker is clicked (selectedEvent changes), open detail
   useEffect(() => {
@@ -87,9 +130,6 @@ export default function EventsListPanel({
     onClose();
   };
 
-  const panelWidth =
-    panelState === "collapsed" ? "36px" : "300px";
-
   const sortedEventsList = [...visibleEvents].sort((a, b) => a.year - b.year);
   
   // For navigation (Back/Next), use all events sorted by year, OR safari events if active
@@ -106,6 +146,25 @@ export default function EventsListPanel({
   const hasPrev = selectedIndex > 0;
   const hasNext = selectedIndex !== -1 && selectedIndex < navigationEvents.length - 1;
   const isFinalSafariEvent = activeSafari && selectedIndex === navigationEvents.length - 1;
+
+  const safariMatchEvents = activeSafari
+    ? activeSafari.eventIds
+        .map((id) => allEvents.find((e) => e.id === id))
+        .filter((e): e is HistoricalEvent => !!e && e.eventType === "match")
+        .sort((a, b) => {
+          const stageA = stageOrder[a.stage ?? "group"] ?? 99;
+          const stageB = stageOrder[b.stage ?? "group"] ?? 99;
+          if (stageA !== stageB) return stageA - stageB;
+          return a.title.localeCompare(b.title);
+        })
+    : [];
+
+  const finalMatch = safariMatchEvents.find((match) => match.stage === "final");
+  const champion = finalMatch?.winnerTeam;
+  const semifinalWinners = safariMatchEvents
+    .filter((match) => match.stage === "semifinal")
+    .map((match) => match.winnerTeam)
+    .filter((team): team is string => !!team);
 
   const handlePrev = () => {
     if (hasPrev) {
@@ -177,9 +236,12 @@ export default function EventsListPanel({
 
       {/* ── Sliding panel content ── */}
       <div
-        className="flex flex-col overflow-hidden transition-all duration-300 ease-out"
+        className="flex flex-col overflow-hidden transition-[opacity,box-shadow] duration-300 ease-out"
         style={{
-          width: panelState !== "collapsed" ? "300px" : "0px",
+          width: panelState !== "collapsed" ? `${panelWidth}px` : "0px",
+          minWidth: panelState !== "collapsed" ? "220px" : undefined,
+          maxWidth: panelState !== "collapsed" ? "600px" : undefined,
+          transition: isDragging.current ? "none" : "width 300ms ease-out, opacity 300ms ease-out",
           background: "hsl(var(--card))",
           borderLeft: "1px solid hsl(var(--border))",
           boxShadow:
@@ -188,8 +250,30 @@ export default function EventsListPanel({
               : "none",
           opacity: panelState !== "collapsed" ? 1 : 0,
           pointerEvents: panelState !== "collapsed" ? "auto" : "none",
+          position: "relative",
         }}
       >
+        {/* ── Drag handle ── */}
+        {panelState !== "collapsed" && (
+          <div
+            onPointerDown={handleDragStart}
+            onPointerMove={handleDragMove}
+            onPointerUp={handleDragEnd}
+            onPointerCancel={handleDragEnd}
+            className="absolute left-0 top-0 h-full z-50 flex items-center justify-center"
+            style={{
+              width: "6px",
+              cursor: "ew-resize",
+              background: "transparent",
+            }}
+            title="Arrastra para redimensionar"
+          >
+            <div
+              className="h-12 rounded-full opacity-0 hover:opacity-100 transition-opacity"
+              style={{ width: "3px", background: "hsl(var(--primary) / 0.6)" }}
+            />
+          </div>
+        )}
         {/* ── LIST VIEW ── */}
         {panelState === "list" && (
           <>
@@ -224,7 +308,7 @@ export default function EventsListPanel({
                   className="font-mono-space text-[10px] mt-0.5"
                   style={{ color: "hsl(var(--muted-foreground))" }}
                 >
-                  {activeSafari ? `Narrativa Curada` : `± 300 años de ${formatYear(currentYear)}`}
+                  {activeSafari ? `Narrativa Curada` : `± ${windowSize} años de ${formatYear(currentYear)}`}
                 </p>
               </div>
               <button
@@ -292,6 +376,14 @@ export default function EventsListPanel({
                           >
                             {event.title}
                           </span>
+                          {event.eventType === "match" && event.homeTeam && event.awayTeam && event.score && (
+                            <span
+                              className="font-mono-space text-[10px]"
+                              style={{ color: "hsl(var(--muted-foreground))" }}
+                            >
+                              {event.homeFlag && <img src={`https://flagcdn.com/w20/${event.homeFlag.toLowerCase()}.png`} alt={event.homeTeam} className="inline h-3 mr-0.5 align-middle" />}{event.homeTeam} {event.score.home}-{event.score.away} {event.awayTeam}{event.awayFlag && <img src={`https://flagcdn.com/w20/${event.awayFlag.toLowerCase()}.png`} alt={event.awayTeam} className="inline h-3 ml-0.5 align-middle" />}
+                            </span>
+                          )}
                         </button>
                       </li>
                     );
@@ -390,6 +482,109 @@ export default function EventsListPanel({
                 {selectedEvent.title}
               </h2>
 
+              {selectedEvent.eventType === "match" && selectedEvent.homeTeam && selectedEvent.awayTeam && selectedEvent.score && (
+                <div
+                  className="mb-4 p-3 rounded-lg border"
+                  style={{
+                    background: "hsl(var(--muted) / 0.25)",
+                    borderColor: "hsl(var(--border))",
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      {selectedEvent.homeFlag
+                        ? <img src={`https://flagcdn.com/w40/${selectedEvent.homeFlag.toLowerCase()}.png`} alt={selectedEvent.homeTeam} className="h-5 rounded-sm" />
+                        : <span className="text-lg">🏳️</span>}
+                      <span className="font-mono-space text-xs font-bold" style={{ color: "hsl(var(--foreground))" }}>
+                        {selectedEvent.homeTeam}
+                      </span>
+                    </div>
+                    <span className="font-mono-space text-xl font-bold" style={{ color: "hsl(var(--primary))" }}>
+                      {selectedEvent.score.home}-{selectedEvent.score.away}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono-space text-xs font-bold" style={{ color: "hsl(var(--foreground))" }}>
+                        {selectedEvent.awayTeam}
+                      </span>
+                      {selectedEvent.awayFlag
+                        ? <img src={`https://flagcdn.com/w40/${selectedEvent.awayFlag.toLowerCase()}.png`} alt={selectedEvent.awayTeam} className="h-5 rounded-sm" />
+                        : <span className="text-lg">🏳️</span>}
+                    </div>
+                  </div>
+                  {(selectedEvent.formationHome || selectedEvent.formationAway) && (
+                    <div className="mt-2 pt-2 border-t border-border/60 grid grid-cols-2 gap-2">
+                      <span className="font-mono-space text-[10px]" style={{ color: "hsl(var(--muted-foreground))" }}>
+                        Formación {selectedEvent.homeTeam}: {selectedEvent.formationHome ?? "N/D"}
+                      </span>
+                      <span className="font-mono-space text-[10px] text-right" style={{ color: "hsl(var(--muted-foreground))" }}>
+                        Formación {selectedEvent.awayTeam}: {selectedEvent.formationAway ?? "N/D"}
+                      </span>
+                    </div>
+                  )}
+                  {selectedEvent.score.note && (
+                    <p className="mt-2 font-mono-space text-[10px]" style={{ color: "hsl(var(--muted-foreground))" }}>
+                      {selectedEvent.score.note}
+                    </p>
+                  )}
+                  {selectedEvent.score.penalties && (
+                    <p className="font-mono-space text-[10px]" style={{ color: "hsl(var(--muted-foreground))" }}>
+                      Penales: {selectedEvent.score.penalties.home}-{selectedEvent.score.penalties.away}
+                    </p>
+                  )}
+                  {selectedEvent.winnerTeam && (
+                    <p className="mt-2 font-mono-space text-[10px] font-bold" style={{ color: "hsl(var(--primary))" }}>
+                      Ganador: {selectedEvent.winnerTeam}
+                    </p>
+                  )}
+
+                  {selectedEvent.stage && (
+                    <div className="mt-2">
+                      <span
+                        className="font-mono-space text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full"
+                        style={{
+                          color: "hsl(var(--primary))",
+                          background: "hsl(var(--primary) / 0.1)",
+                          border: "1px solid hsl(var(--primary) / 0.4)",
+                        }}
+                      >
+                        {stageLabel[selectedEvent.stage] ?? selectedEvent.stage}
+                      </span>
+                    </div>
+                  )}
+
+                  {safariMatchEvents.length > 1 && (
+                    <div className="mt-3 pt-2 border-t border-border/60">
+                      <p className="font-mono-space text-[10px] uppercase tracking-widest mb-2" style={{ color: "hsl(var(--muted-foreground))" }}>
+                        Camino eliminatorio
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {safariMatchEvents.map((match) => {
+                          const isCurrent = match.id === selectedEvent.id;
+                          const winner = match.winnerTeam ? ` · ${match.winnerTeam}` : "";
+                          return (
+                            <button
+                              key={match.id}
+                              onClick={() => handleSelectEvent(match)}
+                              className="font-mono-space text-[9px] px-2 py-1 rounded-md border transition-colors"
+                              style={{
+                                color: isCurrent ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+                                background: isCurrent ? "hsl(var(--primary) / 0.12)" : "hsl(var(--muted) / 0.2)",
+                                borderColor: isCurrent ? "hsl(var(--primary) / 0.45)" : "hsl(var(--border) / 0.6)",
+                              }}
+                              title={`${match.homeTeam} ${match.score?.home}-${match.score?.away} ${match.awayTeam}${winner}`}
+                            >
+                              {stageLabel[match.stage ?? "group"] ?? "Partido"}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Description */}
               <p
                 className="text-sm leading-relaxed"
@@ -397,6 +592,46 @@ export default function EventsListPanel({
               >
                 {selectedEvent.description}
               </p>
+
+              {selectedEvent.eventType === "match" && selectedEvent.scorers && selectedEvent.scorers.length > 0 && (
+                <div className="mt-6 border-t border-border pt-4">
+                  <p className="font-mono-space text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "hsl(var(--muted-foreground))" }}>
+                    GOLEADORES
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    {selectedEvent.scorers.map((scorer, idx) => (
+                      <div key={`${scorer.team}-${scorer.minute}-${idx}`} className="flex items-center justify-between">
+                        <span className="font-mono-space text-[11px]" style={{ color: "hsl(var(--foreground) / 0.9)" }}>
+                          {scorer.team} · {scorer.player}
+                        </span>
+                        <span className="font-mono-space text-[10px]" style={{ color: "hsl(var(--primary))" }}>
+                          {scorer.minute}'
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedEvent.eventType === "match" && selectedEvent.matchTimeline && selectedEvent.matchTimeline.length > 0 && (
+                <div className="mt-6 border-t border-border pt-4">
+                  <p className="font-mono-space text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "hsl(var(--muted-foreground))" }}>
+                    TIMELINE DEL PARTIDO
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    {selectedEvent.matchTimeline.map((item, idx) => (
+                      <div key={`${item.type}-${item.minute}-${idx}`} className="flex items-center justify-between gap-3">
+                        <span className="font-mono-space text-[11px] leading-snug" style={{ color: "hsl(var(--foreground) / 0.9)" }}>
+                          {item.description}
+                        </span>
+                        <span className="font-mono-space text-[10px] shrink-0" style={{ color: "hsl(var(--muted-foreground))" }}>
+                          {item.minute}'
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Multimedia Section */}
               {selectedEvent.media && selectedEvent.media.length > 0 && (

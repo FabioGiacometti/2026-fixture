@@ -80,6 +80,10 @@ body {
   font-family: 'Space Mono', 'Courier New', monospace;
 }
 
+.font-emoji {
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Segoe UI Symbol', sans-serif;
+}
+
 /* ── Timeline slider custom styling ── */
 .timeline-slider {
   -webkit-appearance: none;

@@ -6,10 +6,14 @@ import TimelineBar from "@/components/TimelineBar";
 import EventsListPanel from "@/components/EventsListPanel";
 import SafariSelectionModal from "@/components/SafariSelectionModal";
 import { historicalEvents, getEventsInRange, safaris } from "@/data/historical-events";
+import { WORLD_CUP_YEARS, worldCupEvents, worldCupSafaris } from "@/data/world-cup-data";
 import type { HistoricalEvent } from "@/data/historical-events";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const CESIUM_LOADED_CHECK_INTERVAL = 200;
+const DATASET_MODE_KEY = "history-map-dataset-mode";
+
+type DatasetMode = "historical" | "worldcup";
 
 interface HoveredEventState {
   event: HistoricalEvent;
@@ -18,8 +22,20 @@ interface HoveredEventState {
 }
 
 export default function Index() {
-  const [currentYear, setCurrentYear] = useState<number>(0);
-  const [windowSize, setWindowSize] = useState<number>(300);
+  const [datasetMode, setDatasetMode] = useState<DatasetMode>(() => {
+    try {
+      const rawMode = localStorage.getItem(DATASET_MODE_KEY);
+      return rawMode === "worldcup" ? "worldcup" : "historical";
+    } catch {
+      return "historical";
+    }
+  });
+  const [currentYear, setCurrentYear] = useState<number>(
+    datasetMode === "worldcup" ? WORLD_CUP_YEARS[0] : 0
+  );
+  const [windowSize, setWindowSize] = useState<number>(
+    datasetMode === "worldcup" ? 6 : 300
+  );
   const [selectedEvent, setSelectedEvent] = useState<HistoricalEvent | null>(null);
   const [cesiumReady, setCesiumReady] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
@@ -33,10 +49,45 @@ export default function Index() {
   const [activeSafariId, setActiveSafariId] = useState<string | null>(null);
   const [showSafariModal, setShowSafariModal] = useState(true);
 
-  const activeSafari = useMemo(() => 
-    safaris.find(s => s.id === activeSafariId) || null,
-    [activeSafariId]
+  const allDatasetEvents = useMemo(
+    () => (datasetMode === "worldcup" ? worldCupEvents : historicalEvents),
+    [datasetMode]
   );
+
+  const datasetSafaris = useMemo(
+    () => (datasetMode === "worldcup" ? worldCupSafaris : safaris),
+    [datasetMode]
+  );
+
+  const activeSafari = useMemo(() => 
+    datasetSafaris.find(s => s.id === activeSafariId) || null,
+    [activeSafariId, datasetSafaris]
+  );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DATASET_MODE_KEY, datasetMode);
+    } catch {
+      // no-op if localStorage is unavailable
+    }
+  }, [datasetMode]);
+
+  useEffect(() => {
+    setSelectedEvent(null);
+    setActiveSafariId(null);
+    setShowSafariModal(true);
+
+    if (datasetMode === "worldcup") {
+      setCurrentYear((year) =>
+        WORLD_CUP_YEARS.includes(year) ? year : WORLD_CUP_YEARS[WORLD_CUP_YEARS.length - 1]
+      );
+      setWindowSize(6);
+      return;
+    }
+
+    setWindowSize(300);
+    setCurrentYear((year) => (year >= -3000 && year <= 2024 ? year : 0));
+  }, [datasetMode]);
 
   // Poll for CesiumJS
   useEffect(() => {
@@ -52,11 +103,11 @@ export default function Index() {
   const visibleEvents = useMemo(() => {
     if (activeSafariId && activeSafari) {
       // In safari mode, we ONLY show events belonging to that safari
-      return historicalEvents.filter(e => activeSafari.eventIds.includes(e.id));
+      return allDatasetEvents.filter(e => activeSafari.eventIds.includes(e.id));
     }
     // Global mode: filter by year range
-    return getEventsInRange(currentYear, windowSize);
-  }, [currentYear, windowSize, activeSafariId, activeSafari]);
+    return getEventsInRange(currentYear, windowSize, allDatasetEvents);
+  }, [currentYear, windowSize, activeSafariId, activeSafari, allDatasetEvents]);
 
   const handleYearChange = useCallback((year: number) => {
     setCurrentYear(year);
@@ -91,14 +142,33 @@ export default function Index() {
     setShowSafariModal(false);
     
     // Auto-select the first event of the safari
-    const safari = safaris.find(s => s.id === safariId);
+    const safari = datasetSafaris.find(s => s.id === safariId);
     if (safari && safari.eventIds.length > 0) {
-      const firstEvent = historicalEvents.find(e => e.id === safari.eventIds[0]);
+      const firstEvent = allDatasetEvents.find(e => e.id === safari.eventIds[0]);
       if (firstEvent) {
         handleSelectEvent(firstEvent);
       }
     }
-  }, [handleSelectEvent]);
+  }, [handleSelectEvent, datasetSafaris, allDatasetEvents]);
+
+  const handleJumpToSafariEvent = useCallback((safariId: string, eventId: string) => {
+    setActiveSafariId(safariId);
+    setShowSafariModal(false);
+
+    const targetEvent = allDatasetEvents.find((event) => event.id === eventId);
+    if (targetEvent) {
+      handleSelectEvent(targetEvent);
+      return;
+    }
+
+    const safari = datasetSafaris.find((item) => item.id === safariId);
+    if (safari && safari.eventIds.length > 0) {
+      const firstEvent = allDatasetEvents.find((event) => event.id === safari.eventIds[0]);
+      if (firstEvent) {
+        handleSelectEvent(firstEvent);
+      }
+    }
+  }, [allDatasetEvents, datasetSafaris, handleSelectEvent]);
 
   const handleCloseSafari = useCallback(() => {
     setActiveSafariId(null);
@@ -114,7 +184,7 @@ export default function Index() {
       {cesiumReady ? (
         <CesiumGlobe
           events={visibleEvents}
-          allEvents={historicalEvents}
+          allEvents={allDatasetEvents}
           selectedEvent={selectedEvent}
           activeSafari={activeSafari}
           onSelectEvent={handleSelectEvent}
@@ -191,13 +261,42 @@ export default function Index() {
           className="font-mono-space text-xs"
           style={{ color: "hsl(var(--foreground))" }}
         >
-          Safari Histórico
+          {datasetMode === "worldcup" ? "Safari Mundialista" : "Safari Histórico"}
         </span>
         <span
           className="font-mono-space text-xs"
           style={{ color: "hsl(var(--muted-foreground))" }}
         >
-          {historicalEvents.length} eventos
+          {allDatasetEvents.length} eventos
+        </span>
+      </div>
+
+      {/* ── Dataset Mode Toggle (title area) ── */}
+      <div
+        className="fixed top-16 left-6 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full"
+        style={{
+          background: "hsl(var(--card) / 0.85)",
+          border: "1px solid hsl(var(--border))",
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <span
+          className="font-mono-space text-[10px] uppercase tracking-wider"
+          style={{ color: datasetMode === "historical" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
+        >
+          Histórico
+        </span>
+        <Switch
+          id="dataset-mode"
+          checked={datasetMode === "worldcup"}
+          onCheckedChange={(checked) => setDatasetMode(checked ? "worldcup" : "historical")}
+          style={datasetMode === "worldcup" ? { backgroundColor: "hsl(var(--primary))" } : {}}
+        />
+        <span
+          className="font-mono-space text-[10px] uppercase tracking-wider"
+          style={{ color: datasetMode === "worldcup" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
+        >
+          Mundialista
         </span>
       </div>
 
@@ -260,9 +359,10 @@ export default function Index() {
       {/* ── Events List Panel (right side, replaces old EventPanel) ── */}
       <EventsListPanel
         visibleEvents={visibleEvents}
-        allEvents={historicalEvents}
+        allEvents={allDatasetEvents}
         selectedEvent={selectedEvent}
         currentYear={currentYear}
+        windowSize={windowSize}
         activeSafari={activeSafari}
         onSelectEvent={handleSelectEvent}
         onYearChange={handleYearChange}
@@ -280,14 +380,21 @@ export default function Index() {
         onHoverYear={handleHoverYear}
         onChangeWindowSize={setWindowSize}
         isMediaModalOpen={isMediaModalOpen}
+        allEvents={allDatasetEvents}
+        mode={datasetMode}
+        minYear={datasetMode === "worldcup" ? WORLD_CUP_YEARS[0] : -3000}
+        maxYear={datasetMode === "worldcup" ? WORLD_CUP_YEARS[WORLD_CUP_YEARS.length - 1] : 2024}
+        yearSnapPoints={datasetMode === "worldcup" ? WORLD_CUP_YEARS : undefined}
       />
 
       <SafariSelectionModal
         isOpen={showSafariModal}
-        safaris={safaris}
-        allEvents={historicalEvents}
+        safaris={datasetSafaris}
+        allEvents={allDatasetEvents}
         onSelectSafari={handleSelectSafari}
+        onJumpToEvent={handleJumpToSafariEvent}
         onClose={() => setShowSafariModal(false)}
+        title={datasetMode === "worldcup" ? "Safaris Mundialistas" : "Safaris Históricos"}
       />
     </div>
   );
