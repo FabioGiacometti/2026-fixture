@@ -1811,6 +1811,8 @@ function createMilestoneEvent(seed: TournamentSeed): HistoricalEvent {
     title: `Hito de la Copa Mundial ${seed.year}`,
     description: seed.milestone,
     year: seed.year,
+    month: 6,
+    day: 1,
     lat: seed.lat,
     lng: seed.lng,
     region: getRegion(seed.host),
@@ -1872,6 +1874,24 @@ function createFixtureEvent(seed: TournamentSeed, fixture: FixtureSeed): Histori
     title: fixture.title,
     description: `${fixture.homeTeam} ${fixture.homeScore}-${fixture.awayScore} ${fixture.awayTeam}${fixture.note ? `. ${fixture.note}` : ""}`,
     year: seed.year,
+    month:
+      fixture.stage === "group"
+        ? 6
+        : fixture.stage === "round16"
+          ? 6
+          : 7,
+    day:
+      fixture.stage === "group"
+        ? 10
+        : fixture.stage === "round16"
+          ? 26
+          : fixture.stage === "quarterfinal"
+            ? 2
+            : fixture.stage === "semifinal"
+              ? 9
+              : fixture.stage === "third-place"
+                ? 13
+                : 15,
     lat: fixture.lat,
     lng: fixture.lng,
     region: getRegion(seed.host),

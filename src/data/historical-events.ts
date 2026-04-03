@@ -15,6 +15,8 @@ export interface HistoricalEvent {
   title: string;
   description: string;
   year: number; // negative = BC
+  month?: number;
+  day?: number;
   lat: number;
   lng: number;
   region: string;
@@ -1927,6 +1929,19 @@ export function formatYear(year: number): string {
     return `${Math.abs(year).toLocaleString()} a.C.`;
   }
   return `${year} d.C.`;
+}
+
+export function formatEventDate(event: Pick<HistoricalEvent, "year" | "month" | "day">): string {
+  const day = Math.max(1, Math.min(31, event.day ?? 1));
+  const month = Math.max(1, Math.min(12, event.month ?? 1));
+  const dayPart = String(day).padStart(2, "0");
+  const monthPart = String(month).padStart(2, "0");
+
+  if (event.year < 0) {
+    return `${dayPart}-${monthPart}-${Math.abs(event.year).toLocaleString()} a.C.`;
+  }
+
+  return `${dayPart}-${monthPart}-${event.year} d.C.`;
 }
 
 export function getEventsInRange(year: number, windowSize = 300, sourceEvents: HistoricalEvent[] = historicalEvents): HistoricalEvent[] {

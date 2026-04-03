@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List, Play, Image as ImageIcon, ExternalLink, Globe, Video, Maximize2 } from "lucide-react";
-import { Safari, HistoricalEvent, formatYear } from "@/data/historical-events";
+import { Safari, HistoricalEvent, formatYear, formatEventDate } from "@/data/historical-events";
 
 type PanelState = "collapsed" | "list" | "detail";
 
@@ -356,7 +356,9 @@ export default function EventsListPanel({
                               className="font-mono-space text-xs font-bold"
                               style={{ color: "hsl(var(--primary))" }}
                             >
-                              {formatYear(event.year)}
+                              {event.eventType === "match" && event.stage
+                                ? `${stageLabel[event.stage] ?? "Partido"}: ${formatEventDate(event)}`
+                                : formatEventDate(event)}
                             </span>
                             <span
                               className="font-mono-space text-[9px] px-1.5 py-0.5 rounded-full shrink-0"
@@ -374,14 +376,30 @@ export default function EventsListPanel({
                             className="font-mono-space text-xs leading-snug line-clamp-2 group-hover:text-foreground transition-colors"
                             style={{ color: "hsl(var(--foreground) / 0.85)" }}
                           >
-                            {event.title}
+                            {event.eventType === "match" && event.homeTeam && event.awayTeam
+                              ? `${event.homeTeam} vs ${event.awayTeam}`
+                              : event.title}
                           </span>
                           {event.eventType === "match" && event.homeTeam && event.awayTeam && event.score && (
                             <span
                               className="font-mono-space text-[10px]"
                               style={{ color: "hsl(var(--muted-foreground))" }}
                             >
-                              {event.homeFlag && <img src={`https://flagcdn.com/w20/${event.homeFlag.toLowerCase()}.png`} alt={event.homeTeam} className="inline h-3 mr-0.5 align-middle" />}{event.homeTeam} {event.score.home}-{event.score.away} {event.awayTeam}{event.awayFlag && <img src={`https://flagcdn.com/w20/${event.awayFlag.toLowerCase()}.png`} alt={event.awayTeam} className="inline h-3 ml-0.5 align-middle" />}
+                              {event.homeFlag && (
+                                <img
+                                  src={`https://flagcdn.com/w20/${event.homeFlag.toLowerCase()}.png`}
+                                  alt={event.homeTeam}
+                                  className="inline h-3 mr-1 align-middle"
+                                />
+                              )}
+                              {event.homeTeam} ({event.score.home}) vs ({event.score.away}) {event.awayTeam}
+                              {event.awayFlag && (
+                                <img
+                                  src={`https://flagcdn.com/w20/${event.awayFlag.toLowerCase()}.png`}
+                                  alt={event.awayTeam}
+                                  className="inline h-3 ml-1 align-middle"
+                                />
+                              )}
                             </span>
                           )}
                         </button>
@@ -444,7 +462,7 @@ export default function EventsListPanel({
                   className="font-mono-space text-xl font-bold leading-none"
                   style={{ color: "hsl(var(--primary))" }}
                 >
-                  {formatYear(selectedEvent.year)}
+                  {formatEventDate(selectedEvent)}
                 </span>
               </div>
 
@@ -758,7 +776,7 @@ export default function EventsListPanel({
                         >
                           <div className="flex items-center justify-between mb-0.5">
                             <span className="font-mono-space text-[10px] font-bold" style={{ color: "hsl(var(--primary))" }}>
-                              {formatYear(relatedEvent.year)}
+                              {formatEventDate(relatedEvent)}
                             </span>
                             <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "hsl(var(--muted-foreground))" }} />
                           </div>

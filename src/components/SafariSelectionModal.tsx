@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronRight, ArrowLeft, Globe, Map as MapIcon, BookOpen, Clock, Check } from "lucide-react";
-import { Safari, HistoricalEvent, formatYear } from "@/data/historical-events";
+import { Safari, HistoricalEvent, formatEventDate } from "@/data/historical-events";
 
 const STORAGE_KEY = "safari-historico-read";
 
@@ -24,6 +24,14 @@ const stageLabel: Record<string, string> = {
   semifinal: "Semifinales",
   "third-place": "Tercer puesto",
   final: "Final",
+};
+
+const regionColors: Record<string, string> = {
+  Europa: "hsl(220 80% 60%)",
+  Asia: "hsl(30 90% 60%)",
+  África: "hsl(120 60% 50%)",
+  América: "hsl(280 70% 65%)",
+  Espacio: "hsl(200 80% 70%)",
 };
 
 function getReadSafaris(): Set<string> {
@@ -258,17 +266,54 @@ export default function SafariSelectionModal({
                           <button
                             key={event.id}
                             onClick={() => handleJumpToEvent(selectedSafari.id, event.id)}
-                            className="w-full text-left bg-white/5 border border-white/5 rounded-lg p-3 flex items-center justify-between group hover:bg-white/10 transition-colors"
+                            className="w-full text-left bg-white/5 border border-white/5 rounded-lg p-3 flex items-start justify-between gap-3 group hover:bg-white/10 transition-colors"
                           >
-                            <div className="flex flex-col">
-                              <span className="text-[10px] text-primary/70 font-mono-space">
-                                {formatYear(event.year)}
-                              </span>
+                            <div className="flex-1 flex flex-col gap-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] text-primary/80 font-mono-space font-bold">
+                                  {event.eventType === "match" && event.stage
+                                    ? `${stageLabel[event.stage] ?? "Partido"}: ${formatEventDate(event)}`
+                                    : formatEventDate(event)}
+                                </span>
+                                <span
+                                  className="font-mono-space text-[9px] px-1.5 py-0.5 rounded-full shrink-0"
+                                  style={{
+                                    color: regionColors[event.region] ?? "hsl(var(--muted-foreground))",
+                                    background: `${regionColors[event.region] ?? "hsl(var(--muted-foreground))"}22`,
+                                    border: `1px solid ${regionColors[event.region] ?? "hsl(var(--muted-foreground))"}55`,
+                                  }}
+                                >
+                                  {event.region}
+                                </span>
+                              </div>
+
                               <span className="text-xs font-bold text-white/90">
-                                {event.title}
+                                {event.eventType === "match" && event.homeTeam && event.awayTeam
+                                  ? `${event.homeTeam} vs ${event.awayTeam}`
+                                  : event.title}
                               </span>
+
+                              {event.eventType === "match" && event.homeTeam && event.awayTeam && event.score && (
+                                <span className="font-mono-space text-[11px] text-white/70">
+                                  {event.homeFlag && (
+                                    <img
+                                      src={`https://flagcdn.com/w20/${event.homeFlag.toLowerCase()}.png`}
+                                      alt={event.homeTeam}
+                                      className="inline h-3 mr-1 align-middle"
+                                    />
+                                  )}
+                                  {event.homeTeam} ({event.score.home}) vs ({event.score.away}) {event.awayTeam}
+                                  {event.awayFlag && (
+                                    <img
+                                      src={`https://flagcdn.com/w20/${event.awayFlag.toLowerCase()}.png`}
+                                      alt={event.awayTeam}
+                                      className="inline h-3 ml-1 align-middle"
+                                    />
+                                  )}
+                                </span>
+                              )}
                             </div>
-                            <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-[10px] text-white/40 group-hover:bg-primary group-hover:text-black transition-colors">
+                            <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-[10px] text-white/40 group-hover:bg-primary group-hover:text-black transition-colors mt-0.5 shrink-0">
                               {idx + 1}
                             </div>
                           </button>

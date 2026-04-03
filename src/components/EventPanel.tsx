@@ -1,6 +1,6 @@
 import { X, MapPin, Calendar } from "lucide-react";
 import type { HistoricalEvent } from "@/data/historical-events";
-import { formatYear } from "@/data/historical-events";
+import { formatEventDate } from "@/data/historical-events";
 
 interface EventPanelProps {
   event: HistoricalEvent | null;
@@ -47,7 +47,7 @@ export default function EventPanel({ event, onClose }: EventPanelProps) {
                   className="font-mono-space text-xl font-bold leading-none"
                   style={{ color: "hsl(var(--primary))" }}
                 >
-                  {formatYear(event.year)}
+                  {formatEventDate(event)}
                 </span>
               </div>
 
