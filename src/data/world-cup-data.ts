@@ -159,28 +159,72 @@ const STAGE_ORDER: Record<MatchStage, number> = {
 };
 
 const TOURNAMENTS: TournamentSeed[] = [
-  { year: 1930, host: "Uruguay", city: "Montevideo", lat: -34.8941, lng: -56.0675, milestone: "Primer Mundial de la historia: FIFA inauguró una competición global que transformó para siempre el deporte y la cultura popular.", formationHome: "2-3-5", formationAway: "2-3-5", final: { homeTeam: "Uruguay", awayTeam: "Argentina", homeScore: 4, awayScore: 2 } },
-  { year: 1934, host: "Italy", city: "Rome", lat: 41.8902, lng: 12.4922, milestone: "Primera edición en Europa y primer torneo con fase eliminatoria directa en su estructura competitiva.", formationHome: "2-3-5", formationAway: "2-3-5", final: { homeTeam: "Italy", awayTeam: "Czechoslovakia", homeScore: 2, awayScore: 1, note: "Tiempo extra" } },
-  { year: 1938, host: "France", city: "Paris", lat: 48.9244, lng: 2.3601, milestone: "Último Mundial antes de la Segunda Guerra Mundial; consolidó el alcance internacional del torneo.", formationHome: "2-3-5", formationAway: "2-3-5", final: { homeTeam: "Italy", awayTeam: "Hungary", homeScore: 4, awayScore: 2 } },
-  { year: 1950, host: "Brazil", city: "Rio de Janeiro", lat: -22.9121, lng: -43.2302, milestone: "Regreso del Mundial tras la guerra. El partido decisivo de la fase final en Maracana es recordado como el Maracanazo.", formationHome: "2-3-5", formationAway: "2-3-5", final: { homeTeam: "Brazil", awayTeam: "Uruguay", homeScore: 1, awayScore: 2, note: "Partido decisivo del grupo final" } },
-  { year: 1954, host: "Switzerland", city: "Bern", lat: 46.963, lng: 7.4647, milestone: "El Milagro de Berna simbolizó la reconstrucción alemana de posguerra y redefinió la narrativa del fútbol europeo.", formationHome: "3-2-5", formationAway: "3-2-2-3", final: { homeTeam: "West Germany", awayTeam: "Hungary", homeScore: 3, awayScore: 2 } },
-  { year: 1958, host: "Sweden", city: "Stockholm", lat: 59.3293, lng: 18.0686, milestone: "Irrupción global de Pele y nacimiento de Brasil como potencia histórica del fútbol mundial.", formationHome: "4-2-4", formationAway: "4-2-4", final: { homeTeam: "Brazil", awayTeam: "Sweden", homeScore: 5, awayScore: 2 } },
-  { year: 1962, host: "Chile", city: "Santiago", lat: -33.4569, lng: -70.6483, milestone: "Mundial reconstruido tras el terremoto de 1960 en Chile, ejemplo de resiliencia nacional.", formationHome: "4-3-3", formationAway: "4-2-4", final: { homeTeam: "Brazil", awayTeam: "Czechoslovakia", homeScore: 3, awayScore: 1 } },
-  { year: 1966, host: "England", city: "London", lat: 51.556, lng: -0.2796, milestone: "Único título mundial de Inglaterra y consolidación mediática del torneo por televisión global.", formationHome: "4-4-2", formationAway: "4-2-4", final: { homeTeam: "England", awayTeam: "West Germany", homeScore: 4, awayScore: 2, note: "Tiempo extra" } },
-  { year: 1970, host: "Mexico", city: "Mexico City", lat: 19.3029, lng: -99.1505, milestone: "Primer Mundial televisado ampliamente en color y cierre del ciclo dorado de Brasil con su tercer título.", formationHome: "4-2-4", formationAway: "4-3-3", final: { homeTeam: "Brazil", awayTeam: "Italy", homeScore: 4, awayScore: 1 } },
-  { year: 1974, host: "West Germany", city: "Munich", lat: 48.1731, lng: 11.5461, milestone: "Debut del trofeo actual de la Copa del Mundo y choque ideológico en plena Guerra Fría europea.", formationHome: "4-3-3", formationAway: "4-3-3", final: { homeTeam: "West Germany", awayTeam: "Netherlands", homeScore: 2, awayScore: 1 } },
-  { year: 1978, host: "Argentina", city: "Buenos Aires", lat: -34.6356, lng: -58.3645, milestone: "Primer título argentino en un contexto político tenso y de alto simbolismo nacional.", formationHome: "4-3-3", formationAway: "4-3-3", final: { homeTeam: "Argentina", awayTeam: "Netherlands", homeScore: 3, awayScore: 1, note: "Tiempo extra" } },
-  { year: 1982, host: "Spain", city: "Madrid", lat: 40.4531, lng: -3.6883, milestone: "Primer Mundial con 24 selecciones; se amplió el alcance competitivo y comercial del torneo.", formationHome: "4-3-3", formationAway: "3-5-2", final: { homeTeam: "Italy", awayTeam: "West Germany", homeScore: 3, awayScore: 1 } },
-  { year: 1986, host: "Mexico", city: "Mexico City", lat: 19.3029, lng: -99.1505, milestone: "Consagración de Diego Maradona en un torneo convertido en referencia cultural de toda una era.", formationHome: "3-5-2", formationAway: "3-5-2", final: { homeTeam: "Argentina", awayTeam: "West Germany", homeScore: 3, awayScore: 2 } },
-  { year: 1990, host: "Italy", city: "Rome", lat: 41.9339, lng: 12.4547, milestone: "Transición táctica hacia partidos más cerrados; fue el último Mundial con Alemania Occidental.", formationHome: "3-5-2", formationAway: "3-5-2", final: { homeTeam: "West Germany", awayTeam: "Argentina", homeScore: 1, awayScore: 0 } },
-  { year: 1994, host: "United States", city: "Pasadena", lat: 34.1613, lng: -118.1676, milestone: "Primera final decidida por penales y récords de asistencia en la consolidación del Mundial como espectáculo global.", formationHome: "4-4-2", formationAway: "4-4-2", final: { homeTeam: "Brazil", awayTeam: "Italy", homeScore: 0, awayScore: 0, penalties: { home: 3, away: 2 }, note: "Brasil ganó por penales" } },
-  { year: 1998, host: "France", city: "Saint-Denis", lat: 48.9244, lng: 2.3601, milestone: "Primer Mundial con 32 selecciones, nueva escala global y título histórico para el anfitrión.", formationHome: "4-3-2-1", formationAway: "4-2-2-2", final: { homeTeam: "France", awayTeam: "Brazil", homeScore: 3, awayScore: 0 } },
-  { year: 2002, host: "South Korea/Japan", city: "Yokohama", lat: 35.4437, lng: 139.638, milestone: "Primer Mundial en Asia y primer torneo coorganizado por dos países.", formationHome: "3-4-1-2", formationAway: "3-5-2", final: { homeTeam: "Brazil", awayTeam: "Germany", homeScore: 2, awayScore: 0 } },
-  { year: 2006, host: "Germany", city: "Berlin", lat: 52.5147, lng: 13.2396, milestone: "Final dramática decidida por penales en un torneo que reforzó la dimensión cultural del fútbol europeo.", formationHome: "4-4-1-1", formationAway: "4-2-3-1", final: { homeTeam: "Italy", awayTeam: "France", homeScore: 1, awayScore: 1, penalties: { home: 5, away: 3 }, note: "Italia ganó por penales" } },
-  { year: 2010, host: "South Africa", city: "Johannesburg", lat: -26.234, lng: 28.0027, milestone: "Primer Mundial en África: hito geopolítico y deportivo para la expansión del torneo.", formationHome: "4-3-3", formationAway: "4-2-3-1", final: { homeTeam: "Spain", awayTeam: "Netherlands", homeScore: 1, awayScore: 0, note: "Tiempo extra" } },
-  { year: 2014, host: "Brazil", city: "Rio de Janeiro", lat: -22.9121, lng: -43.2302, milestone: "Mundial de alto impacto emocional en Sudamérica, culminado con una final cerrada en tiempo extra.", formationHome: "4-3-3", formationAway: "4-4-2", final: { homeTeam: "Germany", awayTeam: "Argentina", homeScore: 1, awayScore: 0, note: "Tiempo extra" } },
-  { year: 2018, host: "Russia", city: "Moscow", lat: 55.7158, lng: 37.5536, milestone: "El uso expandido del VAR redefinió decisiones arbitrales en fases decisivas del torneo.", formationHome: "4-2-3-1", formationAway: "4-3-3", final: { homeTeam: "France", awayTeam: "Croatia", homeScore: 4, awayScore: 2 } },
-  { year: 2022, host: "Qatar", city: "Lusail", lat: 25.4208, lng: 51.4908, milestone: "Primera Copa del Mundo en Medio Oriente y una final considerada entre las más icónicas de la historia.", formationHome: "4-3-3", formationAway: "4-2-3-1", final: { homeTeam: "Argentina", awayTeam: "France", homeScore: 3, awayScore: 3, penalties: { home: 4, away: 2 }, note: "Argentina ganó por penales" } },
+  { year: 1930, host: "Uruguay", city: "Montevideo", lat: -34.8941, lng: -56.0675, milestone: `El primer Mundial se celebró en un contexto de creciente internacionalización del fútbol y con Uruguay consolidado como potencia tras sus oros olímpicos. Europa participó poco debido a la distancia y los costos de viaje.
+
+El torneo coincidió con la Gran Depresión, lo que afectó la participación y organización. Aun así, sentó las bases de la competencia más importante del deporte.`, formationHome: "2-3-5", formationAway: "2-3-5", final: { homeTeam: "Uruguay", awayTeam: "Argentina", homeScore: 4, awayScore: 2 } },
+  { year: 1934, host: "Italy", city: "Rome", lat: 41.8902, lng: 12.4922, milestone: `Italia organizó el torneo bajo el régimen fascista de Benito Mussolini, utilizando el evento como herramienta de propaganda política y nacionalismo.
+
+Fue el primer Mundial con clasificación previa y mostró una organización más estructurada, aunque estuvo rodeado de sospechas de manipulación arbitral.`, formationHome: "2-3-5", formationAway: "2-3-5", final: { homeTeam: "Italy", awayTeam: "Czechoslovakia", homeScore: 2, awayScore: 1, note: "Tiempo extra" } },
+  { year: 1938, host: "France", city: "Paris", lat: 48.9244, lng: 2.3601, milestone: `Se disputó en un clima de tensión previo a la Segunda Guerra Mundial, con conflictos políticos en Europa que afectaron la participación de varios países.
+
+Italia repitió el título mientras el continente se encaminaba hacia un conflicto global que interrumpiría la competencia por 12 años.`, formationHome: "2-3-5", formationAway: "2-3-5", final: { homeTeam: "Italy", awayTeam: "Hungary", homeScore: 4, awayScore: 2 } },
+  { year: 1950, host: "Brazil", city: "Rio de Janeiro", lat: -22.9121, lng: -43.2302, milestone: `Tras la Segunda Guerra Mundial, el Mundial regresó como símbolo de reconstrucción global. Varias selecciones aún estaban afectadas por las secuelas del conflicto.
+
+Brasil organizó el torneo con grandes expectativas, pero la derrota ante Uruguay en el 'Maracanazo' marcó profundamente su historia deportiva.`, formationHome: "2-3-5", formationAway: "2-3-5", final: { homeTeam: "Brazil", awayTeam: "Uruguay", homeScore: 1, awayScore: 2, note: "Partido decisivo del grupo final" } },
+  { year: 1954, host: "Switzerland", city: "Bern", lat: 46.963, lng: 7.4647, milestone: `Europa se encontraba en plena recuperación económica tras la guerra, y el torneo reflejó ese renacimiento.
+
+Alemania Occidental sorprendió al mundo venciendo a Hungría en la final, en lo que se conoció como el 'Milagro de Berna', símbolo del resurgimiento alemán.`, formationHome: "3-2-5", formationAway: "3-2-2-3", final: { homeTeam: "West Germany", awayTeam: "Hungary", homeScore: 3, awayScore: 2 } },
+  { year: 1958, host: "Sweden", city: "Stockholm", lat: 59.3293, lng: 18.0686, milestone: `El Mundial se dio en un contexto de crecimiento económico en Europa y el inicio de una mayor globalización del fútbol.
+
+Brasil emergió como potencia mundial con un estilo innovador y la aparición de Pelé, marcando una nueva era en el deporte.`, formationHome: "4-2-4", formationAway: "4-2-4", final: { homeTeam: "Brazil", awayTeam: "Sweden", homeScore: 5, awayScore: 2 } },
+  { year: 1962, host: "Chile", city: "Santiago", lat: -33.4569, lng: -70.6483, milestone: `Chile organizó el torneo tras un devastador terremoto en 1960, convirtiéndolo en un símbolo de resiliencia nacional.
+
+El campeonato fue muy físico y competitivo, reflejando tensiones internacionales en plena Guerra Fría.`, formationHome: "4-3-3", formationAway: "4-2-4", final: { homeTeam: "Brazil", awayTeam: "Czechoslovakia", homeScore: 3, awayScore: 1 } },
+  { year: 1966, host: "England", city: "London", lat: 51.556, lng: -0.2796, milestone: `El torneo se desarrolló en un contexto de auge cultural británico y consolidación del fútbol moderno.
+
+Inglaterra ganó su único Mundial en medio de controversias arbitrales, en una final histórica contra Alemania Occidental.`, formationHome: "4-4-2", formationAway: "4-2-4", final: { homeTeam: "England", awayTeam: "West Germany", homeScore: 4, awayScore: 2, note: "Tiempo extra" } },
+  { year: 1970, host: "Mexico", city: "Mexico City", lat: 19.3029, lng: -99.1505, milestone: `Fue el primer Mundial televisado globalmente en color, marcando un hito en la expansión mediática del fútbol.
+
+Brasil ganó con uno de los equipos más recordados de la historia, consolidando el fútbol como fenómeno global.`, formationHome: "4-2-4", formationAway: "4-3-3", final: { homeTeam: "Brazil", awayTeam: "Italy", homeScore: 4, awayScore: 1 } },
+  { year: 1974, host: "West Germany", city: "Munich", lat: 48.1731, lng: 11.5461, milestone: `El torneo se jugó en plena Guerra Fría, con la participación de Alemania Oriental y Occidental en un mismo campeonato.
+
+El fútbol total de Países Bajos revolucionó el juego, aunque Alemania Occidental terminó consagrándose campeón.`, formationHome: "4-3-3", formationAway: "4-3-3", final: { homeTeam: "West Germany", awayTeam: "Netherlands", homeScore: 2, awayScore: 1 } },
+  { year: 1978, host: "Argentina", city: "Buenos Aires", lat: -34.6356, lng: -58.3645, milestone: `Se disputó durante la dictadura militar argentina, que utilizó el torneo como herramienta de legitimación internacional.
+
+El campeonato estuvo rodeado de controversias políticas, pero culminó con el primer título mundial para Argentina.`, formationHome: "4-3-3", formationAway: "4-3-3", final: { homeTeam: "Argentina", awayTeam: "Netherlands", homeScore: 3, awayScore: 1, note: "Tiempo extra" } },
+  { year: 1982, host: "Spain", city: "Madrid", lat: 40.4531, lng: -3.6883, milestone: `España organizó el torneo en plena transición democrática tras el franquismo.
+
+Fue el primer Mundial con 24 equipos y marcó una expansión significativa del torneo a nivel global.`, formationHome: "4-3-3", formationAway: "3-5-2", final: { homeTeam: "Italy", awayTeam: "West Germany", homeScore: 3, awayScore: 1 } },
+  { year: 1986, host: "Mexico", city: "Mexico City", lat: 19.3029, lng: -99.1505, milestone: `México organizó nuevamente tras la renuncia de Colombia por problemas económicos. El torneo se dio en un contexto de tensiones geopolíticas globales.
+
+Diego Maradona protagonizó una de las actuaciones más icónicas de la historia, incluyendo el famoso partido contra Inglaterra tras la Guerra de Malvinas.`, formationHome: "3-5-2", formationAway: "3-5-2", final: { homeTeam: "Argentina", awayTeam: "West Germany", homeScore: 3, awayScore: 2 } },
+  { year: 1990, host: "Italy", city: "Rome", lat: 41.9339, lng: 12.4547, milestone: `Se disputó en un momento clave de cambios políticos en Europa, con la caída del Muro de Berlín y el fin de la Guerra Fría.
+
+Alemania Occidental ganó el torneo poco antes de la reunificación alemana, simbolizando un cambio de era.`, formationHome: "3-5-2", formationAway: "3-5-2", final: { homeTeam: "West Germany", awayTeam: "Argentina", homeScore: 1, awayScore: 0 } },
+  { year: 1994, host: "United States", city: "Pasadena", lat: 34.1613, lng: -118.1676, milestone: `Fue un intento estratégico de expandir el fútbol en un mercado dominado por otros deportes.
+
+El torneo tuvo gran éxito comercial y de asistencia, consolidando el fútbol como espectáculo global.`, formationHome: "4-4-2", formationAway: "4-4-2", final: { homeTeam: "Brazil", awayTeam: "Italy", homeScore: 0, awayScore: 0, penalties: { home: 3, away: 2 }, note: "Brasil ganó por penales" } },
+  { year: 1998, host: "France", city: "Saint-Denis", lat: 48.9244, lng: 2.3601, milestone: `Francia organizó el torneo en un contexto de integración europea y diversidad cultural.
+
+La selección francesa, con un equipo multicultural, ganó el título y se convirtió en símbolo de identidad nacional.`, formationHome: "4-3-2-1", formationAway: "4-2-2-2", final: { homeTeam: "France", awayTeam: "Brazil", homeScore: 3, awayScore: 0 } },
+  { year: 2002, host: "South Korea/Japan", city: "Yokohama", lat: 35.4437, lng: 139.638, milestone: `Fue el primer Mundial organizado en Asia y de forma conjunta, reflejando la globalización del fútbol.
+
+El torneo mostró el crecimiento del fútbol fuera de Europa y Sudamérica, con actuaciones sorpresivas como la de Corea del Sur.`, formationHome: "3-4-1-2", formationAway: "3-5-2", final: { homeTeam: "Brazil", awayTeam: "Germany", homeScore: 2, awayScore: 0 } },
+  { year: 2006, host: "Germany", city: "Berlin", lat: 52.5147, lng: 13.2396, milestone: `Alemania organizó el torneo en un clima de estabilidad y apertura, mostrando una imagen moderna del país.
+
+El Mundial fue altamente celebrado por su organización y ambiente festivo, consolidando el fútbol como evento cultural global.`, formationHome: "4-4-1-1", formationAway: "4-2-3-1", final: { homeTeam: "Italy", awayTeam: "France", homeScore: 1, awayScore: 1, penalties: { home: 5, away: 3 }, note: "Italia ganó por penales" } },
+  { year: 2010, host: "South Africa", city: "Johannesburg", lat: -26.234, lng: 28.0027, milestone: `Fue el primer Mundial en África, con un fuerte simbolismo en términos de inclusión y desarrollo global.
+
+El torneo destacó por su impacto cultural y la visibilidad del continente africano en el escenario mundial.`, formationHome: "4-3-3", formationAway: "4-2-3-1", final: { homeTeam: "Spain", awayTeam: "Netherlands", homeScore: 1, awayScore: 0, note: "Tiempo extra" } },
+  { year: 2014, host: "Brazil", city: "Rio de Janeiro", lat: -22.9121, lng: -43.2302, milestone: `Brasil organizó en medio de tensiones sociales y protestas por el gasto público.
+
+El torneo fue memorable por el histórico 7-1 de Alemania sobre Brasil, reflejando cambios en el equilibrio del fútbol mundial.`, formationHome: "4-3-3", formationAway: "4-4-2", final: { homeTeam: "Germany", awayTeam: "Argentina", homeScore: 1, awayScore: 0, note: "Tiempo extra" } },
+  { year: 2018, host: "Russia", city: "Moscow", lat: 55.7158, lng: 37.5536, milestone: `Se disputó en un contexto de tensiones políticas internacionales y cuestionamientos sobre la sede.
+
+El torneo mostró una organización eficiente y una Francia joven que se consagró campeona.`, formationHome: "4-2-3-1", formationAway: "4-3-3", final: { homeTeam: "France", awayTeam: "Croatia", homeScore: 4, awayScore: 2 } },
+  { year: 2022, host: "Qatar", city: "Lusail", lat: 25.4208, lng: 51.4908, milestone: `El Mundial se jugó por primera vez en Medio Oriente y en invierno, debido a las altas temperaturas.
+
+Estuvo rodeado de controversias por derechos laborales y humanos, pero culminó con una final histórica entre Argentina y Francia.`, formationHome: "4-3-3", formationAway: "4-2-3-1", final: { homeTeam: "Argentina", awayTeam: "France", homeScore: 3, awayScore: 3, penalties: { home: 4, away: 2 }, note: "Argentina ganó por penales" } },
 ];
 
 const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
@@ -2296,6 +2340,7 @@ function createMilestoneEvent(seed: TournamentSeed): HistoricalEvent {
     day: 1,
     lat: seed.lat,
     lng: seed.lng,
+    city: seed.city,
     region: getRegion(seed.host),
     importance: 2,
     dataset: "worldcup",
@@ -2375,6 +2420,7 @@ function createFixtureEvent(seed: TournamentSeed, fixture: FixtureSeed): Histori
                 : 15,
     lat: fixture.lat,
     lng: fixture.lng,
+    city: fixture.city,
     region: getRegion(seed.host),
     importance: fixture.stage === "final" ? 1 : fixture.stage === "semifinal" ? 2 : 3,
     dataset: "worldcup",
@@ -2468,7 +2514,7 @@ export const worldCupSafaris: Safari[] = tournamentPackage.map(({ seed, eventIds
   id: `world-cup-${seed.year}`,
   name: `Copa Mundial ${seed.year}`,
   description: `${seed.host} · ${seed.city}. Recorrido por el camino eliminatorio y el contexto del torneo.`,
-  overview: `Explora la Copa Mundial de ${seed.year} en ${seed.host}. Este safari reúne hitos del torneo, resultados de cruces decisivos y el camino del campeón.`,
+  overview: seed.milestone,
   eventIds,
   color: "#F2A900",
   thumbnail: getWorldCupThumbnail(seed.year),

@@ -42,7 +42,9 @@ export default function Index() {
   const [hoveredEventState, setHoveredEventState] = useState<HoveredEventState | null>(null);
   const [timelineHoverActive, setTimelineHoverActive] = useState(false);
   const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [mapStyle, setMapStyle] = useState<"political" | "geographic">("political");
+  const [mapStyle, setMapStyle] = useState<"political" | "geographic">(
+    () => (datasetMode === "worldcup" ? "geographic" : "political")
+  );
   const isMobile = useIsMobile();
 
   // Safari State
@@ -78,6 +80,7 @@ export default function Index() {
     setShowSafariModal(true);
 
     if (datasetMode === "worldcup") {
+      setMapStyle("geographic");
       setCurrentYear((year) =>
         WORLD_CUP_YEARS.includes(year) ? year : WORLD_CUP_YEARS[WORLD_CUP_YEARS.length - 1]
       );
@@ -85,6 +88,7 @@ export default function Index() {
       return;
     }
 
+    setMapStyle("political");
     setWindowSize(300);
     setCurrentYear((year) => (year >= -3000 && year <= 2024 ? year : 0));
   }, [datasetMode]);
@@ -138,6 +142,10 @@ export default function Index() {
   );
 
   const handleSelectSafari = useCallback((safariId: string) => {
+    if (safariId.startsWith("world-cup-")) {
+      setMapStyle("geographic");
+    }
+
     setActiveSafariId(safariId);
     setShowSafariModal(false);
     
@@ -149,9 +157,13 @@ export default function Index() {
         handleSelectEvent(firstEvent);
       }
     }
-  }, [handleSelectEvent, datasetSafaris, allDatasetEvents]);
+  }, [handleSelectEvent, datasetSafaris, allDatasetEvents, setMapStyle]);
 
   const handleJumpToSafariEvent = useCallback((safariId: string, eventId: string) => {
+    if (safariId.startsWith("world-cup-")) {
+      setMapStyle("geographic");
+    }
+
     setActiveSafariId(safariId);
     setShowSafariModal(false);
 
@@ -168,7 +180,7 @@ export default function Index() {
         handleSelectEvent(firstEvent);
       }
     }
-  }, [allDatasetEvents, datasetSafaris, handleSelectEvent]);
+  }, [allDatasetEvents, datasetSafaris, handleSelectEvent, setMapStyle]);
 
   const handleCloseSafari = useCallback(() => {
     setActiveSafariId(null);
