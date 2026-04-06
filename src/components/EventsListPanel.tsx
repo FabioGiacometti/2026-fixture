@@ -45,6 +45,10 @@ const stageLabel: Record<string, string> = {
   final: "Final",
 };
 
+function formatCoordinate(value: number, positiveLabel: string, negativeLabel: string) {
+  return `${Math.abs(value).toFixed(2)}° ${value >= 0 ? positiveLabel : negativeLabel}`;
+}
+
 export default function EventsListPanel({
   visibleEvents,
   allEvents,
@@ -159,12 +163,12 @@ export default function EventsListPanel({
         })
     : [];
 
-  const finalMatch = safariMatchEvents.find((match) => match.stage === "final");
-  const champion = finalMatch?.winnerTeam;
-  const semifinalWinners = safariMatchEvents
-    .filter((match) => match.stage === "semifinal")
-    .map((match) => match.winnerTeam)
-    .filter((team): team is string => !!team);
+  const knockoutPathEvents = safariMatchEvents.filter(
+    (match) => match.stage === "semifinal" || match.stage === "final"
+  );
+
+  const backLabel = activeSafari ? `Volver a ${activeSafari.name}` : "Volver";
+  const venueName = selectedEvent?.city ?? selectedEvent?.region ?? "Ubicación desconocida";
 
   const handlePrev = () => {
     if (hasPrev) {
@@ -434,7 +438,7 @@ export default function EventsListPanel({
                 }
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
-                <span className="font-mono-space">Volver</span>
+                <span className="font-mono-space">{backLabel}</span>
               </button>
               <div className="flex-1" />
               <button
@@ -452,21 +456,54 @@ export default function EventsListPanel({
 
             {/* Event detail content */}
             <div className="flex-1 overflow-y-auto p-4">
-              {/* Year */}
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar
-                  className="w-3.5 h-3.5 shrink-0"
-                  style={{ color: "hsl(var(--primary))" }}
-                />
-                <span
-                  className="font-mono-space text-xl font-bold leading-none"
-                  style={{ color: "hsl(var(--primary))" }}
-                >
-                  {formatEventDate(selectedEvent)}
-                </span>
+              {/* Date + navigation */}
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Calendar
+                    className="w-3.5 h-3.5 shrink-0"
+                    style={{ color: "hsl(var(--primary))" }}
+                  />
+                  <span
+                    className="font-mono-space text-xl font-bold leading-none"
+                    style={{ color: "hsl(var(--primary))" }}
+                  >
+                    {formatEventDate(selectedEvent)}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handlePrev}
+                    disabled={!hasPrev}
+                    className="h-8 w-8 flex items-center justify-center rounded-lg transition-all"
+                    style={{
+                      background: hasPrev ? "hsl(var(--primary) / 0.1)" : "transparent",
+                      color: hasPrev ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.2)",
+                      border: `1px solid ${hasPrev ? "hsl(var(--primary) / 0.4)" : "hsl(var(--border) / 0.5)"}`,
+                      cursor: hasPrev ? "pointer" : "default",
+                    }}
+                    aria-label="Evento anterior"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleNext}
+                    disabled={!hasNext && !isFinalSafariEvent}
+                    className="h-8 w-8 flex items-center justify-center rounded-lg transition-all"
+                    style={{
+                      background: (hasNext || isFinalSafariEvent) ? "hsl(var(--primary) / 0.1)" : "transparent",
+                      color: (hasNext || isFinalSafariEvent) ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.2)",
+                      border: `1px solid ${(hasNext || isFinalSafariEvent) ? "hsl(var(--primary) / 0.4)" : "hsl(var(--border) / 0.5)"}`,
+                      cursor: (hasNext || isFinalSafariEvent) ? "pointer" : "default",
+                    }}
+                    aria-label={isFinalSafariEvent ? "Finalizar safari" : "Próximo evento"}
+                  >
+                    {isFinalSafariEvent ? <X className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
-              {/* Region & Coordinates */}
+              {/* Venue & Coordinates */}
               <div className="flex items-center gap-4 mb-3">
                 <div className="flex items-center gap-1.5">
                   <MapPin
@@ -475,20 +512,16 @@ export default function EventsListPanel({
                   />
                   <span
                     className="font-mono-space text-xs font-bold uppercase tracking-wider"
-                    style={{
-                      color:
-                        regionColors[selectedEvent.region] ??
-                        "hsl(var(--muted-foreground))",
-                    }}
+                    style={{ color: "hsl(var(--primary))" }}
                   >
-                    {selectedEvent.region}
+                    {venueName}
                   </span>
                 </div>
                 <span
                   className="font-mono-space text-[10px] opacity-60"
                   style={{ color: "hsl(var(--muted-foreground))" }}
                 >
-                  {selectedEvent.lat.toFixed(2)}° N, {selectedEvent.lng.toFixed(2)}° E
+                  {formatCoordinate(selectedEvent.lat, "N", "S")}, {formatCoordinate(selectedEvent.lng, "E", "W")}
                 </span>
               </div>
 
@@ -532,10 +565,10 @@ export default function EventsListPanel({
                   {(selectedEvent.formationHome || selectedEvent.formationAway) && (
                     <div className="mt-2 pt-2 border-t border-border/60 grid grid-cols-2 gap-2">
                       <span className="font-mono-space text-[10px]" style={{ color: "hsl(var(--muted-foreground))" }}>
-                        Formación {selectedEvent.homeTeam}: {selectedEvent.formationHome ?? "N/D"}
+                        Formación: {selectedEvent.formationHome ?? "N/D"}
                       </span>
                       <span className="font-mono-space text-[10px] text-right" style={{ color: "hsl(var(--muted-foreground))" }}>
-                        Formación {selectedEvent.awayTeam}: {selectedEvent.formationAway ?? "N/D"}
+                        Formación: {selectedEvent.formationAway ?? "N/D"}
                       </span>
                     </div>
                   )}
@@ -570,13 +603,13 @@ export default function EventsListPanel({
                     </div>
                   )}
 
-                  {safariMatchEvents.length > 1 && (
+                  {knockoutPathEvents.length > 0 && (
                     <div className="mt-3 pt-2 border-t border-border/60">
                       <p className="font-mono-space text-[10px] uppercase tracking-widest mb-2" style={{ color: "hsl(var(--muted-foreground))" }}>
                         Camino eliminatorio
                       </p>
                       <div className="flex flex-wrap gap-1.5">
-                        {safariMatchEvents.map((match) => {
+                        {knockoutPathEvents.map((match) => {
                           const isCurrent = match.id === selectedEvent.id;
                           const winner = match.winnerTeam ? ` · ${match.winnerTeam}` : "";
                           return (
@@ -596,20 +629,20 @@ export default function EventsListPanel({
                           );
                         })}
                       </div>
-
-
                     </div>
                   )}
                 </div>
               )}
 
               {/* Description */}
-              <p
-                className="text-sm leading-relaxed"
-                style={{ color: "hsl(var(--foreground) / 0.85)" }}
-              >
-                {selectedEvent.description}
-              </p>
+              {selectedEvent.eventType !== "match" && (
+                <p
+                  className="text-sm leading-relaxed"
+                  style={{ color: "hsl(var(--foreground) / 0.85)" }}
+                >
+                  {selectedEvent.description}
+                </p>
+              )}
 
               {selectedEvent.eventType === "match" && selectedEvent.scorers && selectedEvent.scorers.length > 0 && (
                 <div className="mt-6 border-t border-border pt-4">
@@ -706,60 +739,6 @@ export default function EventsListPanel({
                         ? "EVENTOS RELACIONADOS" 
                         : "NAVEGACIÓN HISTÓRICA")}
                   </p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handlePrev}
-                      disabled={!hasPrev}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
-                      style={{
-                        background: hasPrev ? "hsl(var(--primary) / 0.1)" : "transparent",
-                        color: hasPrev ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.2)",
-                        border: `1px solid ${hasPrev ? "hsl(var(--primary) / 0.4)" : "hsl(var(--border) / 0.5)"}`,
-                        cursor: hasPrev ? "pointer" : "default",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (hasPrev) {
-                          e.currentTarget.style.background = "hsl(var(--primary) / 0.2)";
-                          e.currentTarget.style.borderColor = "hsl(var(--primary))";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (hasPrev) {
-                          e.currentTarget.style.background = "hsl(var(--primary) / 0.1)";
-                          e.currentTarget.style.borderColor = "hsl(var(--primary) / 0.4)";
-                        }
-                      }}
-                      aria-label="Evento anterior"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={handleNext}
-                      disabled={!hasNext && !isFinalSafariEvent}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
-                      style={{
-                        background: (hasNext || isFinalSafariEvent) ? "hsl(var(--primary) / 0.1)" : "transparent",
-                        color: (hasNext || isFinalSafariEvent) ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.2)",
-                        border: `1px solid ${(hasNext || isFinalSafariEvent) ? "hsl(var(--primary) / 0.4)" : "hsl(var(--border) / 0.5)"}`,
-                        cursor: (hasNext || isFinalSafariEvent) ? "pointer" : "default",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (hasNext || isFinalSafariEvent) {
-                          e.currentTarget.style.background = "hsl(var(--primary) / 0.2)";
-                          e.currentTarget.style.borderColor = "hsl(var(--primary))";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (hasNext || isFinalSafariEvent) {
-                          e.currentTarget.style.background = "hsl(var(--primary) / 0.1)";
-                          e.currentTarget.style.borderColor = "hsl(var(--primary) / 0.4)";
-                        }
-                      }}
-                      aria-label={isFinalSafariEvent ? "Finalizar safari" : "Próximo evento"}
-                    >
-                      {isFinalSafariEvent ? <X className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                    </button>
-                  </div>
                 </div>
 
                 {selectedEvent.relatedEvents && selectedEvent.relatedEvents.length > 0 && (

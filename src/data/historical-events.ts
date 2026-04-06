@@ -19,6 +19,7 @@ export interface HistoricalEvent {
   day?: number;
   lat: number;
   lng: number;
+  city?: string;
   region: string;
   importance: number; // 1: Global/Major, 2: Continental, 3: Regional/Local
   relatedEvents?: string[]; // IDs of related events
