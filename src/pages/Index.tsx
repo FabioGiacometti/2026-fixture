@@ -5,6 +5,7 @@ import CesiumGlobe from "@/components/CesiumGlobe";
 import TimelineBar from "@/components/TimelineBar";
 import EventsListPanel from "@/components/EventsListPanel";
 import SafariSelectionModal from "@/components/SafariSelectionModal";
+import FixturePipPanel from "@/components/FixturePipPanel";
 import { historicalEvents, getEventsInRange, safaris } from "@/data/historical-events";
 import { WORLD_CUP_YEARS, worldCupEvents, worldCupSafaris } from "@/data/world-cup-data";
 import type { HistoricalEvent } from "@/data/historical-events";
@@ -366,6 +367,16 @@ export default function Index() {
               : "Mueve el slider ↓ · Haz clic en un marcador o usa el panel ▸"}
           </span>
         </div>
+      )}
+
+      {/* ── World Cup Fixture PIP ── */}
+      {!isMobile && datasetMode === "worldcup" && activeSafari && (
+        <FixturePipPanel
+          activeSafari={activeSafari}
+          allEvents={allDatasetEvents}
+          selectedEvent={selectedEvent}
+          onSelectEvent={handleSelectEvent}
+        />
       )}
 
       {/* ── Events List Panel (right side, replaces old EventPanel) ── */}

@@ -1,0 +1,129 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import type { HistoricalEvent, Safari } from "@/data/historical-events";
+import FixturePipPanel from "@/components/FixturePipPanel";
+
+describe("FixturePipPanel", () => {
+  it("starts minimized for World Cup safaris and can expand to show the animated fixture", () => {
+    const safari: Safari = {
+      id: "world-cup-2022",
+      name: "Qatar 2022",
+      description: "Qatar · Doha.",
+      overview: "Recorrido del torneo.",
+      eventIds: ["qf-1", "sf-1", "final", "third-place"],
+    };
+
+    const events: HistoricalEvent[] = [
+      {
+        id: "qf-1",
+        title: "Cuartos: Argentina vs Países Bajos",
+        description: "Argentina 2-2 Países Bajos",
+        year: 2022,
+        month: 12,
+        day: 9,
+        lat: 25.28,
+        lng: 51.52,
+        city: "Lusail",
+        region: "Asia",
+        importance: 2,
+        dataset: "worldcup",
+        eventType: "match",
+        stage: "quarterfinal",
+        tournamentId: "world-cup-2022",
+        homeTeam: "Argentina",
+        awayTeam: "Netherlands",
+        score: { home: 2, away: 2, penalties: { home: 4, away: 3 } },
+        winnerTeam: "Argentina",
+      },
+      {
+        id: "sf-1",
+        title: "Semifinal: Argentina vs Croacia",
+        description: "Argentina 3-0 Croacia",
+        year: 2022,
+        month: 12,
+        day: 13,
+        lat: 25.28,
+        lng: 51.52,
+        city: "Lusail",
+        region: "Asia",
+        importance: 2,
+        dataset: "worldcup",
+        eventType: "match",
+        stage: "semifinal",
+        tournamentId: "world-cup-2022",
+        homeTeam: "Argentina",
+        awayTeam: "Croatia",
+        score: { home: 3, away: 0 },
+        winnerTeam: "Argentina",
+      },
+      {
+        id: "final",
+        title: "Final: Argentina vs France",
+        description: "Argentina 3-3 France",
+        year: 2022,
+        month: 12,
+        day: 18,
+        lat: 25.28,
+        lng: 51.52,
+        city: "Lusail",
+        region: "Asia",
+        importance: 1,
+        dataset: "worldcup",
+        eventType: "match",
+        stage: "final",
+        tournamentId: "world-cup-2022",
+        homeTeam: "Argentina",
+        awayTeam: "France",
+        score: { home: 3, away: 3, penalties: { home: 4, away: 2 } },
+        winnerTeam: "Argentina",
+      },
+      {
+        id: "third-place",
+        title: "3er puesto: Croacia vs Marruecos",
+        description: "Croacia 2-1 Marruecos",
+        year: 2022,
+        month: 12,
+        day: 17,
+        lat: 25.28,
+        lng: 51.52,
+        city: "Doha",
+        region: "Asia",
+        importance: 2,
+        dataset: "worldcup",
+        eventType: "match",
+        stage: "third-place",
+        tournamentId: "world-cup-2022",
+        homeTeam: "Croatia",
+        awayTeam: "Morocco",
+        score: { home: 2, away: 1 },
+        winnerTeam: "Croatia",
+      },
+    ];
+
+    const onSelectEvent = vi.fn();
+
+    render(
+      <FixturePipPanel
+        activeSafari={safari}
+        allEvents={events}
+        selectedEvent={events[1]}
+        onSelectEvent={onSelectEvent}
+      />
+    );
+
+    expect(screen.getByText("Fixture")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /expandir fixture/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /expandir fixture/i }));
+
+    expect(screen.getAllByText("Semifinal").length).toBeGreaterThan(0);
+    expect(screen.getByText("Final")).toBeInTheDocument();
+    expect(screen.getByTestId("fixture-bracket")).toBeInTheDocument();
+    expect(screen.getAllByTestId("fixture-connector").length).toBeGreaterThan(0);
+    expect(screen.getByText(/fase final/i)).toBeInTheDocument();
+    expect(screen.getByText(/campeón proyectado/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /final: argentina vs france/i }));
+    expect(onSelectEvent).toHaveBeenCalledWith(events[2]);
+  });
+});
