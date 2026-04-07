@@ -2812,6 +2812,8 @@ function getThumbnailLabel(year: number): string | undefined {
 }
 
 export const WORLD_CUP_YEARS = TOURNAMENTS.map((t) => t.year);
+export const CURRENT_WORLD_CUP_YEAR = WORLD_CUP_YEARS[WORLD_CUP_YEARS.length - 1];
+export const CURRENT_WORLD_CUP_SAFARI_ID = `world-cup-${CURRENT_WORLD_CUP_YEAR}`;
 
 const tournamentPackage = TOURNAMENTS.map((seed) => {
   const milestone = createMilestoneEvent(seed);
