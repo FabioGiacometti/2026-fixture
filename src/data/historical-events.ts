@@ -27,7 +27,9 @@ export interface HistoricalEvent {
   dataset?: "historical" | "worldcup";
   eventType?: "milestone" | "match";
   tournamentId?: string;
-  stage?: "group" | "round16" | "quarterfinal" | "semifinal" | "third-place" | "final";
+  stage?: "group" | "round32" | "round16" | "quarterfinal" | "semifinal" | "third-place" | "final";
+  groupName?: string;
+  kickoff?: string;
   homeTeam?: string;
   awayTeam?: string;
   homeFlag?: string;
