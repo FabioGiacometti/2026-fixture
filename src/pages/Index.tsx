@@ -424,7 +424,7 @@ export default function Index() {
       )}
 
       {/* ── World Cup Fixture PIP ── */}
-      {!isMobile && datasetMode === "worldcup" && activeSafari && (
+      {!isMobile && datasetMode === "worldcup" && activeSafari && activeSafari.id !== CURRENT_WORLD_CUP_SAFARI_ID && (
         <FixturePipPanel
           activeSafari={activeSafari}
           allEvents={allDatasetEvents}

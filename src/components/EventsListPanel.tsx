@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List, Play, Image as ImageIcon, ExternalLink, Globe, Video, Maximize2 } from "lucide-react";
 import { Safari, HistoricalEvent, formatYear, formatEventDate } from "@/data/historical-events";
+import { CURRENT_WORLD_CUP_SAFARI_ID } from "@/data/world-cup-data";
 
 type PanelState = "collapsed" | "list" | "detail";
 
@@ -47,8 +48,232 @@ const stageLabel: Record<string, string> = {
   final: "Final",
 };
 
+interface CalendarDayBucket {
+  key: string;
+  label: string;
+  matches: HistoricalEvent[];
+}
+
+const FILTER_ALIASES: Record<string, string[]> = {
+  usa: ["usa", "us", "u.s.", "united states", "estados unidos", "eeuu", "eua"],
+};
+
+const COUNTRY_CODE_ALIASES: Record<string, string[]> = {
+  AR: ["argentina"],
+  BO: ["bolivia"],
+  BR: ["brasil", "brazil"],
+  CA: ["canada", "canadá"],
+  CH: ["suiza", "switzerland"],
+  CL: ["chile"],
+  CO: ["colombia"],
+  CR: ["costa rica"],
+  CV: ["cabo verde", "cape verde"],
+  DE: ["alemania", "germany", "west germany", "east germany"],
+  EC: ["ecuador"],
+  EG: ["egipto", "egypt"],
+  ES: ["espana", "españa", "spain"],
+  FR: ["francia", "france"],
+  GB: ["inglaterra", "england", "escocia", "scotland", "gales", "wales", "united kingdom", "great britain", "uk"],
+  GH: ["ghana"],
+  HR: ["croacia", "croatia"],
+  IT: ["italia", "italy"],
+  JP: ["japon", "japón", "japan"],
+  KR: ["corea del sur", "south korea", "korea republic", "republic of korea"],
+  MA: ["marruecos", "morocco"],
+  MX: ["mexico", "méxico"],
+  NG: ["nigeria"],
+  NL: ["paises bajos", "países bajos", "netherlands", "holland"],
+  NO: ["noruega", "norway"],
+  PA: ["panama", "panamá"],
+  PE: ["peru", "perú"],
+  PL: ["polonia", "poland"],
+  PT: ["portugal"],
+  QA: ["qatar"],
+  SA: ["arabia saudita", "saudi arabia"],
+  SN: ["senegal"],
+  TN: ["tunez", "túnez", "tunisia"],
+  TR: ["turquia", "turquía", "turkey"],
+  US: ["usa", "us", "united states", "estados unidos", "eeuu", "eua"],
+  UY: ["uruguay"],
+};
+
 function formatCoordinate(value: number, positiveLabel: string, negativeLabel: string) {
   return `${Math.abs(value).toFixed(2)}° ${value >= 0 ? positiveLabel : negativeLabel}`;
+}
+
+function getEventSortValue(event: HistoricalEvent) {
+  const dateValue = new Date(event.year, (event.month ?? 1) - 1, event.day ?? 1).getTime();
+  const kickoffValue = event.kickoff
+    ? Number.parseInt(event.kickoff.replace(":", ""), 10)
+    : 9999;
+
+  return dateValue * 10_000 + kickoffValue;
+}
+
+function buildCalendarDays(events: HistoricalEvent[]): CalendarDayBucket[] {
+  const sortedEvents = [...events].sort((a, b) => getEventSortValue(a) - getEventSortValue(b));
+  const dayBuckets = new Map<string, CalendarDayBucket>();
+
+  sortedEvents.forEach((event) => {
+    const key = `${event.year}-${String(event.month ?? 1).padStart(2, "0")}-${String(event.day ?? 1).padStart(2, "0")}`;
+    const date = new Date(event.year, (event.month ?? 1) - 1, event.day ?? 1);
+    const existingBucket = dayBuckets.get(key);
+
+    if (existingBucket) {
+      existingBucket.matches.push(event);
+      return;
+    }
+
+    dayBuckets.set(key, {
+      key,
+      label: new Intl.DateTimeFormat("es-AR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+      })
+        .format(date)
+        .replace(",", "")
+        .toUpperCase(),
+      matches: [event],
+    });
+  });
+
+  return [...dayBuckets.values()];
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function getEventSearchBlob(event: HistoricalEvent) {
+  const isoDate = `${event.year}-${String(event.month ?? 1).padStart(2, "0")}-${String(event.day ?? 1).padStart(2, "0")}`;
+  const shortDate = `${String(event.day ?? 1).padStart(2, "0")}-${String(event.month ?? 1).padStart(2, "0")}-${event.year}`;
+
+  return normalizeText(
+    [
+      event.title,
+      event.description,
+      event.homeTeam,
+      event.awayTeam,
+      event.winnerTeam,
+      event.city,
+      event.region,
+      event.groupName,
+      event.stage,
+      event.kickoff,
+      formatEventDate(event),
+      isoDate,
+      shortDate,
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+}
+
+function getChipVariants(chip: string) {
+  const normalized = normalizeText(chip);
+  return FILTER_ALIASES[normalized] ?? [normalized];
+}
+
+function getLocaleRegionCode() {
+  if (typeof navigator === "undefined") return null;
+
+  const locales = navigator.languages?.length ? navigator.languages : [navigator.language];
+  for (const locale of locales) {
+    if (!locale) continue;
+    const match = locale.match(/[-_](?<region>[A-Za-z]{2})$/);
+    const region = match?.groups?.region?.toUpperCase();
+    if (region) return region;
+  }
+
+  return null;
+}
+
+function getCountryCandidates(countryCode?: string | null, countryName?: string | null) {
+  const candidates = new Set<string>();
+
+  if (countryName) {
+    candidates.add(normalizeText(countryName));
+  }
+
+  const normalizedCode = countryCode?.toUpperCase();
+  if (normalizedCode) {
+    COUNTRY_CODE_ALIASES[normalizedCode]?.forEach((alias) => candidates.add(normalizeText(alias)));
+
+    try {
+      const spanishName = new Intl.DisplayNames(["es"], { type: "region" }).of(normalizedCode);
+      const englishName = new Intl.DisplayNames(["en"], { type: "region" }).of(normalizedCode);
+      if (spanishName) candidates.add(normalizeText(spanishName));
+      if (englishName) candidates.add(normalizeText(englishName));
+    } catch {
+      // Ignore DisplayNames support issues and rely on alias mapping.
+    }
+  }
+
+  return [...candidates].filter(Boolean);
+}
+
+function findParticipantCountryMatch(events: HistoricalEvent[], countryCode?: string | null, countryName?: string | null) {
+  const candidates = getCountryCandidates(countryCode, countryName);
+  if (candidates.length === 0) return null;
+
+  const participantTeams = Array.from(
+    new Set(
+      events.flatMap((event) => [event.homeTeam, event.awayTeam]).filter((team): team is string => Boolean(team))
+    )
+  );
+
+  const normalizedTeams = participantTeams.map((team) => ({
+    original: team,
+    normalized: normalizeText(team),
+  }));
+
+  for (const candidate of candidates) {
+    const match = normalizedTeams.find(
+      (team) =>
+        team.normalized === candidate ||
+        team.normalized.includes(candidate) ||
+        candidate.includes(team.normalized)
+    );
+
+    if (match) {
+      return match.original;
+    }
+  }
+
+  return null;
+}
+
+async function detectVisitorCountry(events: HistoricalEvent[]) {
+  if (typeof window === "undefined") {
+    return { chip: null as string | null, source: "none" as const };
+  }
+
+  try {
+    const response = await fetch("/api/visitor-country", {
+      headers: { Accept: "application/json" },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const geoMatch = findParticipantCountryMatch(events, data?.countryCode, data?.country);
+      if (geoMatch) {
+        return { chip: geoMatch, source: "ip" as const };
+      }
+    }
+  } catch {
+    // Ignore network/IP lookup issues and rely on locale as a soft suggestion only.
+  }
+
+  const localeMatch = findParticipantCountryMatch(events, getLocaleRegionCode(), null);
+  if (localeMatch) {
+    return { chip: localeMatch, source: "locale" as const };
+  }
+
+  return { chip: null as string | null, source: "none" as const };
 }
 
 export default function EventsListPanel({
@@ -68,9 +293,14 @@ export default function EventsListPanel({
   const [panelState, setPanelState] = useState<PanelState>("collapsed");
   const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
   const [panelWidth, setPanelWidth] = useState(300);
+  const [quickFilterInput, setQuickFilterInput] = useState("");
+  const [quickFilters, setQuickFilters] = useState<string[]>([]);
+  const [suggestedQuickFilter, setSuggestedQuickFilter] = useState<string | null>(null);
   const isDragging = useRef(false);
+  const visitorPrefillStartedRef = useRef(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
+  const isCurrentWorldCupSafari = activeSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID;
 
   const handleDragStart = useCallback((e: React.PointerEvent) => {
     isDragging.current = true;
@@ -97,6 +327,17 @@ export default function EventsListPanel({
       setPanelState("detail");
     }
   }, [selectedEvent]);
+
+  useEffect(() => {
+    if (isCurrentWorldCupSafari) {
+      setPanelState("list");
+    }
+  }, [isCurrentWorldCupSafari, activeSafari?.id]);
+
+  useEffect(() => {
+    visitorPrefillStartedRef.current = false;
+    setSuggestedQuickFilter(null);
+  }, [activeSafari?.id]);
 
   // Report media modal state
   useEffect(() => {
@@ -136,7 +377,60 @@ export default function EventsListPanel({
     onClose();
   };
 
-  const sortedEventsList = [...visibleEvents].sort((a, b) => a.year - b.year);
+  const sortedEventsList = [...visibleEvents].sort((a, b) => getEventSortValue(a) - getEventSortValue(b));
+
+  useEffect(() => {
+    if (!isCurrentWorldCupSafari || visibleEvents.length === 0 || visitorPrefillStartedRef.current) {
+      return;
+    }
+
+    const applyChip = (chip: string | null) => {
+      if (!chip) return;
+
+      setQuickFilters((prev) => {
+        const normalizedChip = normalizeText(chip);
+        if (prev.some((existingChip) => normalizeText(existingChip) === normalizedChip)) {
+          return prev;
+        }
+
+        return [chip, ...prev];
+      });
+    };
+
+    visitorPrefillStartedRef.current = true;
+
+    let isCancelled = false;
+
+    void detectVisitorCountry(visibleEvents).then(({ chip, source }) => {
+      if (isCancelled || !chip) return;
+
+      if (source === "ip") {
+        applyChip(chip);
+        setSuggestedQuickFilter(null);
+        return;
+      }
+
+      if (source === "locale") {
+        setSuggestedQuickFilter(chip);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isCurrentWorldCupSafari, visibleEvents]);
+
+  const filteredEventsList = sortedEventsList.filter((event) => {
+    if (quickFilters.length === 0) return true;
+
+    const blob = getEventSearchBlob(event);
+    return quickFilters.some((chip) =>
+      getChipVariants(chip).some((variant) => blob.includes(variant))
+    );
+  });
+  const calendarDays = buildCalendarDays(
+    filteredEventsList.filter((event) => event.eventType === "match")
+  );
   
   // For navigation (Back/Next), use all events sorted by year, OR safari events if active
   const navigationEvents = activeSafari 
@@ -171,6 +465,41 @@ export default function EventsListPanel({
 
   const backLabel = activeSafari ? `Volver a ${activeSafari.name}` : "Volver";
   const venueName = selectedEvent?.city ?? selectedEvent?.region ?? "Ubicación desconocida";
+  const panelTabLabel = isCurrentWorldCupSafari ? "Calendario" : "Eventos";
+  const panelOpenLabel = isCurrentWorldCupSafari
+    ? "Abrir calendario de partidos"
+    : "Abrir lista de eventos";
+  const panelSubtitle = activeSafari
+    ? (isCurrentWorldCupSafari ? "Calendario del torneo" : "Narrativa Curada")
+    : `± ${windowSize} años de ${formatYear(currentYear)}`;
+
+  const addQuickFilter = useCallback((value: string) => {
+    const nextChip = value.trim();
+    if (!nextChip) return;
+
+    setQuickFilters((prev) => {
+      const normalizedNext = normalizeText(nextChip);
+      if (prev.some((chip) => normalizeText(chip) === normalizedNext)) {
+        return prev;
+      }
+      return [...prev, nextChip];
+    });
+    setQuickFilterInput("");
+  }, []);
+
+  const removeQuickFilter = useCallback((chipToRemove: string) => {
+    const normalizedTarget = normalizeText(chipToRemove);
+    setQuickFilters((prev) => prev.filter((chip) => normalizeText(chip) !== normalizedTarget));
+  }, []);
+
+  const clearQuickFilters = useCallback(() => {
+    setQuickFilters([]);
+    setQuickFilterInput("");
+  }, []);
+
+  const hasSuggestedChip = suggestedQuickFilter
+    ? quickFilters.some((chip) => normalizeText(chip) === normalizeText(suggestedQuickFilter))
+    : false;
 
   const handlePrev = () => {
     if (hasPrev) {
@@ -212,7 +541,7 @@ export default function EventsListPanel({
               : "1px solid hsl(var(--border) / 0.3)",
           backdropFilter: "blur(8px)",
         }}
-        aria-label={panelState === "collapsed" ? "Abrir lista de eventos" : "Colapsar panel"}
+        aria-label={panelState === "collapsed" ? panelOpenLabel : "Colapsar panel"}
       >
         {/* Arrow icon */}
         <div
@@ -235,9 +564,13 @@ export default function EventsListPanel({
             letterSpacing: "0.12em",
           }}
         >
-          Eventos
+          {panelTabLabel}
         </span>
-        <List className="w-3.5 h-3.5" style={{ color: "hsl(var(--muted-foreground))" }} />
+        {isCurrentWorldCupSafari ? (
+          <Calendar className="w-3.5 h-3.5" style={{ color: "hsl(var(--muted-foreground))" }} />
+        ) : (
+          <List className="w-3.5 h-3.5" style={{ color: "hsl(var(--muted-foreground))" }} />
+        )}
       </button>
 
       {/* ── Sliding panel content ── */}
@@ -314,7 +647,7 @@ export default function EventsListPanel({
                   className="font-mono-space text-[10px] mt-0.5"
                   style={{ color: "hsl(var(--muted-foreground))" }}
                 >
-                  {activeSafari ? `Narrativa Curada` : `± ${windowSize} años de ${formatYear(currentYear)}`}
+                  {panelSubtitle}
                 </p>
               </div>
               <button
@@ -332,6 +665,103 @@ export default function EventsListPanel({
 
             {/* Events list */}
             <div className="flex-1 overflow-y-auto">
+              {sortedEventsList.length > 0 && (
+                <div className="sticky top-0 z-10 border-b px-3 py-2" style={{
+                  background: "hsl(var(--card) / 0.97)",
+                  borderColor: "hsl(var(--border) / 0.7)",
+                  backdropFilter: "blur(8px)",
+                }}>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={quickFilterInput}
+                      onChange={(event) => setQuickFilterInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === ",") {
+                          event.preventDefault();
+                          addQuickFilter(quickFilterInput);
+                        }
+                      }}
+                      placeholder="Filtrar por país, sede o fecha"
+                      className="h-8 w-full rounded-lg border bg-muted/20 px-2.5 font-mono-space text-[10px] outline-none"
+                      style={{
+                        borderColor: "hsl(var(--border) / 0.75)",
+                        color: "hsl(var(--foreground))",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addQuickFilter(quickFilterInput)}
+                      className="h-8 shrink-0 rounded-lg border px-2 font-mono-space text-[9px] uppercase tracking-widest"
+                      style={{
+                        borderColor: "hsl(var(--primary) / 0.45)",
+                        color: "hsl(var(--primary))",
+                        background: "hsl(var(--primary) / 0.1)",
+                      }}
+                    >
+                      Add
+                    </button>
+                  </div>
+
+                  {(quickFilters.length > 0 || (suggestedQuickFilter && !hasSuggestedChip)) && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {quickFilters.map((chip) => (
+                        <span
+                          key={chip}
+                          className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono-space text-[9px] uppercase tracking-wider"
+                          style={{
+                            borderColor: "hsl(var(--primary) / 0.4)",
+                            color: "hsl(var(--primary))",
+                            background: "hsl(var(--primary) / 0.1)",
+                          }}
+                        >
+                          {chip}
+                          <button
+                            type="button"
+                            onClick={() => removeQuickFilter(chip)}
+                            className="opacity-75 transition-opacity hover:opacity-100"
+                            aria-label={`Quitar filtro ${chip}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+
+                      {suggestedQuickFilter && !hasSuggestedChip && (
+                        <button
+                          type="button"
+                          onClick={() => addQuickFilter(suggestedQuickFilter)}
+                          className="rounded-full border px-2 py-0.5 font-mono-space text-[9px] uppercase tracking-wider"
+                          style={{
+                            borderColor: "hsl(var(--border) / 0.7)",
+                            color: "hsl(var(--muted-foreground))",
+                            background: "hsl(var(--muted) / 0.18)",
+                          }}
+                          aria-label={`Sugerir filtro ${suggestedQuickFilter}`}
+                          title="Sugerencia basada en la configuración regional del navegador"
+                        >
+                          Sugerencia: {suggestedQuickFilter}
+                        </button>
+                      )}
+
+                      {quickFilters.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={clearQuickFilters}
+                          className="rounded-full border px-2 py-0.5 font-mono-space text-[9px] uppercase tracking-wider"
+                          style={{
+                            borderColor: "hsl(var(--border) / 0.7)",
+                            color: "hsl(var(--muted-foreground))",
+                          }}
+                        >
+                          Limpiar
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {sortedEventsList.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-32 gap-2">
                   <Calendar
@@ -345,9 +775,112 @@ export default function EventsListPanel({
                     Sin eventos en este período
                   </p>
                 </div>
+              ) : filteredEventsList.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-36 gap-2 px-4">
+                  <Calendar
+                    className="w-5 h-5"
+                    style={{ color: "hsl(var(--muted-foreground))" }}
+                  />
+                  <p
+                    className="font-mono-space text-xs text-center"
+                    style={{ color: "hsl(var(--muted-foreground))" }}
+                  >
+                    Sin coincidencias para estos filtros
+                  </p>
+                </div>
+              ) : isCurrentWorldCupSafari ? (
+                <div className="flex flex-col gap-3 p-3">
+                  {calendarDays.map((day) => (
+                    <div key={day.key} className="flex flex-col gap-2">
+                      <p
+                        className="px-1 pt-1 font-mono-space text-[10px] font-bold uppercase tracking-wider leading-tight"
+                        style={{ color: "hsl(var(--primary))" }}
+                      >
+                        {day.label}
+                      </p>
+
+                      {day.matches.map((event) => {
+                        const isCurrent = selectedEvent?.id === event.id;
+                        const matchLabel = event.groupName ?? stageLabel[event.stage ?? "group"] ?? "Partido";
+
+                        return (
+                          <button
+                            key={event.id}
+                            type="button"
+                            aria-label={event.title}
+                            onClick={() => handleSelectEvent(event)}
+                            className="w-full rounded-xl border px-3 py-2 text-left transition-all hover:-translate-y-[1px]"
+                            style={{
+                              borderColor: isCurrent
+                                ? "hsl(var(--primary) / 0.45)"
+                                : "hsl(var(--border) / 0.75)",
+                              background: isCurrent
+                                ? "linear-gradient(135deg, hsl(var(--primary) / 0.12), hsl(var(--card)))"
+                                : "hsl(var(--muted) / 0.18)",
+                              boxShadow: isCurrent ? "0 0 0 1px hsl(var(--primary) / 0.2)" : "none",
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span
+                                className="font-mono-space text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded-full"
+                                style={{
+                                  color: "hsl(var(--primary))",
+                                  background: "hsl(var(--primary) / 0.1)",
+                                }}
+                              >
+                                {matchLabel}
+                              </span>
+                              <span
+                                className="font-mono-space text-[10px]"
+                                style={{ color: "hsl(var(--muted-foreground))" }}
+                              >
+                                {event.kickoff ?? "—"}
+                              </span>
+                            </div>
+
+                            <div
+                              className="mt-2 flex items-center gap-1.5 font-mono-space text-xs font-bold leading-snug"
+                              style={{ color: "hsl(var(--foreground) / 0.92)" }}
+                            >
+                              {event.homeFlag && (
+                                <img
+                                  src={`https://flagcdn.com/w20/${event.homeFlag.toLowerCase()}.png`}
+                                  alt={event.homeTeam ?? "Local"}
+                                  className="h-3 w-4 rounded-[2px] object-cover"
+                                />
+                              )}
+                              <span>{event.homeTeam ?? "Equipo local"}</span>
+                              <span style={{ color: "hsl(var(--muted-foreground))" }}>vs</span>
+                              {event.awayFlag && (
+                                <img
+                                  src={`https://flagcdn.com/w20/${event.awayFlag.toLowerCase()}.png`}
+                                  alt={event.awayTeam ?? "Visitante"}
+                                  className="h-3 w-4 rounded-[2px] object-cover"
+                                />
+                              )}
+                              <span>{event.awayTeam ?? "Equipo visitante"}</span>
+                            </div>
+
+                            <div
+                              className="mt-1 flex items-center justify-between gap-2 font-mono-space text-[10px]"
+                              style={{ color: "hsl(var(--muted-foreground))" }}
+                            >
+                              <span className="truncate">{event.city ?? event.region}</span>
+                              <span className="shrink-0" style={{ color: "hsl(var(--primary))" }}>
+                                {event.score
+                                  ? `${event.score.home}-${event.score.away}`
+                                  : "Ver detalle"}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <ul className="divide-y" style={{ borderColor: "hsl(var(--border) / 0.5)" }}>
-                  {sortedEventsList.map((event) => {
+                  {filteredEventsList.map((event) => {
                     const regionColor =
                       regionColors[event.region] ?? "hsl(var(--muted-foreground))";
                     return (
