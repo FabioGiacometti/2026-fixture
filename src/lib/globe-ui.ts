@@ -39,6 +39,7 @@ const WORLD_CUP_COUNTRY_BOUNDS: Record<string, CountryBounds> = {
   "2014": { west: -74.5, south: -33.8, east: -34.8, north: 5.4 },
   "2018": { west: 19.6, south: 41.2, east: 180.0, north: 81.9 },
   "2022": { west: 50.6, south: 24.3, east: 51.7, north: 26.2 },
+  "2026": { west: -123.5, south: 14.0, east: -73.0, north: 56.5 },
 };
 
 export interface MarkerAppearance {

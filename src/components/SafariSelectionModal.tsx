@@ -25,15 +25,17 @@ const STORAGE_KEY = "safari-historico-read";
 
 const stageOrder: Record<string, number> = {
   group: 1,
-  round16: 2,
-  quarterfinal: 3,
-  semifinal: 4,
-  "third-place": 5,
-  final: 6,
+  round32: 2,
+  round16: 3,
+  quarterfinal: 4,
+  semifinal: 5,
+  "third-place": 6,
+  final: 7,
 };
 
 const stageLabel: Record<string, string> = {
   group: "Grupos",
+  round32: "16avos",
   round16: "Octavos",
   quarterfinal: "Cuartos",
   semifinal: "Semifinales",
@@ -82,6 +84,7 @@ const countryFlagCodes: Record<string, string[]> = {
   "South Africa": ["za"],
   Russia: ["ru"],
   Qatar: ["qa"],
+  "Canadá / México / Estados Unidos": ["ca", "mx", "us"],
   Netherlands: ["nl"],
   Croatia: ["hr"],
   Czechoslovakia: ["cz"],
@@ -267,7 +270,7 @@ export default function SafariSelectionModal({
         : undefined;
 
       const host = hostPart.trim() || "País sede";
-      const winner = getWinningTeam(finalEvent) ?? "Campeón destacado";
+      const winner = getWinningTeam(finalEvent) ?? (year >= new Date().getFullYear() ? "Por definir" : "Campeón destacado");
 
       return {
         safari,
@@ -818,7 +821,7 @@ export default function SafariSelectionModal({
                                   : event.title}
                               </span>
 
-                              {event.eventType === "match" && event.homeTeam && event.awayTeam && event.score && (
+                              {event.eventType === "match" && event.homeTeam && event.awayTeam && (
                                 <span className="font-mono-space text-[11px] text-white/70">
                                   {event.homeFlag && (
                                     <img
@@ -827,7 +830,9 @@ export default function SafariSelectionModal({
                                       className="inline h-3 mr-1 align-middle"
                                     />
                                   )}
-                                  {event.homeTeam} ({event.score.home}) vs ({event.score.away}) {event.awayTeam}
+                                  {event.score
+                                    ? `${event.homeTeam} (${event.score.home}) vs (${event.score.away}) ${event.awayTeam}`
+                                    : `${event.homeTeam} vs ${event.awayTeam}${event.kickoff ? ` · ${event.kickoff}` : ""}`}
                                   {event.awayFlag && (
                                     <img
                                       src={`https://flagcdn.com/w20/${event.awayFlag.toLowerCase()}.png`}

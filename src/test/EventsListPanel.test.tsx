@@ -4,6 +4,60 @@ import EventsListPanel from "@/components/EventsListPanel";
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
 
 describe("EventsListPanel match detail view", () => {
+  it("renders upcoming World Cup matches without crashing when no score is available", async () => {
+    const upcomingMatch = {
+      id: "wc2026-g-a1",
+      title: "Grupo A: México vs Sudáfrica",
+      description: "México vs Sudáfrica · 16:00. Programado.",
+      year: 2026,
+      month: 6,
+      day: 11,
+      lat: 19.3029,
+      lng: -99.1505,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      homeTeam: "México",
+      awayTeam: "Sudáfrica",
+      kickoff: "16:00",
+      city: "Estadio Ciudad de México",
+    } as HistoricalEvent;
+
+    const safari: Safari = {
+      id: "world-cup-2026",
+      name: "Copa Mundial 2026",
+      description: "Canadá / México / Estados Unidos · Norteamérica.",
+      overview: "Seguimiento del torneo.",
+      eventIds: [upcomingMatch.id],
+    };
+
+    render(
+      <EventsListPanel
+        visibleEvents={[upcomingMatch]}
+        allEvents={[upcomingMatch]}
+        selectedEvent={upcomingMatch}
+        currentYear={2026}
+        windowSize={6}
+        activeSafari={safari}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={vi.fn()}
+        onCloseSafari={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Partido programado · 16:00")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Estadio Ciudad de México")).toBeInTheDocument();
+    expect(screen.getByText("México")).toBeInTheDocument();
+    expect(screen.getByText("Sudáfrica")).toBeInTheDocument();
+    expect(screen.queryByText(/^Penales:/)).not.toBeInTheDocument();
+  });
+
   it("shows the safari name, venue, simplified formations, and only knockout milestones", async () => {
     const selectedMatch = {
       id: "g-a1",

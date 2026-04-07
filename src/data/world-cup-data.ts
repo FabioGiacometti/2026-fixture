@@ -1,6 +1,6 @@
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
 
-type MatchStage = "group" | "round16" | "quarterfinal" | "semifinal" | "third-place" | "final";
+type MatchStage = "group" | "round32" | "round16" | "quarterfinal" | "semifinal" | "third-place" | "final";
 
 type Scorer = NonNullable<HistoricalEvent["scorers"]>[number];
 type MatchTimelineItem = NonNullable<HistoricalEvent["matchTimeline"]>[number];
@@ -34,12 +34,14 @@ interface FixtureSeed {
   title: string;
   homeTeam: string;
   awayTeam: string;
-  homeScore: number;
-  awayScore: number;
+  homeScore?: number;
+  awayScore?: number;
   city: string;
   lat: number;
   lng: number;
   date?: string; // ISO format: YYYY-MM-DD
+  kickoff?: string;
+  groupName?: string;
   note?: string;
   penalties?: { home: number; away: number };
   formationHome?: string;
@@ -113,20 +115,49 @@ const TEAM_FLAGS: Record<string, string> = {
   "North Korea": "KP",
   Serbia: "RS",
   Mexico: "MX",
+  "México": "MX",
   Canada: "CA",
+  "Canadá": "CA",
   "Costa Rica": "CR",
   Colombia: "CO",
   Bolivia: "BO",
   Algeria: "DZ",
+  "Argelia": "DZ",
   Nigeria: "NG",
   Greece: "GR",
   "Bosnia and Herzegovina": "BA",
   Honduras: "HN",
   "Ivory Coast": "CI",
+  "Costa de Marfil": "CI",
   Slovakia: "SK",
   Paraguay: "PY",
   Peru: "PE",
   Ukraine: "UA",
+  "Estados Unidos": "US",
+  "Corea del Sur": "KR",
+  "Sudáfrica": "ZA",
+  "Suiza": "CH",
+  Brasil: "BR",
+  Marruecos: "MA",
+  Haití: "HT",
+  Escocia: "GB-SCT",
+  Curazao: "CW",
+  "Países Bajos": "NL",
+  Japón: "JP",
+  Túnez: "TN",
+  Bélgica: "BE",
+  Egipto: "EG",
+  "Nueva Zelanda": "NZ",
+  España: "ES",
+  "Cabo Verde": "CV",
+  "Arabia Saudita": "SA",
+  Francia: "FR",
+  Noruega: "NO",
+  Jordania: "JO",
+  Uzbekistán: "UZ",
+  Inglaterra: "GB",
+  Croacia: "HR",
+  Panamá: "PA",
 };
 
 const HOST_REGION: Record<string, string> = {
@@ -147,16 +178,272 @@ const HOST_REGION: Record<string, string> = {
   "South Africa": "África",
   Russia: "Europa",
   Qatar: "Asia",
+  "Canadá / México / Estados Unidos": "América",
 };
 
 const STAGE_ORDER: Record<MatchStage, number> = {
   group: 1,
-  round16: 2,
-  quarterfinal: 3,
-  semifinal: 4,
-  "third-place": 5,
-  final: 6,
+  round32: 2,
+  round16: 3,
+  quarterfinal: 4,
+  semifinal: 5,
+  "third-place": 6,
+  final: 7,
 };
+
+const WORLD_CUP_2026_VENUES: Record<string, { lat: number; lng: number }> = {
+  "Estadio Ciudad de México": { lat: 19.3029, lng: -99.1505 },
+  "Estadio Azteca Ciudad de México": { lat: 19.3029, lng: -99.1505 },
+  "Estadio Guadalajara": { lat: 20.6786, lng: -103.346 },
+  "Estadio Monterrey": { lat: 25.6692, lng: -100.2442 },
+  "Atlanta Stadium": { lat: 33.7554, lng: -84.4008 },
+  "Boston Stadium": { lat: 42.0909, lng: -71.2643 },
+  "BC Place Vancouver": { lat: 49.2768, lng: -123.1119 },
+  "Dallas Stadium": { lat: 32.7473, lng: -97.0929 },
+  "Houston Stadium": { lat: 29.6847, lng: -95.4107 },
+  "Kansas City Stadium": { lat: 39.0489, lng: -94.4839 },
+  "Los Angeles Stadium": { lat: 33.9535, lng: -118.3392 },
+  "Miami Stadium": { lat: 25.958, lng: -80.2389 },
+  "New York / New Jersey Stadium": { lat: 40.8135, lng: -74.0745 },
+  "New York New Jersey Stadium": { lat: 40.8135, lng: -74.0745 },
+  "Philadelphia Stadium": { lat: 39.9008, lng: -75.1675 },
+  "San Francisco Bay Area Stadium": { lat: 37.403, lng: -121.97 },
+  "Seattle Stadium": { lat: 47.5952, lng: -122.3316 },
+  "Toronto Stadium": { lat: 43.6332, lng: -79.4186 },
+};
+
+const STAGE_TITLES_2026: Record<Exclude<MatchStage, "group">, string> = {
+  round32: "16avos",
+  round16: "Octavos",
+  quarterfinal: "Cuartos",
+  semifinal: "Semifinal",
+  "third-place": "Tercer puesto",
+  final: "Final",
+};
+
+function createUpcomingFixture2026({
+  id,
+  stage,
+  homeTeam,
+  awayTeam,
+  venue,
+  date,
+  kickoff,
+  groupName,
+  code,
+}: {
+  id: string;
+  stage: MatchStage;
+  homeTeam: string;
+  awayTeam: string;
+  venue: string;
+  date: string;
+  kickoff?: string;
+  groupName?: string;
+  code?: string;
+}): FixtureSeed {
+  const venueInfo = WORLD_CUP_2026_VENUES[venue] ?? { lat: 39.8283, lng: -98.5795 };
+  const titlePrefix = groupName
+    ? `${groupName}: `
+    : stage === "final"
+      ? `Final ${code ?? "2026"}: `
+      : `${STAGE_TITLES_2026[stage as Exclude<MatchStage, "group">]}${code ? ` ${code}` : ""}: `;
+
+  return {
+    id,
+    stage,
+    title: `${titlePrefix}${homeTeam} vs ${awayTeam}`,
+    homeTeam,
+    awayTeam,
+    city: venue,
+    lat: venueInfo.lat,
+    lng: venueInfo.lng,
+    date,
+    kickoff,
+    groupName,
+    note: "Programado",
+  };
+}
+
+const WORLD_CUP_2026_FIXTURES: FixtureSeed[] = [
+  ...[
+    ["g-a1", "Grupo A", "México", "Sudáfrica", "Estadio Ciudad de México", "2026-06-11", "16:00"],
+    ["g-a2", "Grupo A", "Corea del Sur", "Europa D", "Estadio Guadalajara", "2026-06-11", "23:00"],
+    ["g-a3", "Grupo A", "Europa D", "Sudáfrica", "Atlanta Stadium", "2026-06-18", "13:00"],
+    ["g-a4", "Grupo A", "México", "Corea del Sur", "Estadio Guadalajara", "2026-06-18", "22:00"],
+    ["g-a5", "Grupo A", "Europa D", "México", "Estadio Ciudad de México", "2026-06-24", "22:00"],
+    ["g-a6", "Grupo A", "Sudáfrica", "Corea del Sur", "Estadio Monterrey", "2026-06-24", "22:00"],
+    ["g-b1", "Grupo B", "Canadá", "Europa A", "Toronto Stadium", "2026-06-12", "16:00"],
+    ["g-b2", "Grupo B", "Qatar", "Suiza", "San Francisco Bay Area Stadium", "2026-06-13", "16:00"],
+    ["g-b3", "Grupo B", "Suiza", "Europa A", "Los Angeles Stadium", "2026-06-18", "16:00"],
+    ["g-b4", "Grupo B", "Canadá", "Qatar", "BC Place Vancouver", "2026-06-18", "19:00"],
+    ["g-b5", "Grupo B", "Suiza", "Canadá", "BC Place Vancouver", "2026-06-24", "16:00"],
+    ["g-b6", "Grupo B", "Europa A", "Qatar", "Seattle Stadium", "2026-06-24", "16:00"],
+    ["g-c1", "Grupo C", "Brasil", "Marruecos", "Boston Stadium", "2026-06-13", "19:00"],
+    ["g-c2", "Grupo C", "Haití", "Escocia", "New York / New Jersey Stadium", "2026-06-13", "22:00"],
+    ["g-c3", "Grupo C", "Brasil", "Haití", "Philadelphia Stadium", "2026-06-19", "19:00"],
+    ["g-c4", "Grupo C", "Escocia", "Marruecos", "Boston Stadium", "2026-06-19", "22:00"],
+    ["g-c5", "Grupo C", "Escocia", "Brasil", "Miami Stadium", "2026-06-24", "19:00"],
+    ["g-c6", "Grupo C", "Marruecos", "Haití", "Atlanta Stadium", "2026-06-24", "19:00"],
+    ["g-d1", "Grupo D", "Estados Unidos", "Paraguay", "Los Angeles Stadium", "2026-06-12", "22:00"],
+    ["g-d2", "Grupo D", "Australia", "Europa C", "BC Place Vancouver", "2026-06-14", "01:00"],
+    ["g-d3", "Grupo D", "Europa C", "Paraguay", "San Francisco Bay Area Stadium", "2026-06-19", "16:00"],
+    ["g-d4", "Grupo D", "Estados Unidos", "Australia", "Seattle Stadium", "2026-06-19", "01:00"],
+    ["g-d5", "Grupo D", "Europa C", "Estados Unidos", "Los Angeles Stadium", "2026-06-25", "23:00"],
+    ["g-d6", "Grupo D", "Paraguay", "Australia", "San Francisco Bay Area Stadium", "2026-06-25", "23:00"],
+    ["g-e1", "Grupo E", "Alemania", "Curazao", "Philadelphia Stadium", "2026-06-14", "14:00"],
+    ["g-e2", "Grupo E", "Costa de Marfil", "Ecuador", "Houston Stadium", "2026-06-14", "20:00"],
+    ["g-e3", "Grupo E", "Alemania", "Costa de Marfil", "Toronto Stadium", "2026-06-20", "17:00"],
+    ["g-e4", "Grupo E", "Curazao", "Ecuador", "Kansas City Stadium", "2026-06-20", "21:00"],
+    ["g-e5", "Grupo E", "Ecuador", "Alemania", "Philadelphia Stadium", "2026-06-25", "17:00"],
+    ["g-e6", "Grupo E", "Curazao", "Costa de Marfil", "New York / New Jersey Stadium", "2026-06-25", "17:00"],
+    ["g-f1", "Grupo F", "Países Bajos", "Japón", "Dallas Stadium", "2026-06-14", "17:00"],
+    ["g-f2", "Grupo F", "Europa B", "Túnez", "Estadio Monterrey", "2026-06-14", "23:00"],
+    ["g-f3", "Grupo F", "Países Bajos", "Europa B", "Houston Stadium", "2026-06-20", "14:00"],
+    ["g-f4", "Grupo F", "Japón", "Túnez", "Estadio Monterrey", "2026-06-20", "01:00"],
+    ["g-f5", "Grupo F", "Túnez", "Países Bajos", "Dallas Stadium", "2026-06-25", "20:00"],
+    ["g-f6", "Grupo F", "Japón", "Europa B", "Kansas City Stadium", "2026-06-25", "20:00"],
+    ["g-g1", "Grupo G", "Bélgica", "Egipto", "Los Angeles Stadium", "2026-06-15", undefined],
+    ["g-g2", "Grupo G", "Irán", "Nueva Zelanda", "Seattle Stadium", "2026-06-15", "22:00"],
+    ["g-g3", "Grupo G", "Bélgica", "Irán", "Los Angeles Stadium", "2026-06-21", "16:00"],
+    ["g-g4", "Grupo G", "Egipto", "Nueva Zelanda", "BC Place Vancouver", "2026-06-21", "22:00"],
+    ["g-g5", "Grupo G", "Nueva Zelanda", "Bélgica", "Seattle Stadium", "2026-06-26", "00:00"],
+    ["g-g6", "Grupo G", "Egipto", "Irán", "BC Place Vancouver", "2026-06-26", "00:00"],
+    ["g-h1", "Grupo H", "España", "Cabo Verde", "Miami Stadium", "2026-06-15", "13:00"],
+    ["g-h2", "Grupo H", "Arabia Saudita", "Uruguay", "Atlanta Stadium", "2026-06-15", "19:00"],
+    ["g-h3", "Grupo H", "España", "Arabia Saudita", "Miami Stadium", "2026-06-21", "13:00"],
+    ["g-h4", "Grupo H", "Cabo Verde", "Uruguay", "Atlanta Stadium", "2026-06-21", "19:00"],
+    ["g-h5", "Grupo H", "Uruguay", "España", "Houston Stadium", "2026-06-26", "21:00"],
+    ["g-h6", "Grupo H", "Cabo Verde", "Arabia Saudita", "Estadio Guadalajara", "2026-06-26", "21:00"],
+    ["g-i1", "Grupo I", "Francia", "Senegal", "New York / New Jersey Stadium", "2026-06-16", "16:00"],
+    ["g-i2", "Grupo I", "Repechaje 2", "Noruega", "Boston Stadium", "2026-06-16", "19:00"],
+    ["g-i3", "Grupo I", "Francia", "Repechaje 2", "New York / New Jersey Stadium", "2026-06-22", "18:00"],
+    ["g-i4", "Grupo I", "Noruega", "Senegal", "Philadelphia Stadium", "2026-06-22", "21:00"],
+    ["g-i5", "Grupo I", "Noruega", "Francia", "Boston Stadium", "2026-06-26", "16:00"],
+    ["g-i6", "Grupo I", "Senegal", "Repechaje 2", "Toronto Stadium", "2026-06-26", "16:00"],
+    ["g-j1", "Grupo J", "Argentina", "Argelia", "Kansas City Stadium", "2026-06-16", "22:00"],
+    ["g-j2", "Grupo J", "Austria", "Jordania", "San Francisco Bay Area Stadium", "2026-06-17", "01:00"],
+    ["g-j3", "Grupo J", "Argentina", "Austria", "Dallas Stadium", "2026-06-22", "14:00"],
+    ["g-j4", "Grupo J", "Jordania", "Argelia", "San Francisco Bay Area Stadium", "2026-06-22", "00:00"],
+    ["g-j5", "Grupo J", "Jordania", "Argentina", "Dallas Stadium", "2026-06-27", "23:00"],
+    ["g-j6", "Grupo J", "Argelia", "Austria", "Kansas City Stadium", "2026-06-27", "23:00"],
+    ["g-k1", "Grupo K", "Portugal", "Repechaje 1", "Houston Stadium", "2026-06-17", "14:00"],
+    ["g-k2", "Grupo K", "Uzbekistán", "Colombia", "Estadio Ciudad de México", "2026-06-17", "23:00"],
+    ["g-k3", "Grupo K", "Portugal", "Uzbekistán", "Houston Stadium", "2026-06-23", "14:00"],
+    ["g-k4", "Grupo K", "Repechaje 1", "Colombia", "Estadio Guadalajara", "2026-06-23", "23:00"],
+    ["g-k5", "Grupo K", "Colombia", "Portugal", "Miami Stadium", "2026-06-27", "20:30"],
+    ["g-k6", "Grupo K", "Repechaje 1", "Uzbekistán", "Atlanta Stadium", "2026-06-27", "20:30"],
+    ["g-l1", "Grupo L", "Inglaterra", "Croacia", "Toronto Stadium", "2026-06-17", "17:00"],
+    ["g-l2", "Grupo L", "Ghana", "Panamá", "Dallas Stadium", "2026-06-17", "20:00"],
+    ["g-l3", "Grupo L", "Inglaterra", "Ghana", "Boston Stadium", "2026-06-23", "17:00"],
+    ["g-l4", "Grupo L", "Croacia", "Panamá", "Toronto Stadium", "2026-06-23", "20:00"],
+    ["g-l5", "Grupo L", "Panamá", "Inglaterra", "New York / New Jersey Stadium", "2026-06-27", "18:00"],
+    ["g-l6", "Grupo L", "Croacia", "Ghana", "Philadelphia Stadium", "2026-06-27", "18:00"],
+  ].map(([id, groupName, homeTeam, awayTeam, venue, date, kickoff]) => createUpcomingFixture2026({
+    id: id as string,
+    stage: "group",
+    groupName: groupName as string,
+    homeTeam: homeTeam as string,
+    awayTeam: awayTeam as string,
+    venue: venue as string,
+    date: date as string,
+    kickoff: kickoff as string | undefined,
+  })),
+  ...[
+    ["73", "2º Grupo A", "2º Grupo B", "Los Angeles Stadium", "2026-06-28", "16:00"],
+    ["76", "1º Grupo C", "2º Grupo F", "Houston Stadium", "2026-06-29", "14:00"],
+    ["74", "1º Grupo E", "3º Grupo A/B/C/D/F", "Boston Stadium", "2026-06-29", "17:30"],
+    ["75", "1º Grupo F", "2º Grupo C", "Estadio Monterrey", "2026-06-29", "22:00"],
+    ["78", "2º Grupo E", "2º Grupo I", "Dallas Stadium", "2026-06-30", "14:00"],
+    ["77", "1º Grupo I", "3º Grupo C/D/F/G/H", "New York New Jersey Stadium", "2026-06-30", "18:00"],
+    ["79", "1º Grupo A", "3º Grupo C/E/F/H/I", "Estadio Ciudad de México", "2026-06-30", "22:00"],
+    ["80", "1º Grupo L", "3º Grupo E/H/I/J/K", "Atlanta Stadium", "2026-07-01", "13:00"],
+    ["82", "1º Grupo G", "3º Grupo A/E/H/I/J", "Seattle Stadium", "2026-07-01", "17:00"],
+    ["81", "1º Grupo D", "3º Grupo B/E/F/I/J", "San Francisco Bay Area Stadium", "2026-07-01", "21:00"],
+    ["84", "1º Grupo H", "2º Grupo J", "Los Angeles Stadium", "2026-07-02", "16:00"],
+    ["83", "2º Grupo K", "2º Grupo L", "Toronto Stadium", "2026-07-02", "20:00"],
+    ["85", "1º Grupo B", "3º Grupo E/F/G/I/J", "BC Place Vancouver", "2026-07-03", "00:00"],
+    ["88", "2º Grupo D", "2º Grupo G", "Dallas Stadium", "2026-07-03", "15:00"],
+    ["86", "1º Grupo J", "2º Grupo H", "Miami Stadium", "2026-07-03", "19:00"],
+    ["87", "1º Grupo K", "3º Grupo D/E/I/J/L", "Kansas City Stadium", "2026-07-03", "22:30"],
+  ].map(([code, homeTeam, awayTeam, venue, date, kickoff]) => createUpcomingFixture2026({
+    id: `r32-${code}`,
+    stage: "round32",
+    code: code as string,
+    homeTeam: homeTeam as string,
+    awayTeam: awayTeam as string,
+    venue: venue as string,
+    date: date as string,
+    kickoff: kickoff as string,
+  })),
+  ...[
+    ["89", "Ganador 74", "Ganador 77", "Philadelphia Stadium", "2026-07-04", "18:00"],
+    ["90", "Ganador 73", "Ganador 75", "Houston Stadium", "2026-07-04", "14:00"],
+    ["91", "Ganador 76", "Ganador 78", "New York New Jersey Stadium", "2026-07-05", "17:00"],
+    ["92", "Ganador 79", "Ganador 80", "Estadio Azteca Ciudad de México", "2026-07-05", "21:00"],
+    ["93", "Ganador 83", "Ganador 84", "Dallas Stadium", "2026-07-06", "16:00"],
+    ["94", "Ganador 81", "Ganador 82", "Seattle Stadium", "2026-07-06", "21:00"],
+    ["95", "Ganador 86", "Ganador 88", "Atlanta Stadium", "2026-07-07", "13:00"],
+    ["96", "Ganador 85", "Ganador 87", "BC Place Vancouver", "2026-07-07", "17:00"],
+  ].map(([code, homeTeam, awayTeam, venue, date, kickoff]) => createUpcomingFixture2026({
+    id: `r16-${code}`,
+    stage: "round16",
+    code: code as string,
+    homeTeam: homeTeam as string,
+    awayTeam: awayTeam as string,
+    venue: venue as string,
+    date: date as string,
+    kickoff: kickoff as string,
+  })),
+  ...[
+    ["97", "Ganador 89", "Ganador 90", "Boston Stadium", "2026-07-09", "17:00"],
+    ["98", "Ganador 93", "Ganador 94", "Los Angeles Stadium", "2026-07-10", "16:00"],
+    ["99", "Ganador 91", "Ganador 92", "Miami Stadium", "2026-07-11", "18:00"],
+    ["100", "Ganador 95", "Ganador 96", "Kansas City Stadium", "2026-07-11", "22:00"],
+  ].map(([code, homeTeam, awayTeam, venue, date, kickoff]) => createUpcomingFixture2026({
+    id: `qf-${code}`,
+    stage: "quarterfinal",
+    code: code as string,
+    homeTeam: homeTeam as string,
+    awayTeam: awayTeam as string,
+    venue: venue as string,
+    date: date as string,
+    kickoff: kickoff as string,
+  })),
+  ...[
+    ["101", "Ganador 97", "Ganador 98", "Dallas Stadium", "2026-07-14", "16:00"],
+    ["102", "Ganador 99", "Ganador 100", "Atlanta Stadium", "2026-07-15", "16:00"],
+  ].map(([code, homeTeam, awayTeam, venue, date, kickoff]) => createUpcomingFixture2026({
+    id: `sf-${code}`,
+    stage: "semifinal",
+    code: code as string,
+    homeTeam: homeTeam as string,
+    awayTeam: awayTeam as string,
+    venue: venue as string,
+    date: date as string,
+    kickoff: kickoff as string,
+  })),
+  createUpcomingFixture2026({
+    id: "third-place-103",
+    stage: "third-place",
+    code: "103",
+    homeTeam: "Perdedor 101",
+    awayTeam: "Perdedor 102",
+    venue: "Miami Stadium",
+    date: "2026-07-18",
+    kickoff: "18:00",
+  }),
+  createUpcomingFixture2026({
+    id: "final-104",
+    stage: "final",
+    code: "2026",
+    homeTeam: "Ganador 101",
+    awayTeam: "Ganador 102",
+    venue: "New York New Jersey Stadium",
+    date: "2026-07-19",
+    kickoff: "16:00",
+  }),
+];
 
 const TOURNAMENTS: TournamentSeed[] = [
   { year: 1930, host: "Uruguay", city: "Montevideo", lat: -34.8941, lng: -56.0675, milestone: `El primer Mundial se celebró en un contexto de creciente internacionalización del fútbol y con Uruguay consolidado como potencia tras sus oros olímpicos. Europa participó poco debido a la distancia y los costos de viaje.
@@ -225,6 +512,9 @@ El torneo mostró una organización eficiente y una Francia joven que se consagr
   { year: 2022, host: "Qatar", city: "Lusail", lat: 25.4208, lng: 51.4908, milestone: `El Mundial se jugó por primera vez en Medio Oriente y en invierno, debido a las altas temperaturas.
 
 Estuvo rodeado de controversias por derechos laborales y humanos, pero culminó con una final histórica entre Argentina y Francia.`, formationHome: "4-3-3", formationAway: "4-2-3-1", final: { homeTeam: "Argentina", awayTeam: "France", homeScore: 3, awayScore: 3, penalties: { home: 4, away: 2 }, note: "Argentina ganó por penales" } },
+  { year: 2026, host: "Canadá / México / Estados Unidos", city: "Norteamérica", lat: 39.8283, lng: -98.5795, milestone: `La Copa Mundial 2026 será la primera con 48 selecciones y la primera organizada por tres países: Canadá, México y Estados Unidos.
+
+Este safari funciona como tablero vivo del torneo: permite seguir el calendario completo, consultar próximas sedes y actualizar los resultados a medida que avance la competencia.`, formationHome: "4-3-3", formationAway: "4-2-3-1", final: { homeTeam: "Ganador 101", awayTeam: "Ganador 102", homeScore: 0, awayScore: 0, note: "Final programada" } },
 ];
 
 const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
@@ -2276,6 +2566,7 @@ const FIXTURE_IMPORTS: Partial<Record<number, FixtureSeed[]>> = {
       ],
     },
   ],
+  2026: WORLD_CUP_2026_FIXTURES,
 };
 
 function teamFlag(team: string): string {
@@ -2286,7 +2577,14 @@ function getRegion(host: string): string {
   return HOST_REGION[host] ?? "Europa";
 }
 
-function getWinner(homeTeam: string, awayTeam: string, homeScore: number, awayScore: number, penalties?: { home: number; away: number }): string {
+function getWinner(
+  homeTeam: string,
+  awayTeam: string,
+  homeScore?: number,
+  awayScore?: number,
+  penalties?: { home: number; away: number }
+): string | undefined {
+  if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore)) return undefined;
   if (homeScore > awayScore) return homeTeam;
   if (awayScore > homeScore) return awayTeam;
   if (penalties) return penalties.home > penalties.away ? homeTeam : awayTeam;
@@ -2387,37 +2685,50 @@ function importFixtures(seed: TournamentSeed): FixtureSeed[] {
 function createFixtureEvent(seed: TournamentSeed, fixture: FixtureSeed): HistoricalEvent {
   const tournamentId = `world-cup-${seed.year}`;
   const eventId = `${tournamentId}-${fixture.id}`;
-  const winner = getWinner(
-    fixture.homeTeam,
-    fixture.awayTeam,
-    fixture.homeScore,
-    fixture.awayScore,
-    fixture.penalties
-  );
+  const parsedDate = fixture.date ? new Date(`${fixture.date}T00:00:00`) : null;
+  const hasRecordedScore = Number.isFinite(fixture.homeScore) && Number.isFinite(fixture.awayScore);
+  const winner = hasRecordedScore
+    ? getWinner(
+        fixture.homeTeam,
+        fixture.awayTeam,
+        fixture.homeScore,
+        fixture.awayScore,
+        fixture.penalties
+      )
+    : undefined;
+
+  const fallbackMonth =
+    fixture.stage === "group"
+      ? 6
+      : fixture.stage === "round32" || fixture.stage === "round16"
+        ? 6
+        : 7;
+  const fallbackDay =
+    fixture.stage === "group"
+      ? 10
+      : fixture.stage === "round32"
+        ? 28
+        : fixture.stage === "round16"
+          ? 4
+          : fixture.stage === "quarterfinal"
+            ? 9
+            : fixture.stage === "semifinal"
+              ? 14
+              : fixture.stage === "third-place"
+                ? 18
+                : 19;
+
+  const description = hasRecordedScore
+    ? `${fixture.homeTeam} ${fixture.homeScore}-${fixture.awayScore} ${fixture.awayTeam}${fixture.note ? `. ${fixture.note}` : ""}`
+    : `${fixture.homeTeam} vs ${fixture.awayTeam}${fixture.kickoff ? ` · ${fixture.kickoff}` : ""}${fixture.note ? `. ${fixture.note}` : ""}`;
 
   return {
     id: eventId,
     title: fixture.title,
-    description: `${fixture.homeTeam} ${fixture.homeScore}-${fixture.awayScore} ${fixture.awayTeam}${fixture.note ? `. ${fixture.note}` : ""}`,
-    year: seed.year,
-    month:
-      fixture.stage === "group"
-        ? 6
-        : fixture.stage === "round16"
-          ? 6
-          : 7,
-    day:
-      fixture.stage === "group"
-        ? 10
-        : fixture.stage === "round16"
-          ? 26
-          : fixture.stage === "quarterfinal"
-            ? 2
-            : fixture.stage === "semifinal"
-              ? 9
-              : fixture.stage === "third-place"
-                ? 13
-                : 15,
+    description,
+    year: parsedDate?.getUTCFullYear() ?? seed.year,
+    month: parsedDate ? parsedDate.getUTCMonth() + 1 : fallbackMonth,
+    day: parsedDate?.getUTCDate() ?? fallbackDay,
     lat: fixture.lat,
     lng: fixture.lng,
     city: fixture.city,
@@ -2427,21 +2738,27 @@ function createFixtureEvent(seed: TournamentSeed, fixture: FixtureSeed): Histori
     eventType: "match",
     tournamentId,
     stage: fixture.stage,
+    groupName: fixture.groupName,
+    kickoff: fixture.kickoff,
     homeTeam: fixture.homeTeam,
     awayTeam: fixture.awayTeam,
     homeFlag: teamFlag(fixture.homeTeam),
     awayFlag: teamFlag(fixture.awayTeam),
-    score: {
-      home: fixture.homeScore,
-      away: fixture.awayScore,
-      penalties: fixture.penalties,
-      note: fixture.note,
-    },
-    formationHome: fixture.formationHome ?? seed.formationHome,
-    formationAway: fixture.formationAway ?? seed.formationAway,
+    score: hasRecordedScore
+      ? {
+          home: fixture.homeScore!,
+          away: fixture.awayScore!,
+          penalties: fixture.penalties,
+          note: fixture.note,
+        }
+      : undefined,
+    formationHome: hasRecordedScore ? (fixture.formationHome ?? seed.formationHome) : fixture.formationHome,
+    formationAway: hasRecordedScore ? (fixture.formationAway ?? seed.formationAway) : fixture.formationAway,
     winnerTeam: winner,
     scorers: fixture.scorers,
-    matchTimeline: buildTimeline(fixture.scorers, fixture.note, fixture.penalties),
+    matchTimeline: hasRecordedScore
+      ? buildTimeline(fixture.scorers, fixture.note, fixture.penalties)
+      : [],
     media: [
       {
         id: `${eventId}-wiki`,
@@ -2469,6 +2786,15 @@ function getSortedEventIds(milestoneId: string, matchEvents: HistoricalEvent[]):
     const stageA = STAGE_ORDER[(a.stage ?? "group") as MatchStage];
     const stageB = STAGE_ORDER[(b.stage ?? "group") as MatchStage];
     if (stageA !== stageB) return stageA - stageB;
+
+    const dateA = new Date(a.year, (a.month ?? 1) - 1, a.day ?? 1).getTime();
+    const dateB = new Date(b.year, (b.month ?? 1) - 1, b.day ?? 1).getTime();
+    if (dateA !== dateB) return dateA - dateB;
+
+    const kickoffA = a.kickoff ? Number.parseInt(a.kickoff.replace(":", ""), 10) : 9999;
+    const kickoffB = b.kickoff ? Number.parseInt(b.kickoff.replace(":", ""), 10) : 9999;
+    if (kickoffA !== kickoffB) return kickoffA - kickoffB;
+
     return a.title.localeCompare(b.title);
   });
 

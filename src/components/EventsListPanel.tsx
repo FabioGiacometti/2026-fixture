@@ -29,15 +29,17 @@ const regionColors: Record<string, string> = {
 
 const stageOrder: Record<string, number> = {
   group: 1,
-  round16: 2,
-  quarterfinal: 3,
-  semifinal: 4,
-  "third-place": 5,
-  final: 6,
+  round32: 2,
+  round16: 3,
+  quarterfinal: 4,
+  semifinal: 5,
+  "third-place": 6,
+  final: 7,
 };
 
 const stageLabel: Record<string, string> = {
   group: "Grupos",
+  round32: "16avos",
   round16: "Octavos",
   quarterfinal: "Cuartos",
   semifinal: "Semifinal",
@@ -533,7 +535,7 @@ export default function EventsListPanel({
                 {selectedEvent.title}
               </h2>
 
-              {selectedEvent.eventType === "match" && selectedEvent.homeTeam && selectedEvent.awayTeam && selectedEvent.score && (
+              {selectedEvent.eventType === "match" && selectedEvent.homeTeam && selectedEvent.awayTeam && (
                 <div
                   className="mb-4 p-3 rounded-lg border"
                   style={{
@@ -551,7 +553,9 @@ export default function EventsListPanel({
                       </span>
                     </div>
                     <span className="font-mono-space text-xl font-bold" style={{ color: "hsl(var(--primary))" }}>
-                      {selectedEvent.score.home}-{selectedEvent.score.away}
+                      {selectedEvent.score
+                        ? `${selectedEvent.score.home}-${selectedEvent.score.away}`
+                        : (selectedEvent.kickoff ?? "vs")}
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="font-mono-space text-xs font-bold" style={{ color: "hsl(var(--foreground))" }}>
@@ -562,6 +566,11 @@ export default function EventsListPanel({
                         : <span className="text-lg">🏳️</span>}
                     </div>
                   </div>
+                  {!selectedEvent.score && (
+                    <p className="mt-2 font-mono-space text-[10px]" style={{ color: "hsl(var(--muted-foreground))" }}>
+                      Partido programado{selectedEvent.kickoff ? ` · ${selectedEvent.kickoff}` : ""}
+                    </p>
+                  )}
                   {(selectedEvent.formationHome || selectedEvent.formationAway) && (
                     <div className="mt-2 pt-2 border-t border-border/60 grid grid-cols-2 gap-2">
                       <span className="font-mono-space text-[10px]" style={{ color: "hsl(var(--muted-foreground))" }}>
@@ -572,12 +581,12 @@ export default function EventsListPanel({
                       </span>
                     </div>
                   )}
-                  {selectedEvent.score.note && (
+                  {selectedEvent.score?.note && (
                     <p className="mt-2 font-mono-space text-[10px]" style={{ color: "hsl(var(--muted-foreground))" }}>
                       {selectedEvent.score.note}
                     </p>
                   )}
-                  {selectedEvent.score.penalties && (
+                  {selectedEvent.score?.penalties && (
                     <p className="font-mono-space text-[10px]" style={{ color: "hsl(var(--muted-foreground))" }}>
                       Penales: {selectedEvent.score.penalties.home}-{selectedEvent.score.penalties.away}
                     </p>
