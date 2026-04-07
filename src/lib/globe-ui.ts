@@ -5,6 +5,7 @@ export const INACTIVE_EVENT_COLOR = "#F2A900";
 export const DEFAULT_LABEL_COLOR = "#E1E3E8";
 export const ACTIVE_EVENT_ZOOM_PERCENT = 80;
 export const MATCH_EVENT_ZOOM_PERCENT = 100;
+export const MATCH_EVENT_CAMERA_HEIGHT = 3_000;
 
 const MIN_CAMERA_HEIGHT = 10_000;
 const MAX_CAMERA_HEIGHT = 22_000_000;
@@ -95,6 +96,16 @@ export function getEventZoomPercent(
   }
 
   return ACTIVE_EVENT_ZOOM_PERCENT;
+}
+
+export function getEventCameraHeight(
+  event: Pick<HistoricalEvent, "dataset" | "eventType"> | null | undefined
+): number {
+  if (event?.dataset === "worldcup" && event.eventType === "match") {
+    return MATCH_EVENT_CAMERA_HEIGHT;
+  }
+
+  return getCameraHeightForZoomPercent(getEventZoomPercent(event));
 }
 
 export function getWorldCupCountryBounds(tournamentId?: string | null): CountryBounds | null {

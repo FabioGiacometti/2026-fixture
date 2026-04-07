@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   ACTIVE_EVENT_COLOR,
   INACTIVE_EVENT_COLOR,
+  MATCH_EVENT_CAMERA_HEIGHT,
   MATCH_EVENT_ZOOM_PERCENT,
   getCameraHeightForZoomPercent,
+  getEventCameraHeight,
   getMarkerAppearance,
   getWorldCupCountryBounds,
   getZoomIndicatorState,
@@ -50,11 +52,15 @@ describe("globe UI helpers", () => {
   });
 
   it("keeps World Cup match focus tight enough to reveal the stadium area", () => {
-    const matchFocusIndicator = getZoomIndicatorState(
-      getCameraHeightForZoomPercent(MATCH_EVENT_ZOOM_PERCENT)
-    );
+    const matchFocusHeight = getEventCameraHeight({
+      dataset: "worldcup",
+      eventType: "match",
+    });
+    const matchFocusIndicator = getZoomIndicatorState(matchFocusHeight);
 
     expect(MATCH_EVENT_ZOOM_PERCENT).toBeGreaterThan(90);
+    expect(MATCH_EVENT_CAMERA_HEIGHT).toBe(3_000);
+    expect(matchFocusHeight).toBe(3_000);
     expect(matchFocusIndicator.percent).toBeGreaterThanOrEqual(90);
     expect(matchFocusIndicator.label).toBe("Local");
   });

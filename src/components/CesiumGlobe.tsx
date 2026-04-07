@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
 import {
   ACTIVE_EVENT_COLOR,
-  getCameraHeightForZoomPercent,
-  getEventZoomPercent,
+  getEventCameraHeight,
   getMarkerAppearance,
   getWorldCupCountryBounds,
   getZoomIndicatorState,
@@ -309,7 +308,7 @@ export default function CesiumGlobe({
         destination: Cesium.Cartesian3.fromDegrees(
           selectedEvent.lng,
           selectedEvent.lat,
-          getCameraHeightForZoomPercent(getEventZoomPercent(selectedEvent))
+          getEventCameraHeight(selectedEvent)
         ),
         duration: 1.6,
         easingFunction: Cesium.EasingFunction.QUARTIC_IN_OUT,
