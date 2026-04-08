@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Analytics } from "@vercel/analytics/react";
+import { env } from "@/lib/env";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import "./App.css";
@@ -26,7 +27,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-        <Analytics />
+        {env.analyticsEnabled && <Analytics />}
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List, Play, Image as ImageIcon, ExternalLink, Globe, Video, Maximize2 } from "lucide-react";
 import { Safari, HistoricalEvent, formatYear, formatEventDate } from "@/data/historical-events";
 import { CURRENT_WORLD_CUP_SAFARI_ID } from "@/data/world-cup-data";
+import { buildApiUrl } from "@/lib/env";
 
 type PanelState = "collapsed" | "list" | "detail";
 
@@ -261,7 +262,7 @@ async function detectVisitorCountry(events: HistoricalEvent[]) {
   }
 
   try {
-    const response = await fetch("/api/visitor-country", {
+    const response = await fetch(buildApiUrl("/api/visitor-country"), {
       headers: { Accept: "application/json" },
     });
 

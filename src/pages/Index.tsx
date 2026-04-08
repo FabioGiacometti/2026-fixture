@@ -20,6 +20,7 @@ import {
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
 import { getNextUpcomingWorldCupEvent, getUpcomingWorldCupMapEvents } from "@/lib/globe-ui";
 import { buildAppRouteState, parseAppRouteState } from "@/lib/app-route-state";
+import { env } from "@/lib/env";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const CESIUM_LOADED_CHECK_INTERVAL = 200;
@@ -472,7 +473,7 @@ export default function Index() {
   }, [routeState, location.pathname, location.search, navigate]);
 
   useEffect(() => {
-    if (!hasAppliedRouteStateRef.current) return;
+    if (!hasAppliedRouteStateRef.current || !env.analyticsEnabled) return;
 
     const trackingKey = `${routeState.pathname}${routeState.search}`;
     if (lastTrackedRouteRef.current === trackingKey) return;
@@ -485,6 +486,7 @@ export default function Index() {
       quickFilters: panelQuickFilters.length > 0 ? panelQuickFilters.join("|") : "none",
       mapStyle,
       selectedEventId: selectedEvent?.id ?? "none",
+      appEnv: env.appEnv,
     });
   }, [routeState, datasetMode, activeSafariId, selectedWorldCupGroup, panelQuickFilters, mapStyle, selectedEvent]);
 

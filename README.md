@@ -60,6 +60,45 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Environment variables and Vercel environments
+
+This app now supports **Development**, **Preview**, and **Production** environment variables through Vite and Vercel.
+
+### Required variables
+
+Create these keys locally in `.env.local` or in the Vercel dashboard:
+
+```bash
+VITE_API_BASE_URL=
+VITE_ANALYTICS_ENABLED=false
+VITE_APP_ENV=development
+```
+
+### Recommended Vercel values
+
+| Environment | `VITE_API_BASE_URL` | `VITE_ANALYTICS_ENABLED` | `VITE_APP_ENV` |
+|---|---|---|---|
+| Development | `/` or local API URL | `false` | `development` |
+| Preview | `/` or staging API URL | `true` | `preview` |
+| Production | `/` or production API URL | `true` | `production` |
+
+> Leave `VITE_API_BASE_URL` empty or set it to `/` when the frontend and the Vercel API routes are hosted together.
+
+### Local setup
+
+```sh
+cp .env.example .env.local
+npm i
+npm run dev
+```
+
+### Vercel setup
+
+1. Open your Vercel project.
+2. Go to **Settings → Environment Variables**.
+3. Add the same keys for **Development**, **Preview**, and **Production**.
+4. Keep `main` as the production branch and use branch deployments for previews.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
