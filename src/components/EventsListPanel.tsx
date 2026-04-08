@@ -25,6 +25,8 @@ interface EventsListPanelProps {
   activeGroupFilter?: string;
   onClearGroupFilter?: () => void;
   quickFiltersFromRoute?: string[];
+  isMobile?: boolean;
+  hideCollapsedTrigger?: boolean;
 }
 
 const regionColors: Record<string, string> = {
@@ -304,6 +306,8 @@ export default function EventsListPanel({
   activeGroupFilter,
   onClearGroupFilter,
   quickFiltersFromRoute,
+  isMobile = false,
+  hideCollapsedTrigger = false,
 }: EventsListPanelProps) {
   const routeQuickFilters = quickFiltersFromRoute ?? EMPTY_QUICK_FILTERS;
   const [panelState, setPanelState] = useState<PanelState>("collapsed");
@@ -347,12 +351,6 @@ export default function EventsListPanel({
   }, [selectedEvent]);
 
   useEffect(() => {
-    if (isCurrentWorldCupSafari && !userCollapsedRef.current) {
-      setPanelState("list");
-    }
-  }, [isCurrentWorldCupSafari, activeSafari?.id]);
-
-  useEffect(() => {
     visitorPrefillStartedRef.current = false;
     userCollapsedRef.current = false;
     setSuggestedQuickFilter(null);
@@ -367,11 +365,11 @@ export default function EventsListPanel({
 
   // When forceOpen (timeline hover), open list if collapsed
   useEffect(() => {
-    if (forceOpen && panelState === "collapsed") {
+    if (!isMobile && forceOpen && panelState === "collapsed") {
       userCollapsedRef.current = false;
       setPanelState("list");
     }
-  }, [forceOpen, panelState]);
+  }, [forceOpen, panelState, isMobile]);
 
   const handleTabClick = () => {
     if (panelState === "collapsed") {
@@ -492,6 +490,23 @@ export default function EventsListPanel({
   const isFilteredSubSafari = hasActiveGroupFilter || quickFilters.length > 0;
 
   useEffect(() => {
+    if (!isCurrentWorldCupSafari || userCollapsedRef.current) {
+      return;
+    }
+
+    if (isMobile) {
+      if (selectedEvent) {
+        return;
+      }
+
+      setPanelState(isFilteredSubSafari ? "list" : "collapsed");
+      return;
+    }
+
+    setPanelState("list");
+  }, [isCurrentWorldCupSafari, activeSafari?.id, isMobile, isFilteredSubSafari]);
+
+  useEffect(() => {
     if (panelState === "collapsed" && isFilteredSubSafari && !userCollapsedRef.current) {
       setPanelState("list");
     }
@@ -544,6 +559,9 @@ export default function EventsListPanel({
   const panelSubtitle = activeSafari
     ? (isCurrentWorldCupSafari ? "Calendario del torneo" : "Narrativa Curada")
     : `± ${windowSize} años de ${formatYear(currentYear)}`;
+  const isMobilePanel = isMobile;
+  const isPanelOpen = panelState !== "collapsed";
+  const mobilePanelHeight = panelState === "detail" ? "min(78vh, 640px)" : "min(66vh, 520px)";
 
   const addQuickFilter = useCallback((value: string) => {
     const nextChip = value.trim();
@@ -593,69 +611,130 @@ export default function EventsListPanel({
 
   return (
     <div
-      className="fixed top-0 right-0 h-full z-40 flex"
-      style={{ paddingBottom: "var(--timeline-height, 96px)" }}
+      className={
+        isMobilePanel
+          ? "fixed inset-x-0 bottom-0 z-40 flex flex-col items-end pointer-events-none"
+          : "fixed top-0 right-0 h-full z-40 flex"
+      }
+      style={{
+        paddingBottom: isMobilePanel
+          ? "calc(var(--timeline-height, 0px) + 12px)"
+          : "var(--timeline-height, 96px)",
+      }}
     >
-      {/* ── Vertical tab strip (collapsed state only) ── */}
-      {panelState === "collapsed" && (
-        <button
-          onClick={handleTabClick}
-          className="flex flex-col items-center justify-center gap-1.5 shrink-0 transition-colors"
-          style={{
-            width: "36px",
-            background: "hsl(var(--card) / 0.85)",
-            borderLeft: "1px solid hsl(var(--border))",
-            borderRight: "1px solid hsl(var(--border) / 0.3)",
-            backdropFilter: "blur(8px)",
-          }}
-          aria-label={panelOpenLabel}
-        >
-          <div
-            className="transition-transform duration-300"
-            style={{ color: "hsl(var(--primary))" }}
-          >
-            <ChevronLeft className="w-4 h-4" />
+      {/* ── Collapsed trigger ── */}
+      {panelState === "collapsed" && !hideCollapsedTrigger && (
+        isMobilePanel ? (
+          <div className="pointer-events-auto px-3">
+            <button
+              onClick={handleTabClick}
+              className="flex items-center gap-2 rounded-full border px-3.5 py-2 shadow-lg transition-all hover:-translate-y-[1px]"
+              style={{
+                background: "hsl(var(--card) / 0.94)",
+                borderColor: "hsl(var(--border))",
+                color: "hsl(var(--foreground))",
+                backdropFilter: "blur(10px)",
+                boxShadow: "0 8px 24px hsl(0 0% 0% / 0.28)",
+              }}
+              aria-label={panelOpenLabel}
+            >
+              {isCurrentWorldCupSafari ? (
+                <Calendar className="h-4 w-4" style={{ color: "hsl(var(--primary))" }} />
+              ) : (
+                <List className="h-4 w-4" style={{ color: "hsl(var(--primary))" }} />
+              )}
+              <span className="font-mono-space text-[10px] uppercase tracking-[0.18em]">
+                {panelTabLabel}
+              </span>
+              <span
+                className="rounded-full px-1.5 py-0.5 font-mono-space text-[9px]"
+                style={{
+                  background: "hsl(var(--primary) / 0.12)",
+                  color: "hsl(var(--primary))",
+                }}
+              >
+                {filteredEventsList.length}
+              </span>
+            </button>
           </div>
-          <span
-            className="font-mono-space text-[9px] tracking-widest uppercase select-none"
+        ) : (
+          <button
+            onClick={handleTabClick}
+            className="flex flex-col items-center justify-center gap-1.5 shrink-0 transition-colors"
             style={{
-              writingMode: "vertical-rl",
-              transform: "rotate(180deg)",
-              color: "hsl(var(--muted-foreground))",
-              letterSpacing: "0.12em",
+              width: "36px",
+              background: "hsl(var(--card) / 0.85)",
+              borderLeft: "1px solid hsl(var(--border))",
+              borderRight: "1px solid hsl(var(--border) / 0.3)",
+              backdropFilter: "blur(8px)",
             }}
+            aria-label={panelOpenLabel}
           >
-            {panelTabLabel}
-          </span>
-          {isCurrentWorldCupSafari ? (
-            <Calendar className="w-3.5 h-3.5" style={{ color: "hsl(var(--muted-foreground))" }} />
-          ) : (
-            <List className="w-3.5 h-3.5" style={{ color: "hsl(var(--muted-foreground))" }} />
-          )}
-        </button>
+            <div
+              className="transition-transform duration-300"
+              style={{ color: "hsl(var(--primary))" }}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </div>
+            <span
+              className="font-mono-space text-[9px] tracking-widest uppercase select-none"
+              style={{
+                writingMode: "vertical-rl",
+                transform: "rotate(180deg)",
+                color: "hsl(var(--muted-foreground))",
+                letterSpacing: "0.12em",
+              }}
+            >
+              {panelTabLabel}
+            </span>
+            {isCurrentWorldCupSafari ? (
+              <Calendar className="w-3.5 h-3.5" style={{ color: "hsl(var(--muted-foreground))" }} />
+            ) : (
+              <List className="w-3.5 h-3.5" style={{ color: "hsl(var(--muted-foreground))" }} />
+            )}
+          </button>
+        )
       )}
 
       {/* ── Sliding panel content ── */}
       <div
-        className="flex flex-col overflow-hidden transition-[opacity,box-shadow] duration-300 ease-out"
+        className="flex flex-col overflow-hidden transition-[opacity,box-shadow,transform,height,width] duration-300 ease-out"
         style={{
-          width: panelState !== "collapsed" ? `${panelWidth}px` : "0px",
-          minWidth: panelState !== "collapsed" ? "220px" : undefined,
-          maxWidth: panelState !== "collapsed" ? "600px" : undefined,
-          transition: isDragging.current ? "none" : "width 300ms ease-out, opacity 300ms ease-out",
+          width: isPanelOpen
+            ? (isMobilePanel ? "calc(100vw - 16px)" : `${panelWidth}px`)
+            : "0px",
+          minWidth: isPanelOpen ? (isMobilePanel ? "min(320px, calc(100vw - 16px))" : "220px") : undefined,
+          maxWidth: isPanelOpen ? (isMobilePanel ? "calc(100vw - 16px)" : "600px") : undefined,
+          height: isMobilePanel ? (isPanelOpen ? mobilePanelHeight : "0px") : "100%",
+          transition: isDragging.current && !isMobilePanel
+            ? "none"
+            : "width 300ms ease-out, height 300ms ease-out, opacity 300ms ease-out, transform 300ms ease-out",
+          transform: isMobilePanel ? (isPanelOpen ? "translateY(0)" : "translateY(12px)") : undefined,
           background: "hsl(var(--card))",
           borderLeft: "1px solid hsl(var(--border))",
-          boxShadow:
-            panelState !== "collapsed"
-              ? "-6px 0 32px hsl(0 0% 0% / 0.4)"
-              : "none",
-          opacity: panelState !== "collapsed" ? 1 : 0,
-          pointerEvents: panelState !== "collapsed" ? "auto" : "none",
+          borderRight: isMobilePanel ? "1px solid hsl(var(--border))" : undefined,
+          borderTop: isMobilePanel ? "1px solid hsl(var(--border))" : undefined,
+          borderRadius: isMobilePanel ? "24px" : undefined,
+          boxShadow: isPanelOpen
+            ? (isMobilePanel ? "0 -10px 32px hsl(0 0% 0% / 0.35)" : "-6px 0 32px hsl(0 0% 0% / 0.4)")
+            : "none",
+          opacity: isPanelOpen ? 1 : 0,
+          pointerEvents: isPanelOpen ? "auto" : "none",
           position: "relative",
+          backdropFilter: isMobilePanel ? "blur(12px)" : undefined,
         }}
       >
+        {isMobilePanel && isPanelOpen && (
+          <div className="flex justify-center px-4 pt-2">
+            <span
+              className="h-1.5 w-12 rounded-full"
+              style={{ background: "hsl(var(--border) / 0.9)" }}
+              aria-hidden="true"
+            />
+          </div>
+        )}
         {/* ── Drag handle ── */}
-        {panelState !== "collapsed" && (
+        {!isMobilePanel && panelState !== "collapsed" && (
           <div
             onPointerDown={handleDragStart}
             onPointerMove={handleDragMove}

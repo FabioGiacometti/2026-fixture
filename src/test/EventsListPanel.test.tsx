@@ -2,6 +2,7 @@ import { useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import EventsListPanel from "@/components/EventsListPanel";
+import { CURRENT_WORLD_CUP_SAFARI_ID } from "@/data/world-cup-data";
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
 
 describe("EventsListPanel match detail view", () => {
@@ -233,6 +234,59 @@ describe("EventsListPanel match detail view", () => {
     expect(screen.getByRole("button", { name: "Grupo B: España vs Túnez" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Grupo B: USA vs Marruecos" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Quitar filtro España" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the World Cup panel collapsed by default on mobile until the user opens it", () => {
+    const upcomingMatch = {
+      id: "wc2026-mobile-collapsed",
+      title: "Grupo A: México vs Sudáfrica",
+      description: "México vs Sudáfrica · 16:00. Programado.",
+      year: 2026,
+      month: 6,
+      day: 11,
+      lat: 19.3029,
+      lng: -99.1505,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo A",
+      homeTeam: "México",
+      awayTeam: "Sudáfrica",
+      kickoff: "16:00",
+      city: "Estadio Ciudad de México",
+    } as HistoricalEvent;
+
+    const safari: Safari = {
+      id: CURRENT_WORLD_CUP_SAFARI_ID,
+      name: "Copa Mundial 2026",
+      description: "Canadá / México / Estados Unidos · Norteamérica.",
+      overview: "Seguimiento del torneo.",
+      eventIds: [upcomingMatch.id],
+    };
+
+    render(
+      <EventsListPanel
+        visibleEvents={[upcomingMatch]}
+        allEvents={[upcomingMatch]}
+        selectedEvent={null}
+        currentYear={2026}
+        windowSize={6}
+        activeSafari={safari}
+        isMobile={true}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={vi.fn()}
+        onCloseSafari={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: "Grupo A: México vs Sudáfrica" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /abrir calendario de partidos/i }));
+
+    expect(screen.getByRole("button", { name: "Grupo A: México vs Sudáfrica" })).toBeInTheDocument();
   });
 
   it("shows a removable chip when a group filter is active", async () => {

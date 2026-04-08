@@ -443,6 +443,15 @@ export default function Index() {
       nextUpcomingPopupEvent &&
       activePopupEvent.id === nextUpcomingPopupEvent.id
   );
+  const venueContextLabel = focusedVenueEvent?.city ?? focusedVenueEvent?.region ?? null;
+  const popupContextChips = [
+    selectedWorldCupGroup !== "Todos" ? selectedWorldCupGroup : null,
+    ...panelQuickFilters.slice(0, 2),
+    venueContextLabel && !panelQuickFilters.includes(venueContextLabel) ? venueContextLabel : null,
+  ].filter((value): value is string => Boolean(value));
+  const shouldPrioritizeMobilePopup = isMobile && Boolean(activePopupEvent) && !selectedEvent;
+  const shouldHideBottomNavigation = isMobile && (Boolean(activePopupEvent) || Boolean(selectedEvent));
+  const showMobileContextChips = isMobile && !activePopupEvent && !selectedEvent && popupContextChips.length > 0;
 
   useEffect(() => {
     setIsMobilePopupDismissed(false);
@@ -666,9 +675,11 @@ export default function Index() {
       className="relative w-full h-full overflow-hidden"
       style={{
         background: "hsl(var(--background))",
-        ["--timeline-height" as string]: showWorldCupGroupsDrawer
-          ? (isGroupsDrawerExpanded ? "156px" : "58px")
-          : "96px",
+        ["--timeline-height" as string]: shouldHideBottomNavigation
+          ? "0px"
+          : showWorldCupGroupsDrawer
+            ? (isGroupsDrawerExpanded ? "156px" : "58px")
+            : "96px",
       } as CSSProperties}
     >
       {/* ── Globe ── */}
@@ -792,8 +803,26 @@ export default function Index() {
                       className="mt-0.5 text-[11px] leading-relaxed"
                       style={{ color: "hsl(var(--muted-foreground))" }}
                     >
-                      Próximo partido del calendario mundialista
+                      {popupContextChips.length > 0
+                        ? "Tu próximo partido relevante"
+                        : "Próximo partido del calendario mundialista"}
                     </p>
+                  )}
+                  {isMobile && popupContextChips.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {popupContextChips.map((chip) => (
+                        <span
+                          key={`popup-chip-${chip}`}
+                          className="rounded-full px-2 py-0.5 font-mono-space text-[9px] uppercase tracking-[0.18em]"
+                          style={{
+                            color: "hsl(var(--primary))",
+                            background: "hsl(var(--primary) / 0.1)",
+                          }}
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
 
@@ -866,7 +895,9 @@ export default function Index() {
 
       {/* ── App badge (top-left) ── */}
       <div
-        className="fixed top-5 left-6 z-40 flex items-center gap-3 px-4 py-2 rounded-full cursor-pointer hover:bg-white/5 transition-colors"
+        className={`fixed z-40 flex items-center rounded-full cursor-pointer hover:bg-white/5 transition-colors ${
+          isMobile ? "top-3 left-3 gap-2 px-3 py-1.5" : "top-5 left-6 gap-3 px-4 py-2"
+        }`}
         style={{
           background: "hsl(var(--card) / 0.85)",
           border: "1px solid hsl(var(--border))",
@@ -878,7 +909,7 @@ export default function Index() {
           <img
             src={activeSafari.thumbnail}
             alt={`${activeSafari.name} mascot`}
-            className="h-7 w-7 rounded-full border border-white/10 bg-white/5 object-contain p-1"
+            className={`${isMobile ? "h-6 w-6" : "h-7 w-7"} rounded-full border border-white/10 bg-white/5 object-contain p-1`}
           />
         ) : (
           <div
@@ -887,58 +918,119 @@ export default function Index() {
           />
         )}
         <span
-          className="font-mono-space text-xs"
+          className={`font-mono-space ${isMobile ? "text-[10px]" : "text-xs"}`}
           style={{ color: "hsl(var(--foreground))" }}
         >
-          {datasetMode === "worldcup" ? "Safaris mundialistas" : "Safaris históricos"}
-        </span>
-        <span
-          className="font-mono-space text-xs"
-          style={{ color: "hsl(var(--muted-foreground))" }}
-        >
           {datasetMode === "worldcup"
-            ? `${activeSafari?.name ?? "Copa Mundial actual"} · ${mapVisibleEvents.length} partidos`
-            : `${allDatasetEvents.length} eventos`}
+            ? (isMobile ? activeSafari?.name ?? "Copa Mundial" : "Safaris mundialistas")
+            : (isMobile ? "Historia" : "Safaris históricos")}
         </span>
+        {(!isMobile || !shouldPrioritizeMobilePopup) && (
+          <span
+            className="font-mono-space text-xs"
+            style={{ color: "hsl(var(--muted-foreground))" }}
+          >
+            {datasetMode === "worldcup"
+              ? `${activeSafari?.name ?? "Copa Mundial actual"} · ${mapVisibleEvents.length} partidos`
+              : `${allDatasetEvents.length} eventos`}
+          </span>
+        )}
       </div>
 
       {/* ── Dataset Mode Toggle (title area) ── */}
-      <div
-        className="fixed top-20 left-6 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full"
-        style={{
-          background: "hsl(var(--card) / 0.85)",
-          border: "1px solid hsl(var(--border))",
-          backdropFilter: "blur(8px)",
-        }}
-      >
-        <span
-          className="font-mono-space text-[10px] uppercase tracking-wider"
-          style={{ color: datasetMode === "historical" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
+      {!shouldPrioritizeMobilePopup && (
+        <div
+          className={`fixed z-40 flex items-center gap-2 rounded-full px-3 py-1.5 ${
+            isMobile ? "left-3 top-[3.6rem]" : "left-6 top-20"
+          }`}
+          style={{
+            background: "hsl(var(--card) / 0.85)",
+            border: "1px solid hsl(var(--border))",
+            backdropFilter: "blur(8px)",
+          }}
         >
-          Histórico
-        </span>
-        <Switch
-          id="dataset-mode"
-          checked={datasetMode === "worldcup"}
-          onCheckedChange={(checked) => setDatasetMode(checked ? "worldcup" : "historical")}
-          style={datasetMode === "worldcup" ? { backgroundColor: "hsl(var(--primary))" } : {}}
-        />
-        <span
-          className="font-mono-space text-[10px] uppercase tracking-wider"
-          style={{ color: datasetMode === "worldcup" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
-        >
-          Mundialista
-        </span>
-      </div>
+          <span
+            className="font-mono-space text-[10px] uppercase tracking-wider"
+            style={{ color: datasetMode === "historical" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
+          >
+            Histórico
+          </span>
+          <Switch
+            id="dataset-mode"
+            checked={datasetMode === "worldcup"}
+            onCheckedChange={(checked) => setDatasetMode(checked ? "worldcup" : "historical")}
+            style={datasetMode === "worldcup" ? { backgroundColor: "hsl(var(--primary))" } : {}}
+          />
+          <span
+            className="font-mono-space text-[10px] uppercase tracking-wider"
+            style={{ color: datasetMode === "worldcup" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
+          >
+            Mundialista
+          </span>
+        </div>
+      )}
 
-      <ThemeSwitcher
-        mapStyle={mapStyle}
-        onMapStyleChange={(style) => setMapStyle(style)}
-        panelOffset={rightPanelOffset}
-      />
+      {showMobileContextChips && (
+        <div className="fixed left-3 right-3 top-[6.4rem] z-40 flex flex-wrap gap-1.5">
+          {selectedWorldCupGroup !== "Todos" && (
+            <button
+              type="button"
+              onClick={() => setSelectedWorldCupGroup("Todos")}
+              className="rounded-full px-2 py-1 font-mono-space text-[9px] uppercase tracking-[0.18em]"
+              style={{
+                color: "hsl(var(--primary))",
+                background: "hsl(var(--primary) / 0.12)",
+                border: "1px solid hsl(var(--primary) / 0.25)",
+              }}
+            >
+              {selectedWorldCupGroup}
+            </button>
+          )}
+          {panelQuickFilters.slice(0, 2).map((chip) => (
+            <button
+              key={`context-${chip}`}
+              type="button"
+              onClick={() => {
+                setPanelQuickFilters((prev) => prev.filter((value) => value !== chip));
+                if (venueContextLabel === chip) {
+                  setFocusedVenueEvent(null);
+                }
+              }}
+              className="rounded-full px-2 py-1 font-mono-space text-[9px] uppercase tracking-[0.18em]"
+              style={{
+                color: "hsl(var(--primary))",
+                background: "hsl(var(--primary) / 0.12)",
+                border: "1px solid hsl(var(--primary) / 0.25)",
+              }}
+            >
+              {chip}
+            </button>
+          ))}
+          {venueContextLabel && !panelQuickFilters.includes(venueContextLabel) && (
+            <span
+              className="rounded-full px-2 py-1 font-mono-space text-[9px] uppercase tracking-[0.18em]"
+              style={{
+                color: "hsl(var(--muted-foreground))",
+                background: "hsl(var(--muted) / 0.24)",
+                border: "1px solid hsl(var(--border) / 0.7)",
+              }}
+            >
+              {venueContextLabel}
+            </span>
+          )}
+        </div>
+      )}
+
+      {!shouldPrioritizeMobilePopup && (
+        <ThemeSwitcher
+          mapStyle={mapStyle}
+          onMapStyleChange={(style) => setMapStyle(style)}
+          panelOffset={rightPanelOffset}
+        />
+      )}
 
       {/* ── Instruction overlay (top-center) ── */}
-      {!selectedEvent && showInstructionHint && (
+      {!selectedEvent && showInstructionHint && !shouldPrioritizeMobilePopup && (
         <div
           className="fixed top-5 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full pointer-events-none"
           style={{
@@ -990,10 +1082,12 @@ export default function Index() {
         activeGroupFilter={showWorldCupGroupsDrawer ? selectedWorldCupGroup : undefined}
         onClearGroupFilter={() => setSelectedWorldCupGroup("Todos")}
         quickFiltersFromRoute={panelQuickFilters}
+        isMobile={isMobile}
+        hideCollapsedTrigger={shouldPrioritizeMobilePopup}
       />
 
       {/* ── Bottom navigation ── */}
-      {showWorldCupGroupsDrawer ? (
+      {!shouldHideBottomNavigation && (showWorldCupGroupsDrawer ? (
         <WorldCupGroupsDrawer
           groups={worldCupGroupOptions}
           selectedGroup={selectedWorldCupGroup}
@@ -1017,7 +1111,7 @@ export default function Index() {
           maxYear={datasetMode === "worldcup" ? WORLD_CUP_YEARS[WORLD_CUP_YEARS.length - 1] : 2024}
           yearSnapPoints={datasetMode === "worldcup" ? WORLD_CUP_YEARS : undefined}
         />
-      )}
+      ))}
 
       <SafariSelectionModal
         isOpen={showSafariModal}
