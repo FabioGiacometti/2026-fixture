@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List, Play, Image as ImageIcon, ExternalLink, Globe, Video, Maximize2 } from "lucide-react";
 import { Safari, HistoricalEvent, formatYear, formatEventDate } from "@/data/historical-events";
 import { CURRENT_WORLD_CUP_SAFARI_ID } from "@/data/world-cup-data";
@@ -18,6 +18,9 @@ interface EventsListPanelProps {
   onCloseSafari?: () => void;
   forceOpen?: boolean; // triggered by timeline hover
   onMediaModalChange?: (isOpen: boolean) => void;
+  onVisibleEventsChange?: (events: HistoricalEvent[]) => void;
+  activeGroupFilter?: string;
+  onClearGroupFilter?: () => void;
 }
 
 const regionColors: Record<string, string> = {
@@ -289,6 +292,9 @@ export default function EventsListPanel({
   onCloseSafari,
   forceOpen,
   onMediaModalChange,
+  onVisibleEventsChange,
+  activeGroupFilter,
+  onClearGroupFilter,
 }: EventsListPanelProps) {
   const [panelState, setPanelState] = useState<PanelState>("collapsed");
   const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
@@ -332,7 +338,7 @@ export default function EventsListPanel({
     if (isCurrentWorldCupSafari) {
       setPanelState("list");
     }
-  }, [isCurrentWorldCupSafari, activeSafari?.id]);
+  }, [isCurrentWorldCupSafari, activeSafari?.id, visibleEvents]);
 
   useEffect(() => {
     visitorPrefillStartedRef.current = false;
@@ -377,7 +383,10 @@ export default function EventsListPanel({
     onClose();
   };
 
-  const sortedEventsList = [...visibleEvents].sort((a, b) => getEventSortValue(a) - getEventSortValue(b));
+  const sortedEventsList = useMemo(
+    () => [...visibleEvents].sort((a, b) => getEventSortValue(a) - getEventSortValue(b)),
+    [visibleEvents]
+  );
 
   useEffect(() => {
     if (!isCurrentWorldCupSafari || visibleEvents.length === 0 || visitorPrefillStartedRef.current) {
@@ -420,17 +429,27 @@ export default function EventsListPanel({
     };
   }, [isCurrentWorldCupSafari, visibleEvents]);
 
-  const filteredEventsList = sortedEventsList.filter((event) => {
-    if (quickFilters.length === 0) return true;
+  const filteredEventsList = useMemo(
+    () =>
+      sortedEventsList.filter((event) => {
+        if (quickFilters.length === 0) return true;
 
-    const blob = getEventSearchBlob(event);
-    return quickFilters.some((chip) =>
-      getChipVariants(chip).some((variant) => blob.includes(variant))
-    );
-  });
-  const calendarDays = buildCalendarDays(
-    filteredEventsList.filter((event) => event.eventType === "match")
+        const blob = getEventSearchBlob(event);
+        return quickFilters.some((chip) =>
+          getChipVariants(chip).some((variant) => blob.includes(variant))
+        );
+      }),
+    [sortedEventsList, quickFilters]
   );
+
+  const calendarDays = useMemo(
+    () => buildCalendarDays(filteredEventsList.filter((event) => event.eventType === "match")),
+    [filteredEventsList]
+  );
+
+  useEffect(() => {
+    onVisibleEventsChange?.(filteredEventsList);
+  }, [filteredEventsList, onVisibleEventsChange]);
   
   // For navigation (Back/Next), use all events sorted by year, OR safari events if active
   const navigationEvents = activeSafari 
@@ -500,6 +519,7 @@ export default function EventsListPanel({
   const hasSuggestedChip = suggestedQuickFilter
     ? quickFilters.some((chip) => normalizeText(chip) === normalizeText(suggestedQuickFilter))
     : false;
+  const hasActiveGroupFilter = Boolean(activeGroupFilter && activeGroupFilter !== "Todos");
 
   const handlePrev = () => {
     if (hasPrev) {
@@ -703,8 +723,29 @@ export default function EventsListPanel({
                     </button>
                   </div>
 
-                  {(quickFilters.length > 0 || (suggestedQuickFilter && !hasSuggestedChip)) && (
+                  {(hasActiveGroupFilter || quickFilters.length > 0 || (suggestedQuickFilter && !hasSuggestedChip)) && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
+                      {hasActiveGroupFilter && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono-space text-[9px] uppercase tracking-wider"
+                          style={{
+                            borderColor: "hsl(var(--primary) / 0.45)",
+                            color: "hsl(var(--primary))",
+                            background: "hsl(var(--primary) / 0.12)",
+                          }}
+                        >
+                          {`Grupo: ${activeGroupFilter}`}
+                          <button
+                            type="button"
+                            onClick={() => onClearGroupFilter?.()}
+                            className="opacity-75 transition-opacity hover:opacity-100"
+                            aria-label={`Quitar filtro de grupo ${activeGroupFilter}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      )}
+
                       {quickFilters.map((chip) => (
                         <span
                           key={chip}

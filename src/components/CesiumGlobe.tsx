@@ -25,6 +25,7 @@ interface CesiumGlobeProps {
   onHoverEvent: (event: HistoricalEvent | null, x: number, y: number) => void;
   isMobile: boolean;
   mapStyle: "political" | "geographic";
+  showSafariPath?: boolean;
 }
 
 export default function CesiumGlobe({
@@ -36,6 +37,7 @@ export default function CesiumGlobe({
   onHoverEvent,
   isMobile,
   mapStyle,
+  showSafariPath = true,
 }: CesiumGlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,6 +52,7 @@ export default function CesiumGlobe({
   const onHoverRef = useRef(onHoverEvent);
   const allEventsRef = useRef(allEvents);
   const [zoomIndicator, setZoomIndicator] = useState(() => getZoomIndicatorState(22_000_000));
+  const showZoomIndicator = false;
 
   useEffect(() => { onSelectRef.current = onSelectEvent; }, [onSelectEvent]);
   useEffect(() => { onHoverRef.current = onHoverEvent; }, [onHoverEvent]);
@@ -366,7 +369,9 @@ export default function CesiumGlobe({
       polylineRef.current = null;
     }
 
-    // Only draw if we have an active safari with at least 2 events
+    // Only draw if we have an active safari with at least 2 events and no active filtering.
+    if (!showSafariPath) return;
+
     if (activeSafari && activeSafari.eventIds.length > 1) {
       const safariEvents = activeSafari.eventIds
         .map(id => allEvents.find(e => e.id === id))
@@ -392,7 +397,7 @@ export default function CesiumGlobe({
         });
       }
     }
-  }, [activeSafari, allEvents]);
+  }, [activeSafari, allEvents, showSafariPath]);
 
   return (
     <div className="absolute inset-0">
@@ -402,57 +407,59 @@ export default function CesiumGlobe({
         style={{ background: "#111319" }}
       />
 
-      <div
-        className="pointer-events-none absolute bottom-24 left-4 z-30 min-w-[160px] rounded-xl px-3 py-2 sm:bottom-28 sm:left-6"
-        style={{
-          background: "hsl(var(--card) / 0.82)",
-          border: "1px solid hsl(var(--border))",
-          backdropFilter: "blur(8px)",
-        }}
-      >
-        <div className="mb-1 flex items-center justify-between gap-3">
-          <span
-            className="font-mono-space text-[10px] uppercase tracking-[0.2em]"
-            style={{ color: "hsl(var(--muted-foreground))" }}
-          >
-            Zoom
-          </span>
-          <span
-            className="font-mono-space text-[10px]"
-            style={{ color: "hsl(var(--foreground))" }}
-          >
-            {zoomIndicator.percent}%
-          </span>
-        </div>
-
+      {showZoomIndicator && (
         <div
-          className="h-1.5 overflow-hidden rounded-full"
-          style={{ background: "hsl(var(--border) / 0.55)" }}
+          className="pointer-events-none absolute bottom-24 left-4 z-30 min-w-[160px] rounded-xl px-3 py-2 sm:bottom-28 sm:left-6"
+          style={{
+            background: "hsl(var(--card) / 0.82)",
+            border: "1px solid hsl(var(--border))",
+            backdropFilter: "blur(8px)",
+          }}
         >
-          <div
-            className="h-full rounded-full transition-all duration-200"
-            style={{
-              width: `${zoomIndicator.percent}%`,
-              background: ACTIVE_EVENT_COLOR,
-            }}
-          />
-        </div>
+          <div className="mb-1 flex items-center justify-between gap-3">
+            <span
+              className="font-mono-space text-[10px] uppercase tracking-[0.2em]"
+              style={{ color: "hsl(var(--muted-foreground))" }}
+            >
+              Zoom
+            </span>
+            <span
+              className="font-mono-space text-[10px]"
+              style={{ color: "hsl(var(--foreground))" }}
+            >
+              {zoomIndicator.percent}%
+            </span>
+          </div>
 
-        <div className="mt-1.5 flex items-center justify-between gap-3">
-          <span
-            className="font-mono-space text-[11px]"
-            style={{ color: ACTIVE_EVENT_COLOR }}
+          <div
+            className="h-1.5 overflow-hidden rounded-full"
+            style={{ background: "hsl(var(--border) / 0.55)" }}
           >
-            {zoomIndicator.label}
-          </span>
-          <span
-            className="font-mono-space text-[10px]"
-            style={{ color: "hsl(var(--muted-foreground))" }}
-          >
-            {zoomIndicator.altitudeKm.toLocaleString()} km
-          </span>
+            <div
+              className="h-full rounded-full transition-all duration-200"
+              style={{
+                width: `${zoomIndicator.percent}%`,
+                background: ACTIVE_EVENT_COLOR,
+              }}
+            />
+          </div>
+
+          <div className="mt-1.5 flex items-center justify-between gap-3">
+            <span
+              className="font-mono-space text-[11px]"
+              style={{ color: ACTIVE_EVENT_COLOR }}
+            >
+              {zoomIndicator.label}
+            </span>
+            <span
+              className="font-mono-space text-[10px]"
+              style={{ color: "hsl(var(--muted-foreground))" }}
+            >
+              {zoomIndicator.altitudeKm.toLocaleString()} km
+            </span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -234,6 +234,63 @@ describe("EventsListPanel match detail view", () => {
     expect(screen.queryByRole("button", { name: "Quitar filtro España" })).not.toBeInTheDocument();
   });
 
+  it("shows a removable chip when a group filter is active", async () => {
+    const groupMatch = {
+      id: "wc2026-group-chip",
+      title: "Grupo A: México vs Sudáfrica",
+      description: "México vs Sudáfrica · 16:00. Programado.",
+      year: 2026,
+      month: 6,
+      day: 11,
+      lat: 19.3029,
+      lng: -99.1505,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo A",
+      homeTeam: "México",
+      awayTeam: "Sudáfrica",
+      kickoff: "16:00",
+      city: "Estadio Ciudad de México",
+    } as HistoricalEvent;
+
+    const safari: Safari = {
+      id: "world-cup-2026",
+      name: "Copa Mundial 2026",
+      description: "Canadá / México / Estados Unidos · Norteamérica.",
+      overview: "Seguimiento del torneo.",
+      eventIds: [groupMatch.id],
+    };
+
+    const onClearGroupFilter = vi.fn();
+
+    render(
+      <EventsListPanel
+        visibleEvents={[groupMatch]}
+        allEvents={[groupMatch]}
+        selectedEvent={null}
+        currentYear={2026}
+        windowSize={6}
+        activeSafari={safari}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={vi.fn()}
+        onCloseSafari={vi.fn()}
+        activeGroupFilter="Grupo A"
+        onClearGroupFilter={onClearGroupFilter}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Grupo: Grupo A")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Quitar filtro de grupo Grupo A" }));
+    expect(onClearGroupFilter).toHaveBeenCalledTimes(1);
+  });
+
   it("shows the current World Cup calendar in the right panel and navigates to match detail on click", async () => {
     const openingMatch = {
       id: "wc2026-g-a1",
@@ -451,6 +508,92 @@ describe("EventsListPanel match detail view", () => {
     expect(screen.getByText("USA")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Grupo C: Argentina vs Japón" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Grupo B: USA vs Marruecos" })).toBeInTheDocument();
+  });
+
+  it("reports filtered events so the map can stay in sync with the active chips", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("geo unavailable")));
+    vi.spyOn(window.navigator, "languages", "get").mockReturnValue(["fr-FR"]);
+    vi.spyOn(window.navigator, "language", "get").mockReturnValue("fr-FR");
+
+    const argentinaMatch = {
+      id: "wc2026-map-arg",
+      title: "Grupo C: Argentina vs Japón",
+      description: "Argentina vs Japón · 20:00.",
+      year: 2026,
+      month: 6,
+      day: 14,
+      lat: 34.1613,
+      lng: -118.1676,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo C",
+      homeTeam: "Argentina",
+      awayTeam: "Japón",
+      kickoff: "20:00",
+      city: "Los Angeles Stadium",
+    } as HistoricalEvent;
+
+    const usaMatch = {
+      id: "wc2026-map-usa",
+      title: "Grupo B: USA vs Marruecos",
+      description: "USA vs Marruecos · 18:00.",
+      year: 2026,
+      month: 6,
+      day: 15,
+      lat: 40.8135,
+      lng: -74.0745,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo B",
+      homeTeam: "Estados Unidos",
+      awayTeam: "Marruecos",
+      kickoff: "18:00",
+      city: "New York / New Jersey Stadium",
+    } as HistoricalEvent;
+
+    const safari: Safari = {
+      id: "world-cup-2026",
+      name: "Copa Mundial 2026",
+      description: "Canadá / México / Estados Unidos · Norteamérica.",
+      overview: "Seguimiento del torneo.",
+      eventIds: [argentinaMatch.id, usaMatch.id],
+    };
+
+    const onVisibleEventsChange = vi.fn();
+
+    render(
+      <EventsListPanel
+        visibleEvents={[argentinaMatch, usaMatch]}
+        allEvents={[argentinaMatch, usaMatch]}
+        selectedEvent={null}
+        currentYear={2026}
+        windowSize={6}
+        activeSafari={safari}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={vi.fn()}
+        onCloseSafari={vi.fn()}
+        onVisibleEventsChange={onVisibleEventsChange}
+      />
+    );
+
+    await waitFor(() => {
+      expect(onVisibleEventsChange).toHaveBeenCalledWith([argentinaMatch, usaMatch]);
+    });
+
+    const input = screen.getByPlaceholderText("Filtrar por país, sede o fecha");
+    fireEvent.change(input, { target: { value: "argentina" } });
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+
+    await waitFor(() => {
+      expect(onVisibleEventsChange).toHaveBeenLastCalledWith([argentinaMatch]);
+    });
   });
 
   it("filters matches by venue and date chips", async () => {

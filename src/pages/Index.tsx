@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from "react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import CesiumGlobe from "@/components/CesiumGlobe";
@@ -6,6 +6,7 @@ import TimelineBar from "@/components/TimelineBar";
 import EventsListPanel from "@/components/EventsListPanel";
 import SafariSelectionModal from "@/components/SafariSelectionModal";
 import FixturePipPanel from "@/components/FixturePipPanel";
+import WorldCupGroupsDrawer from "@/components/WorldCupGroupsDrawer";
 import { historicalEvents, getEventsInRange, safaris } from "@/data/historical-events";
 import {
   CURRENT_WORLD_CUP_SAFARI_ID,
@@ -71,6 +72,9 @@ export default function Index() {
   const [hoveredEventState, setHoveredEventState] = useState<HoveredEventState | null>(null);
   const [timelineHoverActive, setTimelineHoverActive] = useState(false);
   const [showInstructionHint, setShowInstructionHint] = useState(true);
+  const [selectedWorldCupGroup, setSelectedWorldCupGroup] = useState("Todos");
+  const [isGroupsDrawerExpanded, setIsGroupsDrawerExpanded] = useState(false);
+  const [panelFilteredEventIds, setPanelFilteredEventIds] = useState<string[] | null>(null);
   const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [mapStyle, setMapStyle] = useState<"political" | "geographic">(
     () => (datasetMode === "worldcup" ? "geographic" : "political")
@@ -97,6 +101,121 @@ export default function Index() {
     datasetSafaris.find(s => s.id === activeSafariId) || null,
     [activeSafariId, datasetSafaris]
   );
+
+  const showWorldCupGroupsDrawer =
+    datasetMode === "worldcup" && activeSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID;
+
+  const worldCupGroupOptions = useMemo(() => {
+    if (!showWorldCupGroupsDrawer || !activeSafari) {
+      return [] as Array<{
+        name: string;
+        count: number;
+        resolvedCount: number;
+        standings: Array<{
+          team: string;
+          flag?: string;
+          played: number;
+          goalDiff: number;
+          points: number;
+        }>;
+      }>;
+    }
+
+    const groupMap = new Map<
+      string,
+      {
+        count: number;
+        resolvedCount: number;
+        standings: Map<
+          string,
+          {
+            team: string;
+            flag?: string;
+            played: number;
+            points: number;
+            goalDiff: number;
+            goalFor: number;
+          }
+        >;
+      }
+    >();
+
+    activeSafari.eventIds.forEach((eventId) => {
+      const event = allDatasetEvents.find((item) => item.id === eventId);
+      if (!event || event.eventType !== "match" || !event.groupName) return;
+
+      if (!groupMap.has(event.groupName)) {
+        groupMap.set(event.groupName, {
+          count: 0,
+          resolvedCount: 0,
+          standings: new Map(),
+        });
+      }
+
+      const groupEntry = groupMap.get(event.groupName)!;
+      groupEntry.count += 1;
+
+      const ensureTeam = (team?: string, flag?: string) => {
+        if (!team) return;
+
+        const current = groupEntry.standings.get(team) ?? {
+          team,
+          flag,
+          played: 0,
+          points: 0,
+          goalDiff: 0,
+          goalFor: 0,
+        };
+
+        if (!current.flag && flag) {
+          current.flag = flag;
+        }
+
+        groupEntry.standings.set(team, current);
+      };
+
+      ensureTeam(event.homeTeam, event.homeFlag);
+      ensureTeam(event.awayTeam, event.awayFlag);
+
+      if (!event.score || !event.homeTeam || !event.awayTeam) return;
+
+      groupEntry.resolvedCount += 1;
+
+      const home = groupEntry.standings.get(event.homeTeam);
+      const away = groupEntry.standings.get(event.awayTeam);
+      if (!home || !away) return;
+
+      home.played += 1;
+      away.played += 1;
+      home.goalFor += event.score.home;
+      away.goalFor += event.score.away;
+      home.goalDiff += event.score.home - event.score.away;
+      away.goalDiff += event.score.away - event.score.home;
+
+      if (event.score.home > event.score.away) {
+        home.points += 3;
+      } else if (event.score.home < event.score.away) {
+        away.points += 3;
+      } else {
+        home.points += 1;
+        away.points += 1;
+      }
+    });
+
+    return [...groupMap.entries()]
+      .sort(([groupA], [groupB]) => groupA.localeCompare(groupB, undefined, { numeric: true }))
+      .map(([name, group]) => ({
+        name,
+        count: group.count,
+        resolvedCount: group.resolvedCount,
+        standings: [...group.standings.values()].sort((teamA, teamB) => {
+          if (teamB.points !== teamA.points) return teamB.points - teamA.points;
+          if (teamB.goalDiff !== teamA.goalDiff) return teamB.goalDiff - teamA.goalDiff;
+          if (teamB.goalFor !== teamA.goalFor) return teamB.goalFor - teamA.goalFor;
+          return teamA.team.localeCompare(teamB.team);
+        }),
+      }));
+  }, [showWorldCupGroupsDrawer, activeSafari, allDatasetEvents]);
 
   useEffect(() => {
     try {
@@ -149,19 +268,80 @@ export default function Index() {
     return () => window.clearTimeout(timeoutId);
   }, [datasetMode]);
 
+  useEffect(() => {
+    if (showWorldCupGroupsDrawer) {
+      setSelectedWorldCupGroup("Todos");
+      setIsGroupsDrawerExpanded(false);
+      return;
+    }
+
+    setSelectedWorldCupGroup("Todos");
+    setIsGroupsDrawerExpanded(false);
+  }, [showWorldCupGroupsDrawer, activeSafari?.id]);
+
   const visibleEvents = useMemo(() => {
     if (activeSafariId && activeSafari) {
-      return allDatasetEvents.filter((event) => {
+      const safariEvents = allDatasetEvents.filter((event) => {
         if (!activeSafari.eventIds.includes(event.id)) return false;
         if (datasetMode === "worldcup") {
           return event.eventType === "match";
         }
         return true;
       });
+
+      if (
+        showWorldCupGroupsDrawer &&
+        selectedWorldCupGroup !== "Todos"
+      ) {
+        return safariEvents.filter((event) => event.groupName === selectedWorldCupGroup);
+      }
+
+      return safariEvents;
     }
 
     return getEventsInRange(currentYear, windowSize, allDatasetEvents);
-  }, [currentYear, windowSize, activeSafariId, activeSafari, allDatasetEvents, datasetMode]);
+  }, [
+    currentYear,
+    windowSize,
+    activeSafariId,
+    activeSafari,
+    allDatasetEvents,
+    datasetMode,
+    showWorldCupGroupsDrawer,
+    selectedWorldCupGroup,
+  ]);
+
+  const mapVisibleEvents = useMemo(() => {
+    if (!panelFilteredEventIds) {
+      return visibleEvents;
+    }
+
+    const allowedIds = new Set(panelFilteredEventIds);
+    return visibleEvents.filter((event) => allowedIds.has(event.id));
+  }, [visibleEvents, panelFilteredEventIds]);
+
+  const handlePanelVisibleEventsChange = useCallback((events: HistoricalEvent[]) => {
+    const nextIds = events.map((event) => event.id);
+
+    setPanelFilteredEventIds((prev) => {
+      if (
+        prev &&
+        prev.length === nextIds.length &&
+        prev.every((id, index) => id === nextIds[index])
+      ) {
+        return prev;
+      }
+
+      return nextIds;
+    });
+  }, []);
+
+  const showSafariPath = useMemo(() => {
+    const hasGroupFilter = showWorldCupGroupsDrawer && selectedWorldCupGroup !== "Todos";
+    const hasPanelFilter = mapVisibleEvents.length !== visibleEvents.length;
+
+    return !hasGroupFilter && !hasPanelFilter;
+  }, [showWorldCupGroupsDrawer, selectedWorldCupGroup, mapVisibleEvents.length, visibleEvents.length]);
 
   const handleYearChange = useCallback((year: number) => {
     setCurrentYear(year);
@@ -229,18 +409,27 @@ export default function Index() {
 
   const handleCloseSafari = useCallback(() => {
     setActiveSafariId(null);
+    setSelectedWorldCupGroup("Todos");
     setShowSafariModal(true); // Allow re-selecting from modal if needed
   }, []);
+
+  // Group selection in the current World Cup drawer is filter-only.
+  // We intentionally avoid auto-navigating into a match here.
 
   return (
     <div
       className="relative w-full h-full overflow-hidden"
-      style={{ background: "#111319" }}
+      style={{
+        background: "#111319",
+        ["--timeline-height" as string]: showWorldCupGroupsDrawer
+          ? (isGroupsDrawerExpanded ? "156px" : "58px")
+          : "96px",
+      } as CSSProperties}
     >
       {/* ── Globe ── */}
       {cesiumReady ? (
         <CesiumGlobe
-          events={visibleEvents}
+          events={mapVisibleEvents}
           allEvents={allDatasetEvents}
           selectedEvent={selectedEvent}
           activeSafari={activeSafari}
@@ -248,6 +437,7 @@ export default function Index() {
           onHoverEvent={handleHoverEvent}
           isMobile={isMobile}
           mapStyle={mapStyle}
+          showSafariPath={showSafariPath}
         />
       ) : (
         <LoadingScreen />
@@ -333,14 +523,14 @@ export default function Index() {
           style={{ color: "hsl(var(--muted-foreground))" }}
         >
           {datasetMode === "worldcup"
-            ? `${activeSafari?.name ?? "Copa Mundial actual"} · ${visibleEvents.length} partidos`
+            ? `${activeSafari?.name ?? "Copa Mundial actual"} · ${mapVisibleEvents.length} partidos`
             : `${allDatasetEvents.length} eventos`}
         </span>
       </div>
 
       {/* ── Dataset Mode Toggle (title area) ── */}
       <div
-        className="fixed top-16 left-6 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full"
+        className="fixed top-20 left-6 z-40 flex items-center gap-2 px-3 py-1.5 rounded-full"
         style={{
           background: "hsl(var(--card) / 0.85)",
           border: "1px solid hsl(var(--border))",
@@ -418,7 +608,9 @@ export default function Index() {
           >
             {isMobile
               ? "Toca un marcador para ver el evento"
-              : "Mueve el slider ↓ · Haz clic en un marcador o usa el panel ▸"}
+              : showWorldCupGroupsDrawer
+                ? "Despliega grupos ↓ · Haz clic en un marcador o usa el panel ▸"
+                : "Mueve el slider ↓ · Haz clic en un marcador o usa el panel ▸"}
           </span>
         </div>
       )}
@@ -447,22 +639,37 @@ export default function Index() {
         onCloseSafari={handleCloseSafari}
         forceOpen={timelineHoverActive}
         onMediaModalChange={setIsMediaModalOpen}
+        onVisibleEventsChange={handlePanelVisibleEventsChange}
+        activeGroupFilter={showWorldCupGroupsDrawer ? selectedWorldCupGroup : undefined}
+        onClearGroupFilter={() => setSelectedWorldCupGroup("Todos")}
       />
 
-      {/* ── Timeline Bar ── */}
-      <TimelineBar
-        currentYear={currentYear}
-        windowSize={windowSize}
-        onYearChange={handleYearChange}
-        onHoverYear={handleHoverYear}
-        onChangeWindowSize={setWindowSize}
-        isMediaModalOpen={isMediaModalOpen}
-        allEvents={allDatasetEvents}
-        mode={datasetMode}
-        minYear={datasetMode === "worldcup" ? WORLD_CUP_YEARS[0] : -3000}
-        maxYear={datasetMode === "worldcup" ? WORLD_CUP_YEARS[WORLD_CUP_YEARS.length - 1] : 2024}
-        yearSnapPoints={datasetMode === "worldcup" ? WORLD_CUP_YEARS : undefined}
-      />
+      {/* ── Bottom navigation ── */}
+      {showWorldCupGroupsDrawer ? (
+        <WorldCupGroupsDrawer
+          groups={worldCupGroupOptions}
+          selectedGroup={selectedWorldCupGroup}
+          onSelectGroup={setSelectedWorldCupGroup}
+          isExpanded={isGroupsDrawerExpanded}
+          onToggleExpanded={() => setIsGroupsDrawerExpanded((value) => !value)}
+          isMediaModalOpen={isMediaModalOpen}
+          title="Grupos · Copa Mundial 2026"
+        />
+      ) : (
+        <TimelineBar
+          currentYear={currentYear}
+          windowSize={windowSize}
+          onYearChange={handleYearChange}
+          onHoverYear={handleHoverYear}
+          onChangeWindowSize={setWindowSize}
+          isMediaModalOpen={isMediaModalOpen}
+          allEvents={allDatasetEvents}
+          mode={datasetMode}
+          minYear={datasetMode === "worldcup" ? WORLD_CUP_YEARS[0] : -3000}
+          maxYear={datasetMode === "worldcup" ? WORLD_CUP_YEARS[WORLD_CUP_YEARS.length - 1] : 2024}
+          yearSnapPoints={datasetMode === "worldcup" ? WORLD_CUP_YEARS : undefined}
+        />
+      )}
 
       <SafariSelectionModal
         isOpen={showSafariModal}
