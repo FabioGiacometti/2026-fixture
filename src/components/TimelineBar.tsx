@@ -125,8 +125,7 @@ export default function TimelineBar({
         isMediaModalOpen ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
       }`}
       style={{
-        background:
-          "linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.97) 80%, transparent 100%)",
+        background: "hsl(var(--card))",
         borderTop: "1px solid hsl(var(--border))",
         backdropFilter: "blur(8px)",
       }}

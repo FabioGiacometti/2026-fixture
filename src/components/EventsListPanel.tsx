@@ -315,6 +315,7 @@ export default function EventsListPanel({
   const visitorPrefillStartedRef = useRef(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
+  const userCollapsedRef = useRef(false);
   const isCurrentWorldCupSafari = activeSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID;
 
   const handleDragStart = useCallback((e: React.PointerEvent) => {
@@ -339,18 +340,20 @@ export default function EventsListPanel({
   // When a marker is clicked (selectedEvent changes), open detail
   useEffect(() => {
     if (selectedEvent) {
+      userCollapsedRef.current = false;
       setPanelState("detail");
     }
   }, [selectedEvent]);
 
   useEffect(() => {
-    if (isCurrentWorldCupSafari) {
+    if (isCurrentWorldCupSafari && !userCollapsedRef.current) {
       setPanelState("list");
     }
-  }, [isCurrentWorldCupSafari, activeSafari?.id, visibleEvents]);
+  }, [isCurrentWorldCupSafari, activeSafari?.id]);
 
   useEffect(() => {
     visitorPrefillStartedRef.current = false;
+    userCollapsedRef.current = false;
     setSuggestedQuickFilter(null);
   }, [activeSafari?.id]);
 
@@ -364,30 +367,36 @@ export default function EventsListPanel({
   // When forceOpen (timeline hover), open list if collapsed
   useEffect(() => {
     if (forceOpen && panelState === "collapsed") {
+      userCollapsedRef.current = false;
       setPanelState("list");
     }
-  }, [forceOpen]);
+  }, [forceOpen, panelState]);
 
   const handleTabClick = () => {
     if (panelState === "collapsed") {
+      userCollapsedRef.current = false;
       setPanelState("list");
     } else {
+      userCollapsedRef.current = true;
       setPanelState("collapsed");
     }
   };
 
   const handleSelectEvent = (event: HistoricalEvent) => {
+    userCollapsedRef.current = false;
     onSelectEvent(event);
     setPanelState("detail");
     onYearChange(event.year);
   };
 
   const handleBack = () => {
+    userCollapsedRef.current = false;
     setPanelState("list");
     onClose();
   };
 
   const handleCollapse = () => {
+    userCollapsedRef.current = true;
     setPanelState("collapsed");
     onClose();
   };
@@ -482,7 +491,7 @@ export default function EventsListPanel({
   const isFilteredSubSafari = hasActiveGroupFilter || quickFilters.length > 0;
 
   useEffect(() => {
-    if (panelState === "collapsed" && isFilteredSubSafari) {
+    if (panelState === "collapsed" && isFilteredSubSafari && !userCollapsedRef.current) {
       setPanelState("list");
     }
   }, [panelState, isFilteredSubSafari]);

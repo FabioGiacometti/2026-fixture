@@ -46,8 +46,7 @@ export default function WorldCupGroupsDrawer({
           isExpanded ? "h-[calc(100vh-4.5rem)]" : "h-[76px]"
         }`}
         style={{
-          background:
-            "linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0.98) 80%, transparent 100%)",
+          background: "hsl(var(--card))",
           borderColor: "hsl(var(--border))",
           backdropFilter: "blur(10px)",
           boxShadow: "0 -10px 28px hsl(0 0% 0% / 0.28)",

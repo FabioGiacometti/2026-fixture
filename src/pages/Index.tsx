@@ -82,6 +82,7 @@ export default function Index() {
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [hoveredEventState, setHoveredEventState] = useState<HoveredEventState | null>(null);
   const [focusedVenueEvent, setFocusedVenueEvent] = useState<HistoricalEvent | null>(null);
+  const [isMobilePopupDismissed, setIsMobilePopupDismissed] = useState(false);
   const [timelineHoverActive, setTimelineHoverActive] = useState(false);
   const [showInstructionHint, setShowInstructionHint] = useState(true);
   const [selectedWorldCupGroup, setSelectedWorldCupGroup] = useState("Todos");
@@ -432,12 +433,19 @@ export default function Index() {
   }, []);
 
   const showSafariPath = false;
-  const activePopupEvent = hoveredEventState?.event ?? nextUpcomingPopupEvent ?? null;
+  const activePopupEvent =
+    hoveredEventState?.event ??
+    ((!isMobile || !isMobilePopupDismissed) ? nextUpcomingPopupEvent : null) ??
+    null;
   const isNextPopupEvent = Boolean(
     activePopupEvent &&
       nextUpcomingPopupEvent &&
       activePopupEvent.id === nextUpcomingPopupEvent.id
   );
+
+  useEffect(() => {
+    setIsMobilePopupDismissed(false);
+  }, [nextUpcomingPopupEvent?.id, activeSafari?.id, datasetMode]);
 
   const routeState = useMemo(
     () => buildAppRouteState({
@@ -510,6 +518,7 @@ export default function Index() {
       clearHoverTooltip();
 
       if (event) {
+        setIsMobilePopupDismissed(false);
         setHoveredEventState({ event, x, y });
         return;
       }
@@ -528,9 +537,17 @@ export default function Index() {
 
     clearHoverTooltip();
     hoverTooltipInteractingRef.current = false;
+    setIsMobilePopupDismissed(true);
     setHoveredEventState(null);
     handleSelectEvent(activePopupEvent);
   }, [activePopupEvent, clearHoverTooltip, handleSelectEvent]);
+
+  const handleDismissPopup = useCallback(() => {
+    clearHoverTooltip();
+    hoverTooltipInteractingRef.current = false;
+    setHoveredEventState(null);
+    setIsMobilePopupDismissed(true);
+  }, [clearHoverTooltip]);
 
   const applyVenueFilter = useCallback((event: HistoricalEvent) => {
     const venueLabel = event.city ?? event.region;
@@ -538,6 +555,8 @@ export default function Index() {
 
     clearHoverTooltip();
     hoverTooltipInteractingRef.current = false;
+    setIsMobilePopupDismissed(true);
+    setHoveredEventState(null);
     setSelectedEvent(null);
     setFocusedVenueEvent(event);
     setCurrentYear(event.year);
@@ -550,6 +569,8 @@ export default function Index() {
 
     clearHoverTooltip();
     hoverTooltipInteractingRef.current = false;
+    setIsMobilePopupDismissed(true);
+    setHoveredEventState(null);
     setSelectedEvent(null);
     setFocusedVenueEvent(null);
     setCurrentYear(event.year);
@@ -562,6 +583,8 @@ export default function Index() {
 
     clearHoverTooltip();
     hoverTooltipInteractingRef.current = false;
+    setIsMobilePopupDismissed(true);
+    setHoveredEventState(null);
     setSelectedEvent(null);
     setFocusedVenueEvent(null);
     setCurrentYear(event.year);
@@ -572,6 +595,7 @@ export default function Index() {
   const handleSelectVenueFromMap = useCallback((event: HistoricalEvent, x = 0, y = 0) => {
     clearHoverTooltip();
     hoverTooltipInteractingRef.current = false;
+    setIsMobilePopupDismissed(false);
 
     if (hoveredEventState?.event.id === event.id) {
       applyVenueFilter(event);
@@ -688,7 +712,7 @@ export default function Index() {
           }
         >
           <div
-            className="pointer-events-auto rounded-xl border px-3.5 py-3 shadow-xl"
+            className="pointer-events-auto relative rounded-xl border px-3.5 py-3 shadow-xl"
             style={{
               background: "hsl(var(--card) / 0.97)",
               border: "1px solid hsl(var(--border))",
@@ -704,6 +728,20 @@ export default function Index() {
               setHoveredEventState(null);
             }}
           >
+            {isMobile && (
+              <button
+                type="button"
+                onClick={handleDismissPopup}
+                aria-label="Cerrar tooltip del mapa"
+                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-base font-semibold transition-opacity hover:opacity-80"
+                style={{
+                  background: "hsl(var(--muted) / 0.55)",
+                  color: "hsl(var(--muted-foreground))",
+                }}
+              >
+                ×
+              </button>
+            )}
             {activePopupEvent.dataset === "worldcup" && activePopupEvent.eventType === "match" ? (
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between gap-2">
