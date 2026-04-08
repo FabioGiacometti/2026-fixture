@@ -9,6 +9,8 @@
 
 @layer base {
   :root {
+    color-scheme: dark;
+
     /* ── Base surfaces ── */
     --background:        220 15% 8%;      /* #111319 Negro Volcánico */
     --foreground:        220 14% 91%;     /* #E1E3E8 Hueso */
@@ -55,12 +57,159 @@
     --sidebar-accent-foreground: 220 14% 91%;
     --sidebar-border:          224 11% 22%;
     --sidebar-ring:            42 100% 47%;
+
+    /* ── Map-specific tokens ── */
+    --map-scene-background:    224 34% 8%;
+    --map-active-marker:       142 71% 45%;
+    --map-active-marker-outline: 138 76% 97%;
+    --map-inactive-marker:     42 100% 47%;
+    --map-label:               220 14% 91%;
+    --map-label-outline:       220 15% 8%;
+    --map-country-outline:     42 100% 47%;
+    --map-safari-path:         42 100% 47%;
+  }
+
+  html.theme-geological-dark {
+    color-scheme: dark;
+  }
+
+  html.theme-clean-light {
+    color-scheme: light;
+    --background:        40 33% 98%;
+    --foreground:        224 20% 16%;
+    --card:              0 0% 100%;
+    --card-foreground:   224 20% 16%;
+    --popover:           0 0% 100%;
+    --popover-foreground:224 20% 16%;
+    --primary:           27 96% 48%;
+    --primary-foreground:0 0% 100%;
+    --secondary:         210 30% 96%;
+    --secondary-foreground: 224 20% 20%;
+    --muted:             210 18% 92%;
+    --muted-foreground:  224 10% 40%;
+    --accent:            195 80% 94%;
+    --accent-foreground: 215 34% 18%;
+    --destructive:       0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border:            215 18% 84%;
+    --input:             215 18% 84%;
+    --ring:              27 96% 48%;
+    --sidebar-background:      210 30% 96%;
+    --sidebar-foreground:      224 20% 16%;
+    --sidebar-primary:         27 96% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent:          195 80% 94%;
+    --sidebar-accent-foreground: 215 34% 18%;
+    --sidebar-border:          215 18% 84%;
+    --sidebar-ring:            27 96% 48%;
+    --map-scene-background:    224 34% 8%;
+    --map-active-marker:       142 64% 38%;
+    --map-active-marker-outline: 0 0% 100%;
+    --map-inactive-marker:     27 96% 48%;
+    --map-label:               210 40% 98%;
+    --map-label-outline:       224 34% 8%;
+    --map-country-outline:     195 80% 62%;
+    --map-safari-path:         27 96% 48%;
+  }
+
+  html.theme-world-cup-brand {
+    color-scheme: dark;
+    --background:        226 35% 10%;
+    --foreground:        210 40% 98%;
+    --card:              227 32% 16%;
+    --card-foreground:   210 40% 98%;
+    --popover:           227 32% 16%;
+    --popover-foreground:210 40% 98%;
+    --primary:           187 100% 52%;
+    --primary-foreground:226 35% 10%;
+    --secondary:         230 24% 21%;
+    --secondary-foreground: 210 40% 98%;
+    --muted:             229 20% 24%;
+    --muted-foreground:  215 22% 72%;
+    --accent:            331 88% 58%;
+    --accent-foreground: 0 0% 100%;
+    --destructive:       0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border:            229 20% 24%;
+    --input:             229 20% 24%;
+    --ring:              187 100% 52%;
+    --sidebar-background:      226 35% 12%;
+    --sidebar-foreground:      210 40% 98%;
+    --sidebar-primary:         187 100% 52%;
+    --sidebar-primary-foreground: 226 35% 10%;
+    --sidebar-accent:          331 88% 58%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border:          229 20% 24%;
+    --sidebar-ring:            187 100% 52%;
+    --map-scene-background:    226 35% 10%;
+    --map-active-marker:       187 100% 52%;
+    --map-active-marker-outline: 180 100% 95%;
+    --map-inactive-marker:     331 88% 58%;
+    --map-label:               210 40% 98%;
+    --map-label-outline:       226 35% 10%;
+    --map-country-outline:     331 88% 58%;
+    --map-safari-path:         187 100% 52%;
+  }
+
+  html.theme-high-contrast {
+    color-scheme: dark;
+    --background:        0 0% 4%;
+    --foreground:        0 0% 100%;
+    --card:              0 0% 8%;
+    --card-foreground:   0 0% 100%;
+    --popover:           0 0% 8%;
+    --popover-foreground:0 0% 100%;
+    --primary:           56 100% 50%;
+    --primary-foreground:0 0% 0%;
+    --secondary:         0 0% 12%;
+    --secondary-foreground: 0 0% 100%;
+    --muted:             0 0% 14%;
+    --muted-foreground:  0 0% 78%;
+    --accent:            180 100% 30%;
+    --accent-foreground: 0 0% 100%;
+    --destructive:       0 100% 54%;
+    --destructive-foreground: 0 0% 100%;
+    --border:            0 0% 42%;
+    --input:             0 0% 42%;
+    --ring:              56 100% 50%;
+    --sidebar-background:      0 0% 6%;
+    --sidebar-foreground:      0 0% 100%;
+    --sidebar-primary:         56 100% 50%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent:          180 100% 30%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border:          0 0% 42%;
+    --sidebar-ring:            56 100% 50%;
+    --map-scene-background:    0 0% 4%;
+    --map-active-marker:       180 100% 50%;
+    --map-active-marker-outline: 0 0% 100%;
+    --map-inactive-marker:     56 100% 50%;
+    --map-label:               0 0% 100%;
+    --map-label-outline:       0 0% 4%;
+    --map-country-outline:     180 100% 50%;
+    --map-safari-path:         56 100% 50%;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+  }
+
+  html {
+    font-size: calc(16px * var(--app-font-scale, 1));
+  }
+
+  html[data-font-size="small"] {
+    --app-font-scale: 0.93;
+  }
+
+  html[data-font-size="medium"] {
+    --app-font-scale: 1;
+  }
+
+  html[data-font-size="large"] {
+    --app-font-scale: 1.1;
   }
 
   html, body, #root {
@@ -74,6 +223,7 @@
 /* ── Typography ── */
 body {
   font-family: 'Source Sans 3', system-ui, sans-serif;
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 .font-mono-space {

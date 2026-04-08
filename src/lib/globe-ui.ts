@@ -3,6 +3,36 @@ import type { HistoricalEvent, Safari } from "@/data/historical-events";
 export const ACTIVE_EVENT_COLOR = "#22C55E";
 export const INACTIVE_EVENT_COLOR = "#F2A900";
 export const DEFAULT_LABEL_COLOR = "#E1E3E8";
+
+export interface MapThemeColors {
+  sceneBackground: string;
+  labelOutlineColor: string;
+  safariPathColor: string;
+  countryOutlineColor: string;
+}
+
+function getThemeCssColor(tokenName: string, fallback: string) {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return fallback;
+  }
+
+  const tokenValue = window
+    .getComputedStyle(document.documentElement)
+    .getPropertyValue(tokenName)
+    .trim();
+
+  return tokenValue ? `hsl(${tokenValue})` : fallback;
+}
+
+export function getMapThemeColors(): MapThemeColors {
+  return {
+    sceneBackground: getThemeCssColor("--map-scene-background", "#0A1020"),
+    labelOutlineColor: getThemeCssColor("--map-label-outline", "#0A1020"),
+    safariPathColor: getThemeCssColor("--map-safari-path", INACTIVE_EVENT_COLOR),
+    countryOutlineColor: getThemeCssColor("--map-country-outline", ACTIVE_EVENT_COLOR),
+  };
+}
+
 export const ACTIVE_EVENT_ZOOM_PERCENT = 80;
 export const MATCH_EVENT_ZOOM_PERCENT = 100;
 
@@ -61,21 +91,21 @@ export function getMarkerAppearance(isSelected: boolean): MarkerAppearance {
   if (isSelected) {
     return {
       pixelSize: 16,
-      color: ACTIVE_EVENT_COLOR,
+      color: getThemeCssColor("--map-active-marker", ACTIVE_EVENT_COLOR),
       colorAlpha: 1,
-      outlineColor: "#DCFCE7",
+      outlineColor: getThemeCssColor("--map-active-marker-outline", "#DCFCE7"),
       outlineWidth: 8,
-      labelColor: ACTIVE_EVENT_COLOR,
+      labelColor: getThemeCssColor("--map-active-marker", ACTIVE_EVENT_COLOR),
     };
   }
 
   return {
     pixelSize: 8,
-    color: INACTIVE_EVENT_COLOR,
+    color: getThemeCssColor("--map-inactive-marker", INACTIVE_EVENT_COLOR),
     colorAlpha: 0.65,
-    outlineColor: "#F2A900",
+    outlineColor: getThemeCssColor("--map-inactive-marker", INACTIVE_EVENT_COLOR),
     outlineWidth: 0,
-    labelColor: DEFAULT_LABEL_COLOR,
+    labelColor: getThemeCssColor("--map-label", DEFAULT_LABEL_COLOR),
   };
 }
 

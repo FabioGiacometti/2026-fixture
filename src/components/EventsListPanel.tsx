@@ -19,6 +19,7 @@ interface EventsListPanelProps {
   forceOpen?: boolean; // triggered by timeline hover
   onMediaModalChange?: (isOpen: boolean) => void;
   onVisibleEventsChange?: (events: HistoricalEvent[]) => void;
+  onPanelOffsetChange?: (offset: number) => void;
   activeGroupFilter?: string;
   onClearGroupFilter?: () => void;
 }
@@ -293,6 +294,7 @@ export default function EventsListPanel({
   forceOpen,
   onMediaModalChange,
   onVisibleEventsChange,
+  onPanelOffsetChange,
   activeGroupFilter,
   onClearGroupFilter,
 }: EventsListPanelProps) {
@@ -451,6 +453,10 @@ export default function EventsListPanel({
     onVisibleEventsChange?.(filteredEventsList);
   }, [filteredEventsList, onVisibleEventsChange]);
 
+  useEffect(() => {
+    onPanelOffsetChange?.(panelState === "collapsed" ? 36 : panelWidth);
+  }, [panelState, panelWidth, onPanelOffsetChange]);
+
   const hasActiveGroupFilter = Boolean(activeGroupFilter && activeGroupFilter !== "Todos");
   const isFilteredSubSafari = hasActiveGroupFilter || quickFilters.length > 0;
 
@@ -553,54 +559,44 @@ export default function EventsListPanel({
       className="fixed top-0 right-0 h-full z-40 flex"
       style={{ paddingBottom: "var(--timeline-height, 96px)" }}
     >
-      {/* ── Vertical tab strip (always visible) ── */}
-      <button
-        onClick={handleTabClick}
-        className="flex flex-col items-center justify-center gap-1.5 shrink-0 transition-colors"
-        style={{
-          width: "36px",
-          background:
-            panelState === "collapsed"
-              ? "hsl(var(--card) / 0.85)"
-              : "hsl(var(--card))",
-          borderLeft: "1px solid hsl(var(--border))",
-          borderRight:
-            panelState !== "collapsed"
-              ? "none"
-              : "1px solid hsl(var(--border) / 0.3)",
-          backdropFilter: "blur(8px)",
-        }}
-        aria-label={panelState === "collapsed" ? panelOpenLabel : "Colapsar panel"}
-      >
-        {/* Arrow icon */}
-        <div
-          className="transition-transform duration-300"
-          style={{ color: "hsl(var(--primary))" }}
-        >
-          {panelState === "collapsed" ? (
-            <ChevronLeft className="w-4 h-4" />
-          ) : (
-            <ChevronRight className="w-4 h-4" />
-          )}
-        </div>
-        {/* Rotated label */}
-        <span
-          className="font-mono-space text-[9px] tracking-widest uppercase select-none"
+      {/* ── Vertical tab strip (collapsed state only) ── */}
+      {panelState === "collapsed" && (
+        <button
+          onClick={handleTabClick}
+          className="flex flex-col items-center justify-center gap-1.5 shrink-0 transition-colors"
           style={{
-            writingMode: "vertical-rl",
-            transform: "rotate(180deg)",
-            color: "hsl(var(--muted-foreground))",
-            letterSpacing: "0.12em",
+            width: "36px",
+            background: "hsl(var(--card) / 0.85)",
+            borderLeft: "1px solid hsl(var(--border))",
+            borderRight: "1px solid hsl(var(--border) / 0.3)",
+            backdropFilter: "blur(8px)",
           }}
+          aria-label={panelOpenLabel}
         >
-          {panelTabLabel}
-        </span>
-        {isCurrentWorldCupSafari ? (
-          <Calendar className="w-3.5 h-3.5" style={{ color: "hsl(var(--muted-foreground))" }} />
-        ) : (
-          <List className="w-3.5 h-3.5" style={{ color: "hsl(var(--muted-foreground))" }} />
-        )}
-      </button>
+          <div
+            className="transition-transform duration-300"
+            style={{ color: "hsl(var(--primary))" }}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+          <span
+            className="font-mono-space text-[9px] tracking-widest uppercase select-none"
+            style={{
+              writingMode: "vertical-rl",
+              transform: "rotate(180deg)",
+              color: "hsl(var(--muted-foreground))",
+              letterSpacing: "0.12em",
+            }}
+          >
+            {panelTabLabel}
+          </span>
+          {isCurrentWorldCupSafari ? (
+            <Calendar className="w-3.5 h-3.5" style={{ color: "hsl(var(--muted-foreground))" }} />
+          ) : (
+            <List className="w-3.5 h-3.5" style={{ color: "hsl(var(--muted-foreground))" }} />
+          )}
+        </button>
+      )}
 
       {/* ── Sliding panel content ── */}
       <div

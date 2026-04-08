@@ -4,6 +4,7 @@ import {
   INACTIVE_EVENT_COLOR,
   MATCH_EVENT_ZOOM_PERCENT,
   getCameraHeightForZoomPercent,
+  getMapThemeColors,
   getMarkerAppearance,
   getSafariPathEvents,
   getWorldCupCountryBounds,
@@ -58,6 +59,21 @@ describe("globe UI helpers", () => {
     expect(MATCH_EVENT_ZOOM_PERCENT).toBeGreaterThan(90);
     expect(matchFocusIndicator.percent).toBeGreaterThanOrEqual(90);
     expect(matchFocusIndicator.label).toBe("Local");
+  });
+
+  it("provides theme-aware map colors with stable fallbacks", () => {
+    const mapColors = getMapThemeColors();
+
+    expect(mapColors).toEqual(
+      expect.objectContaining({
+        sceneBackground: expect.any(String),
+        labelOutlineColor: expect.any(String),
+        countryOutlineColor: expect.any(String),
+        safariPathColor: expect.any(String),
+      })
+    );
+    expect(mapColors.sceneBackground.length).toBeGreaterThan(0);
+    expect(mapColors.safariPathColor.length).toBeGreaterThan(0);
   });
 
   it("builds the safari path from only the matches currently visible in the filtered list", () => {

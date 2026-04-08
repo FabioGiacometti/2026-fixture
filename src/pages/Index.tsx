@@ -1,5 +1,4 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from "react";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import CesiumGlobe from "@/components/CesiumGlobe";
 import TimelineBar from "@/components/TimelineBar";
@@ -7,6 +6,7 @@ import EventsListPanel from "@/components/EventsListPanel";
 import SafariSelectionModal from "@/components/SafariSelectionModal";
 import FixturePipPanel from "@/components/FixturePipPanel";
 import WorldCupGroupsDrawer from "@/components/WorldCupGroupsDrawer";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { historicalEvents, getEventsInRange, safaris } from "@/data/historical-events";
 import {
   CURRENT_WORLD_CUP_SAFARI_ID,
@@ -75,6 +75,9 @@ export default function Index() {
   const [selectedWorldCupGroup, setSelectedWorldCupGroup] = useState("Todos");
   const [isGroupsDrawerExpanded, setIsGroupsDrawerExpanded] = useState(false);
   const [panelFilteredEventIds, setPanelFilteredEventIds] = useState<string[] | null>(null);
+  const [rightPanelOffset, setRightPanelOffset] = useState<number>(
+    datasetMode === "worldcup" ? 300 : 36
+  );
   const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [mapStyle, setMapStyle] = useState<"political" | "geographic">(
     () => (datasetMode === "worldcup" ? "geographic" : "political")
@@ -418,7 +421,7 @@ export default function Index() {
     <div
       className="relative w-full h-full overflow-hidden"
       style={{
-        background: "#111319",
+        background: "hsl(var(--background))",
         ["--timeline-height" as string]: showWorldCupGroupsDrawer
           ? (isGroupsDrawerExpanded ? "156px" : "58px")
           : "96px",
@@ -555,40 +558,11 @@ export default function Index() {
         </span>
       </div>
 
-      {/* ── Map Style Toggle (top-right) ── */}
-      <div
-        className="fixed top-5 right-6 z-40 flex items-center gap-3 px-4 py-2 rounded-full"
-        style={{
-          background: "hsl(var(--card) / 0.85)",
-          border: "1px solid hsl(var(--border))",
-          backdropFilter: "blur(8px)",
-        }}
-        // Adjust right position if EventsListPanel is collapsed or not to avoid overlap, 
-        // though EventsListPanel is fixed to the right. Let's position the toggle next to the panel tab.
-      >
-        <div className="flex items-center space-x-2">
-          <Label 
-            htmlFor="map-style" 
-            className="font-mono-space text-[10px] uppercase tracking-wider"
-            style={{ color: mapStyle === "political" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
-          >
-            Político
-          </Label>
-          <Switch
-            id="map-style"
-            checked={mapStyle === "geographic"}
-            onCheckedChange={(checked) => setMapStyle(checked ? "geographic" : "political")}
-            style={mapStyle === "geographic" ? { backgroundColor: "hsl(var(--primary))" } : {}}
-          />
-          <Label 
-            htmlFor="map-style"
-            className="font-mono-space text-[10px] uppercase tracking-wider"
-            style={{ color: mapStyle === "geographic" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
-          >
-            Geográfico
-          </Label>
-        </div>
-      </div>
+      <ThemeSwitcher
+        mapStyle={mapStyle}
+        onMapStyleChange={(style) => setMapStyle(style)}
+        panelOffset={rightPanelOffset}
+      />
 
       {/* ── Instruction overlay (top-center) ── */}
       {!selectedEvent && showInstructionHint && (
@@ -638,6 +612,7 @@ export default function Index() {
         forceOpen={timelineHoverActive}
         onMediaModalChange={setIsMediaModalOpen}
         onVisibleEventsChange={handlePanelVisibleEventsChange}
+        onPanelOffsetChange={setRightPanelOffset}
         activeGroupFilter={showWorldCupGroupsDrawer ? selectedWorldCupGroup : undefined}
         onClearGroupFilter={() => setSelectedWorldCupGroup("Todos")}
       />
@@ -686,7 +661,7 @@ function LoadingScreen() {
   return (
     <div
       className="absolute inset-0 flex flex-col items-center justify-center gap-4"
-      style={{ background: "#111319" }}
+      style={{ background: "hsl(var(--background))" }}
     >
       <div
         className="w-12 h-12 rounded-full border-2 border-t-transparent animate-spin"
