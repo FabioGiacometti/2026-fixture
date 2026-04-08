@@ -370,18 +370,18 @@ export default function SafariSelectionModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         className={cn(
-          "bg-[#111319] border-white/10 text-white p-0 overflow-hidden gap-0 max-h-[92vh]",
+          "bg-background border-border text-foreground p-0 overflow-hidden gap-0 max-h-[92vh]",
           isWorldCupMode && view === "list" ? "sm:max-w-[960px]" : "sm:max-w-[700px]"
         )}
       >
-        <DialogHeader className="p-6 border-b border-white/10">
+        <DialogHeader className="p-6 border-b border-border">
           <div className="flex items-center gap-2">
             {view === "detail" && (
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={handleBack}
-                className="h-8 w-8 text-white/50 hover:text-white hover:bg-white/5"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/40"
               >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
@@ -400,7 +400,7 @@ export default function SafariSelectionModal({
         >
           {view === "list" ? (
             isWorldCupMode ? (
-              <div className="flex-1 overflow-y-auto bg-[#05070c]">
+              <div className="flex-1 overflow-y-auto bg-background">
                 <div className="relative overflow-hidden px-4 pb-4 pt-6 sm:px-8">
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(242,169,0,0.18),_transparent_0,_transparent_60%)]" />
 
@@ -409,11 +409,11 @@ export default function SafariSelectionModal({
                       <p className="font-mono-space text-[10px] uppercase tracking-[0.28em] text-primary/80">
                         Selección inmersiva
                       </p>
-                      <p className="text-sm text-white/60">
+                      <p className="text-sm text-muted-foreground">
                         Desliza entre ediciones históricas y abre el safari de cada Mundial.
                       </p>
                     </div>
-                    <div className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono-space text-[10px] uppercase tracking-[0.24em] text-white/60 sm:block">
+                    <div className="hidden rounded-full border border-border bg-card/70 px-3 py-1 font-mono-space text-[10px] uppercase tracking-[0.24em] text-muted-foreground sm:block">
                       {worldCupCards.length} copas
                     </div>
                   </div>
@@ -463,8 +463,8 @@ export default function SafariSelectionModal({
                             className={cn(
                               "group relative h-full overflow-hidden rounded-[26px] border text-left transition-all duration-500 ease-out",
                               isActive
-                                ? "border-zinc-300 bg-[#f7f7f4] shadow-[0_25px_80px_rgba(0,0,0,0.45)]"
-                                : "border-zinc-200 bg-[#f3f3ef] scale-[0.98]"
+                                ? "border-border bg-card shadow-[0_25px_80px_rgba(0,0,0,0.35)]"
+                                : "border-border/70 bg-muted/80 scale-[0.98]"
                             )}
                           >
                             {item.logo ? (
@@ -502,7 +502,7 @@ export default function SafariSelectionModal({
                             </div>
 
                             <div className="absolute inset-x-0 bottom-0 rounded-b-[26px] bg-gradient-to-t from-black/95 via-black/82 to-transparent p-4 sm:p-5">
-                              <p className="font-mono-space text-[11px] uppercase tracking-[0.28em] text-[#f0b32a] drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]">
+                              <p className="font-mono-space text-[11px] uppercase tracking-[0.28em] text-primary drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]">
                                 {item.year}
                               </p>
                               <div className="mt-2 flex items-end justify-between gap-3">
@@ -557,12 +557,12 @@ export default function SafariSelectionModal({
                     <button
                       type="button"
                       onClick={() => moveCarousel(-1)}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#6d8600] text-black transition-all duration-300 hover:scale-110 hover:bg-[#88a300] active:scale-95"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-secondary-foreground transition-all duration-300 hover:scale-110 hover:bg-secondary/80 active:scale-95"
                       aria-label="Mundial anterior"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </button>
-                    <div className="rounded-full border border-primary/20 bg-black/40 px-3 py-1 font-mono-space text-[10px] uppercase tracking-[0.24em] text-white/70">
+                    <div className="rounded-full border border-border bg-background/70 px-3 py-1 font-mono-space text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
                       {worldCupCards.length > 0 ? `${carouselIndex + 1} / ${worldCupCards.length}` : "0 / 0"}
                     </div>
                     <button
@@ -579,7 +579,7 @@ export default function SafariSelectionModal({
                 {activeWorldCup && (
                   <div
                     key={activeWorldCup.safari.id}
-                    className="border-t border-white/10 bg-white/[0.03] px-4 pb-6 pt-5 sm:px-6 animate-in fade-in slide-in-from-bottom-3 duration-500"
+                    className="border-t border-border bg-card/20 px-4 pb-6 pt-5 sm:px-6 animate-in fade-in slide-in-from-bottom-3 duration-500"
                   >
                     <div className="mb-4 flex items-center gap-2 text-primary">
                       <Sparkles className="h-4 w-4" />
@@ -589,9 +589,9 @@ export default function SafariSelectionModal({
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
-                        <p className="font-mono-space text-[9px] uppercase tracking-[0.2em] text-white/45">País sede</p>
-                        <div className="mt-2 flex items-center gap-2 text-sm text-white">
+                      <div className="rounded-2xl border border-border bg-background/40 p-3">
+                        <p className="font-mono-space text-[9px] uppercase tracking-[0.2em] text-muted-foreground">País sede</p>
+                        <div className="mt-2 flex items-center gap-2 text-sm text-foreground">
                           <MapPin className="h-4 w-4 text-primary" />
                           <span className="flex items-center gap-2">
                             <span>{activeWorldCup.host}</span>
@@ -605,21 +605,21 @@ export default function SafariSelectionModal({
                             ))}
                           </span>
                         </div>
-                        {activeWorldCup.city && <p className="mt-1 text-xs text-white/50">{activeWorldCup.city}</p>}
+                        {activeWorldCup.city && <p className="mt-1 text-xs text-muted-foreground">{activeWorldCup.city}</p>}
                       </div>
 
-                      <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
-                        <p className="font-mono-space text-[9px] uppercase tracking-[0.2em] text-white/45">Edición</p>
-                        <div className="mt-2 flex items-center gap-2 text-sm text-white">
+                      <div className="rounded-2xl border border-border bg-background/40 p-3">
+                        <p className="font-mono-space text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Edición</p>
+                        <div className="mt-2 flex items-center gap-2 text-sm text-foreground">
                           <CalendarDays className="h-4 w-4 text-primary" />
                           <span>{activeWorldCup.year}</span>
                         </div>
-                        <p className="mt-1 text-xs text-white/50">Recorrido con hitos y cruces clave</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Recorrido con hitos y cruces clave</p>
                       </div>
 
-                      <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
-                        <p className="font-mono-space text-[9px] uppercase tracking-[0.2em] text-white/45">Campeón</p>
-                        <div className="mt-2 flex items-center gap-2 text-sm text-white">
+                      <div className="rounded-2xl border border-border bg-background/40 p-3">
+                        <p className="font-mono-space text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Campeón</p>
+                        <div className="mt-2 flex items-center gap-2 text-sm text-foreground">
                           <Trophy className="h-4 w-4 text-primary" />
                           <span className="flex items-center gap-2">
                             <span>{activeWorldCup.winner}</span>
@@ -633,11 +633,11 @@ export default function SafariSelectionModal({
                             ))}
                           </span>
                         </div>
-                        <p className="mt-1 text-xs text-white/50">Final: {activeWorldCup.contendersText}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Final: {activeWorldCup.contendersText}</p>
                       </div>
                     </div>
 
-                    <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-white/70">
+                    <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
                       {activeWorldCup.milestoneText}
                     </p>
 
@@ -652,7 +652,7 @@ export default function SafariSelectionModal({
                       <Button
                         variant="ghost"
                         onClick={onClose}
-                        className="font-mono-space text-[10px] uppercase tracking-wider text-white/50 hover:text-white"
+                        className="font-mono-space text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
                       >
                         Exploración libre
                       </Button>
@@ -668,10 +668,10 @@ export default function SafariSelectionModal({
                     return (
                       <Card 
                         key={safari.id}
-                        className={`bg-white/5 border-white/10 hover:border-primary/50 transition-all cursor-pointer group overflow-hidden ${isRead ? 'opacity-60' : ''}`}
+                        className={`bg-card/40 border-border hover:border-primary/50 transition-all cursor-pointer group overflow-hidden ${isRead ? 'opacity-60' : ''}`}
                         onClick={() => handleSelectCard(safari)}
                       >
-                        <div className="aspect-video w-full bg-black/40 relative">
+                        <div className="aspect-video w-full bg-background/60 relative">
                           {safari.thumbnail ? (
                             <img 
                               src={getOptimizedWikiUrl(safari.thumbnail, 330)} 
@@ -680,8 +680,8 @@ export default function SafariSelectionModal({
                             />
                           ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center opacity-80 px-4 text-center">
-                              <Globe className="w-10 h-10 mb-2 text-white/30" />
-                              <span className="font-mono-space text-[10px] uppercase tracking-widest text-white/60">
+                              <Globe className="w-10 h-10 mb-2 text-muted-foreground/50" />
+                              <span className="font-mono-space text-[10px] uppercase tracking-widest text-muted-foreground">
                                 {safari.thumbnailLabel ?? "No thumbnail"}
                               </span>
                             </div>
@@ -705,7 +705,7 @@ export default function SafariSelectionModal({
                           </div>
                         </div>
                         <CardContent className="p-4">
-                          <p className="text-xs text-white/60 leading-relaxed line-clamp-2">
+                          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
                             {safari.description}
                           </p>
                         </CardContent>
@@ -714,14 +714,14 @@ export default function SafariSelectionModal({
                   })}
                   
                   <Card 
-                    className="bg-white/5 border-dashed border-white/10 hover:border-white/30 transition-all cursor-pointer flex flex-col items-center justify-center p-6 text-center"
+                    className="bg-card/40 border-dashed border-border hover:border-foreground/30 transition-all cursor-pointer flex flex-col items-center justify-center p-6 text-center"
                     onClick={onClose}
                   >
-                    <MapIcon className="w-8 h-8 text-white/20 mb-3" />
-                    <h3 className="font-mono-space text-xs uppercase tracking-wider text-white/60">
+                    <MapIcon className="w-8 h-8 text-muted-foreground/50 mb-3" />
+                    <h3 className="font-mono-space text-xs uppercase tracking-wider text-muted-foreground">
                       Exploración Libre
                     </h3>
-                    <p className="text-[10px] text-white/40 mt-1">
+                    <p className="text-[10px] text-muted-foreground/80 mt-1">
                       Navega por el mapa global sin narrativa guiada
                     </p>
                   </Card>
@@ -742,7 +742,7 @@ export default function SafariSelectionModal({
 
                       <div className={cn("gap-4", isWorldCupMode ? "grid sm:grid-cols-[180px_minmax(0,1fr)] items-start" : "block")}>
                         {isWorldCupMode && (
-                          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex flex-col items-center justify-center text-center min-h-[180px]">
+                          <div className="rounded-2xl border border-border bg-card/30 p-4 flex flex-col items-center justify-center text-center min-h-[180px]">
                             {selectedSafari.thumbnail ? (
                               <img
                                 src={getOptimizedWikiUrl(selectedSafari.thumbnail, 320)}
@@ -750,7 +750,7 @@ export default function SafariSelectionModal({
                                 className="h-28 w-full object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.45)]"
                               />
                             ) : (
-                              <Globe className="h-12 w-12 text-white/20" />
+                              <Globe className="h-12 w-12 text-muted-foreground/50" />
                             )}
                             <span className="mt-3 font-mono-space text-[9px] uppercase tracking-[0.22em] text-primary/80">
                               {selectedSafari.thumbnail ? "Mascota oficial" : (selectedSafari.thumbnailLabel ?? "Sin mascota oficial")}
@@ -759,7 +759,7 @@ export default function SafariSelectionModal({
                         )}
 
                         <div className="flex flex-col gap-4">
-                          <p className="whitespace-pre-line text-sm text-white/80 leading-relaxed font-light italic border-l-2 border-primary/30 pl-6 py-2">
+                          <p className="whitespace-pre-line text-sm text-foreground/80 leading-relaxed font-light italic border-l-2 border-primary/30 pl-6 py-2">
                             {selectedSafari.overview}
                           </p>
 
@@ -785,7 +785,7 @@ export default function SafariSelectionModal({
 
                     {/* Event List Preview */}
                     <div className="flex flex-col gap-4 mt-4">
-                      <div className="flex items-center gap-2 text-white/40">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <Clock className="w-4 h-4" />
                         <span className="font-mono-space text-[10px] uppercase tracking-[0.1em]">Hitos Cronológicos</span>
                       </div>
@@ -794,7 +794,7 @@ export default function SafariSelectionModal({
                           <button
                             key={event.id}
                             onClick={() => handleJumpToEvent(selectedSafari.id, event.id)}
-                            className="w-full text-left bg-white/5 border border-white/5 rounded-lg p-3 flex items-start justify-between gap-3 group hover:bg-white/10 transition-colors"
+                            className="w-full text-left bg-card/40 border border-border/60 rounded-lg p-3 flex items-start justify-between gap-3 group hover:bg-card/70 transition-colors"
                           >
                             <div className="flex-1 flex flex-col gap-1">
                               <div className="flex items-center justify-between gap-2">
@@ -815,14 +815,14 @@ export default function SafariSelectionModal({
                                 </span>
                               </div>
 
-                              <span className="text-xs font-bold text-white/90">
+                              <span className="text-xs font-bold text-foreground/90">
                                 {event.eventType === "match" && event.homeTeam && event.awayTeam
                                   ? `${event.homeTeam} vs ${event.awayTeam}`
                                   : event.title}
                               </span>
 
                               {event.eventType === "match" && event.homeTeam && event.awayTeam && (
-                                <span className="font-mono-space text-[11px] text-white/70">
+                                <span className="font-mono-space text-[11px] text-muted-foreground">
                                   {event.homeFlag && (
                                     <img
                                       src={`https://flagcdn.com/w20/${event.homeFlag.toLowerCase()}.png`}
@@ -843,7 +843,7 @@ export default function SafariSelectionModal({
                                 </span>
                               )}
                             </div>
-                            <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center text-[10px] text-white/40 group-hover:bg-primary group-hover:text-black transition-colors mt-0.5 shrink-0">
+                            <div className="w-6 h-6 rounded-full bg-background/70 flex items-center justify-center text-[10px] text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors mt-0.5 shrink-0">
                               {idx + 1}
                             </div>
                           </button>
@@ -854,14 +854,14 @@ export default function SafariSelectionModal({
                     {/* Fixture overview by stage for World Cup safaris */}
                     {fixtureOverview.length > 0 && (
                       <div className="flex flex-col gap-4 mt-2">
-                        <div className="flex items-center gap-2 text-white/40">
+                        <div className="flex items-center gap-2 text-muted-foreground">
                           <Clock className="w-4 h-4" />
                           <span className="font-mono-space text-[10px] uppercase tracking-[0.1em]">Fixture del torneo</span>
                         </div>
 
                         <div className="flex flex-col gap-3">
                           {fixtureOverview.map((group) => (
-                            <div key={group.stage} className="bg-white/[0.03] border border-white/5 rounded-lg p-3">
+                            <div key={group.stage} className="bg-card/30 border border-border/60 rounded-lg p-3">
                               <p className="font-mono-space text-[10px] uppercase tracking-widest text-primary mb-2">
                                 {group.label}
                               </p>
@@ -870,7 +870,7 @@ export default function SafariSelectionModal({
                                   <button
                                     key={event.id}
                                     onClick={() => handleJumpToEvent(selectedSafari.id, event.id)}
-                                    className="w-full text-left flex items-center justify-between gap-3 text-xs text-white/80 hover:text-white transition-colors"
+                                    className="w-full text-left flex items-center justify-between gap-3 text-xs text-foreground/80 hover:text-foreground transition-colors"
                                   >
                                     <span className="font-semibold line-clamp-1">{event.homeTeam} vs {event.awayTeam}</span>
                                     <span className="font-mono-space text-primary shrink-0">
@@ -892,11 +892,11 @@ export default function SafariSelectionModal({
         </div>
 
         {!(isWorldCupMode && view === "list") && (
-          <div className="p-6 border-t border-white/10 bg-white/[0.02] flex justify-end gap-3">
+          <div className="p-6 border-t border-border bg-card/20 flex justify-end gap-3">
             <Button 
               variant="ghost" 
               onClick={onClose}
-              className="font-mono-space text-[10px] uppercase tracking-wider text-white/40 hover:text-white"
+              className="font-mono-space text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
             >
               Explorar libremente
             </Button>

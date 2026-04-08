@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
 import {
   ACTIVE_EVENT_COLOR,
   getCameraHeightForZoomPercent,
   getEventZoomPercent,
+  getMapThemeColors,
   getMarkerAppearance,
   getSafariPathEvents,
   getWorldCupCountryBounds,
@@ -54,6 +56,9 @@ export default function CesiumGlobe({
   const allEventsRef = useRef(allEvents);
   const [zoomIndicator, setZoomIndicator] = useState(() => getZoomIndicatorState(22_000_000));
   const showZoomIndicator = false;
+  const { theme } = useTheme();
+  const themeKey = theme ?? "geological-dark";
+  const mapThemeColors = getMapThemeColors();
 
   useEffect(() => { onSelectRef.current = onSelectEvent; }, [onSelectEvent]);
   useEffect(() => { onHoverRef.current = onHoverEvent; }, [onHoverEvent]);
@@ -103,7 +108,7 @@ export default function CesiumGlobe({
     });
 
     // Scene settings
-    viewer.scene.backgroundColor = Cesium.Color.fromCssColorString("#111319");
+    viewer.scene.backgroundColor = Cesium.Color.fromCssColorString(mapThemeColors.sceneBackground);
     viewer.scene.globe.show = true;
     viewer.scene.skyBox.show = false;
     viewer.scene.sun.show = false;
@@ -210,6 +215,14 @@ export default function CesiumGlobe({
     }
   }, [mapStyle]);
 
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !window.Cesium) return;
+
+    const Cesium = window.Cesium;
+    viewer.scene.backgroundColor = Cesium.Color.fromCssColorString(mapThemeColors.sceneBackground);
+  }, [themeKey, mapThemeColors.sceneBackground]);
+
   /* ── Update markers when visible events change ── */
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -245,7 +258,7 @@ export default function CesiumGlobe({
           text: event.title,
           font: "11px 'Space Mono', monospace",
           fillColor: Cesium.Color.fromCssColorString(markerAppearance.labelColor),
-          outlineColor: Cesium.Color.fromCssColorString("#111319"),
+          outlineColor: Cesium.Color.fromCssColorString(mapThemeColors.labelOutlineColor),
           outlineWidth: 2,
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
@@ -260,7 +273,7 @@ export default function CesiumGlobe({
       entity._customEventId = event.id;
       entitiesRef.current.set(event.id, entity);
     });
-  }, [events, selectedEvent, isMobile]);
+  }, [events, selectedEvent, isMobile, mapThemeColors.labelOutlineColor]);
 
   /* ── Highlight selected event and fly camera ── */
   useEffect(() => {
@@ -281,6 +294,7 @@ export default function CesiumGlobe({
       if (entity.label) {
         entity.label.show = isMobile || isSelected;
         entity.label.fillColor = Cesium.Color.fromCssColorString(markerAppearance.labelColor);
+        entity.label.outlineColor = Cesium.Color.fromCssColorString(mapThemeColors.labelOutlineColor);
         entity.label.scale = isSelected ? 1 : 0.9;
       }
     });
@@ -324,7 +338,7 @@ export default function CesiumGlobe({
         },
       });
     }
-  }, [selectedEvent, isMobile, activeSafari]);
+  }, [selectedEvent, isMobile, activeSafari, themeKey, mapThemeColors.labelOutlineColor]);
 
   /* ── Render World Cup host outline ── */
   useEffect(() => {
@@ -353,10 +367,10 @@ export default function CesiumGlobe({
         ]),
         width: 2,
         clampToGround: true,
-        material: Cesium.Color.fromCssColorString(activeSafari.color || ACTIVE_EVENT_COLOR).withAlpha(0.9),
+        material: Cesium.Color.fromCssColorString(mapThemeColors.countryOutlineColor).withAlpha(0.9),
       },
     });
-  }, [activeSafari]);
+  }, [activeSafari, themeKey, mapThemeColors.countryOutlineColor]);
 
   /* ── Render Safari Polyline ── */
   useEffect(() => {
@@ -384,7 +398,7 @@ export default function CesiumGlobe({
           positions,
           width: 1,
           material: new Cesium.PolylineDashMaterialProperty({
-            color: Cesium.Color.fromCssColorString(activeSafari?.color || "#F2A900"),
+            color: Cesium.Color.fromCssColorString(mapThemeColors.safariPathColor),
             dashLength: 20,
             gapColor: Cesium.Color.TRANSPARENT,
           }),
@@ -393,14 +407,14 @@ export default function CesiumGlobe({
         }
       });
     }
-  }, [activeSafari, allEvents, events, showSafariPath]);
+  }, [activeSafari, allEvents, events, showSafariPath, themeKey, mapThemeColors.safariPathColor]);
 
   return (
     <div className="absolute inset-0">
       <div
         ref={containerRef}
         className="absolute inset-0"
-        style={{ background: "#111319" }}
+        style={{ background: "hsl(var(--map-scene-background))" }}
       />
 
       {showZoomIndicator && (
@@ -435,7 +449,7 @@ export default function CesiumGlobe({
               className="h-full rounded-full transition-all duration-200"
               style={{
                 width: `${zoomIndicator.percent}%`,
-                background: ACTIVE_EVENT_COLOR,
+                background: mapThemeColors.safariPathColor,
               }}
             />
           </div>
@@ -443,7 +457,7 @@ export default function CesiumGlobe({
           <div className="mt-1.5 flex items-center justify-between gap-3">
             <span
               className="font-mono-space text-[11px]"
-              style={{ color: ACTIVE_EVENT_COLOR }}
+              style={{ color: mapThemeColors.safariPathColor }}
             >
               {zoomIndicator.label}
             </span>

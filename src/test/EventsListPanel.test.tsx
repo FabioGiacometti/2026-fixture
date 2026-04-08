@@ -292,6 +292,47 @@ describe("EventsListPanel match detail view", () => {
     expect(onClearGroupFilter).toHaveBeenCalledTimes(1);
   });
 
+  it("hides the vertical Calendario lid once the panel is open", async () => {
+    const event = {
+      id: "historic-panel-open",
+      title: "Apollo 11 llega a la Luna",
+      description: "Neil Armstrong y Buzz Aldrin alunizan.",
+      year: 1969,
+      month: 7,
+      day: 20,
+      lat: 0.6741,
+      lng: 23.4729,
+      region: "Espacio",
+      importance: 3,
+      dataset: "historical",
+      eventType: "event",
+      city: "Mar de la Tranquilidad",
+    } as HistoricalEvent;
+
+    render(
+      <EventsListPanel
+        visibleEvents={[event]}
+        allEvents={[event]}
+        selectedEvent={null}
+        currentYear={1969}
+        windowSize={10}
+        activeSafari={null}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /abrir lista de eventos/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Apollo 11 llega a la Luna")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole("button", { name: /colapsar panel/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /cerrar panel/i })).toBeInTheDocument();
+  });
+
   it("shows the current World Cup calendar in the right panel and navigates to match detail on click", async () => {
     const openingMatch = {
       id: "wc2026-g-a1",
