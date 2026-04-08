@@ -1,4 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from "react";
+import { track } from "@vercel/analytics";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
 import CesiumGlobe from "@/components/CesiumGlobe";
 import TimelineBar from "@/components/TimelineBar";
@@ -7,7 +9,7 @@ import SafariSelectionModal from "@/components/SafariSelectionModal";
 import FixturePipPanel from "@/components/FixturePipPanel";
 import WorldCupGroupsDrawer from "@/components/WorldCupGroupsDrawer";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
-import { historicalEvents, getEventsInRange, safaris } from "@/data/historical-events";
+import { historicalEvents, formatEventDate, formatYear, getEventsInRange, safaris } from "@/data/historical-events";
 import {
   CURRENT_WORLD_CUP_SAFARI_ID,
   CURRENT_WORLD_CUP_YEAR,
@@ -16,6 +18,8 @@ import {
   worldCupSafaris,
 } from "@/data/world-cup-data";
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
+import { getNextUpcomingWorldCupEvent, getUpcomingWorldCupMapEvents } from "@/lib/globe-ui";
+import { buildAppRouteState, parseAppRouteState } from "@/lib/app-route-state";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const CESIUM_LOADED_CHECK_INTERVAL = 200;
@@ -47,6 +51,10 @@ function getPreferredSafariEvent(
   return safariEvents[0] ?? null;
 }
 
+function areStringArraysEqual(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 export default function Index() {
   const [datasetMode, setDatasetMode] = useState<DatasetMode>(() => {
     try {
@@ -65,24 +73,35 @@ export default function Index() {
   const [selectedEvent, setSelectedEvent] = useState<HistoricalEvent | null>(() => {
     if (datasetMode !== "worldcup") return null;
     const defaultSafari = worldCupSafaris.find((safari) => safari.id === CURRENT_WORLD_CUP_SAFARI_ID) ?? worldCupSafaris[0];
+    if (defaultSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID) {
+      return null;
+    }
     return getPreferredSafariEvent(defaultSafari, worldCupEvents, true);
   });
   const [cesiumReady, setCesiumReady] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [hoveredEventState, setHoveredEventState] = useState<HoveredEventState | null>(null);
+  const [focusedVenueEvent, setFocusedVenueEvent] = useState<HistoricalEvent | null>(null);
   const [timelineHoverActive, setTimelineHoverActive] = useState(false);
   const [showInstructionHint, setShowInstructionHint] = useState(true);
   const [selectedWorldCupGroup, setSelectedWorldCupGroup] = useState("Todos");
   const [isGroupsDrawerExpanded, setIsGroupsDrawerExpanded] = useState(false);
   const [panelFilteredEventIds, setPanelFilteredEventIds] = useState<string[] | null>(null);
+  const [panelQuickFilters, setPanelQuickFilters] = useState<string[]>([]);
   const [rightPanelOffset, setRightPanelOffset] = useState<number>(
     datasetMode === "worldcup" ? 300 : 36
   );
   const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hoverClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverTooltipInteractingRef = useRef(false);
+  const hasAppliedRouteStateRef = useRef(false);
+  const lastTrackedRouteRef = useRef<string | null>(null);
   const [mapStyle, setMapStyle] = useState<"political" | "geographic">(
     () => (datasetMode === "worldcup" ? "geographic" : "political")
   );
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Safari State
   const [activeSafariId, setActiveSafariId] = useState<string | null>(
@@ -231,18 +250,22 @@ export default function Index() {
   useEffect(() => {
     if (datasetMode === "worldcup") {
       const defaultSafari = worldCupSafaris.find((safari) => safari.id === CURRENT_WORLD_CUP_SAFARI_ID) ?? worldCupSafaris[0] ?? null;
-      const defaultEvent = getPreferredSafariEvent(defaultSafari, worldCupEvents, true);
+      const defaultEvent = defaultSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID
+        ? null
+        : getPreferredSafariEvent(defaultSafari, worldCupEvents, true);
 
       setMapStyle("geographic");
       setWindowSize(6);
       setCurrentYear(defaultEvent?.year ?? CURRENT_WORLD_CUP_YEAR);
       setActiveSafariId(defaultSafari?.id ?? CURRENT_WORLD_CUP_SAFARI_ID);
       setSelectedEvent(defaultEvent);
+      setFocusedVenueEvent(null);
       setShowSafariModal(false);
       return;
     }
 
     setSelectedEvent(null);
+    setFocusedVenueEvent(null);
     setActiveSafariId(null);
     setShowSafariModal(true);
     setMapStyle("political");
@@ -282,6 +305,38 @@ export default function Index() {
     setIsGroupsDrawerExpanded(false);
   }, [showWorldCupGroupsDrawer, activeSafari?.id]);
 
+  useEffect(() => {
+    const routeState = parseAppRouteState(location.pathname, location.search);
+    const nextDatasetMode = routeState.datasetMode;
+    const nextSafariId = nextDatasetMode === "worldcup"
+      ? routeState.activeSafariId ?? CURRENT_WORLD_CUP_SAFARI_ID
+      : routeState.activeSafariId ?? null;
+
+    setDatasetMode((prev) => (prev === nextDatasetMode ? prev : nextDatasetMode));
+    setActiveSafariId((prev) => (prev === nextSafariId ? prev : nextSafariId));
+    setSelectedWorldCupGroup(routeState.selectedWorldCupGroup ?? "Todos");
+    setPanelQuickFilters((prev) => areStringArraysEqual(prev, routeState.quickFilters) ? prev : routeState.quickFilters);
+
+    if (routeState.mapStyle) {
+      setMapStyle((prev) => (prev === routeState.mapStyle ? prev : routeState.mapStyle));
+    }
+
+    if (typeof routeState.currentYear === "number") {
+      setCurrentYear((prev) => (prev === routeState.currentYear ? prev : routeState.currentYear));
+    }
+
+    if (routeState.selectedEventId) {
+      const routedEvent = allDatasetEvents.find((event) => event.id === routeState.selectedEventId);
+      if (routedEvent) {
+        setSelectedEvent((prev) => (prev?.id === routedEvent.id ? prev : routedEvent));
+      }
+    } else if (nextDatasetMode === "worldcup" && nextSafariId === CURRENT_WORLD_CUP_SAFARI_ID) {
+      setSelectedEvent(null);
+    }
+
+    hasAppliedRouteStateRef.current = true;
+  }, [location.pathname, location.search, allDatasetEvents]);
+
   const visibleEvents = useMemo(() => {
     if (activeSafariId && activeSafari) {
       const safariEvents = allDatasetEvents.filter((event) => {
@@ -314,14 +369,42 @@ export default function Index() {
     selectedWorldCupGroup,
   ]);
 
+  const currentWorldCupSafariEvents = useMemo(() => {
+    if (datasetMode !== "worldcup" || activeSafari?.id !== CURRENT_WORLD_CUP_SAFARI_ID) {
+      return [] as HistoricalEvent[];
+    }
+
+    return activeSafari.eventIds
+      .map((id) => allDatasetEvents.find((event) => event.id === id))
+      .filter((event): event is HistoricalEvent => Boolean(event));
+  }, [datasetMode, activeSafari, allDatasetEvents]);
+
+  const currentWorldCupFilteredEvents = useMemo(() => {
+    if (!panelFilteredEventIds) {
+      return currentWorldCupSafariEvents;
+    }
+
+    const allowedIds = new Set(panelFilteredEventIds);
+    return currentWorldCupSafariEvents.filter((event) => allowedIds.has(event.id));
+  }, [currentWorldCupSafariEvents, panelFilteredEventIds]);
+
+  const nextUpcomingPopupEvent = useMemo(
+    () => getNextUpcomingWorldCupEvent(currentWorldCupFilteredEvents),
+    [currentWorldCupFilteredEvents]
+  );
+
   const mapVisibleEvents = useMemo(() => {
+    if (datasetMode === "worldcup" && activeSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID) {
+      return getUpcomingWorldCupMapEvents(currentWorldCupFilteredEvents);
+    }
+
     if (!panelFilteredEventIds) {
       return visibleEvents;
     }
 
     const allowedIds = new Set(panelFilteredEventIds);
     return visibleEvents.filter((event) => allowedIds.has(event.id));
-  }, [visibleEvents, panelFilteredEventIds]);
+  }, [datasetMode, activeSafari, currentWorldCupFilteredEvents, visibleEvents, panelFilteredEventIds]);
 
   const handlePanelVisibleEventsChange = useCallback((events: HistoricalEvent[]) => {
     const nextIds = events.map((event) => event.id);
@@ -339,10 +422,63 @@ export default function Index() {
     });
   }, []);
 
-  const showSafariPath = useMemo(
-    () => Boolean(activeSafari && mapVisibleEvents.length > 1),
-    [activeSafari, mapVisibleEvents.length]
+  const handlePanelQuickFiltersChange = useCallback((filters: string[]) => {
+    setPanelQuickFilters((prev) => (areStringArraysEqual(prev, filters) ? prev : filters));
+    setFocusedVenueEvent((prev) => {
+      if (!prev) return null;
+      const venueLabel = prev.city ?? prev.region ?? "";
+      return filters.includes(venueLabel) ? prev : null;
+    });
+  }, []);
+
+  const showSafariPath = false;
+  const activePopupEvent = hoveredEventState?.event ?? nextUpcomingPopupEvent ?? null;
+  const isNextPopupEvent = Boolean(
+    activePopupEvent &&
+      nextUpcomingPopupEvent &&
+      activePopupEvent.id === nextUpcomingPopupEvent.id
   );
+
+  const routeState = useMemo(
+    () => buildAppRouteState({
+      datasetMode,
+      activeSafariId,
+      currentYear,
+      selectedWorldCupGroup,
+      quickFilters: panelQuickFilters,
+      mapStyle,
+      selectedEventId: selectedEvent?.id ?? null,
+    }),
+    [datasetMode, activeSafariId, currentYear, selectedWorldCupGroup, panelQuickFilters, mapStyle, selectedEvent]
+  );
+
+  useEffect(() => {
+    if (!hasAppliedRouteStateRef.current) return;
+
+    const nextRoute = `${routeState.pathname}${routeState.search}`;
+    const currentRoute = `${location.pathname}${location.search}`;
+
+    if (nextRoute !== currentRoute) {
+      navigate(nextRoute, { replace: true });
+    }
+  }, [routeState, location.pathname, location.search, navigate]);
+
+  useEffect(() => {
+    if (!hasAppliedRouteStateRef.current) return;
+
+    const trackingKey = `${routeState.pathname}${routeState.search}`;
+    if (lastTrackedRouteRef.current === trackingKey) return;
+
+    lastTrackedRouteRef.current = trackingKey;
+    track("route_state_viewed", {
+      datasetMode,
+      safariId: activeSafariId ?? "none",
+      selectedGroup: selectedWorldCupGroup,
+      quickFilters: panelQuickFilters.length > 0 ? panelQuickFilters.join("|") : "none",
+      mapStyle,
+      selectedEventId: selectedEvent?.id ?? "none",
+    });
+  }, [routeState, datasetMode, activeSafariId, selectedWorldCupGroup, panelQuickFilters, mapStyle, selectedEvent]);
 
   const handleYearChange = useCallback((year: number) => {
     setCurrentYear(year);
@@ -354,6 +490,7 @@ export default function Index() {
 
   const handleSelectEvent = useCallback((event: HistoricalEvent) => {
     setSelectedEvent(event);
+    setFocusedVenueEvent(event.dataset === "worldcup" && event.eventType === "match" ? event : null);
     setCurrentYear(event.year);
   }, []);
 
@@ -361,16 +498,91 @@ export default function Index() {
     setSelectedEvent(null);
   }, []);
 
+  const clearHoverTooltip = useCallback(() => {
+    if (hoverClearTimeoutRef.current) {
+      clearTimeout(hoverClearTimeoutRef.current);
+      hoverClearTimeoutRef.current = null;
+    }
+  }, []);
+
   const handleHoverEvent = useCallback(
     (event: HistoricalEvent | null, x: number, y: number) => {
+      clearHoverTooltip();
+
       if (event) {
         setHoveredEventState({ event, x, y });
-      } else {
-        setHoveredEventState(null);
+        return;
       }
+
+      hoverClearTimeoutRef.current = setTimeout(() => {
+        if (!hoverTooltipInteractingRef.current) {
+          setHoveredEventState(null);
+        }
+      }, 120);
     },
-    []
+    [clearHoverTooltip]
   );
+
+  const handleOpenHoveredMatchInfo = useCallback(() => {
+    if (!activePopupEvent) return;
+
+    clearHoverTooltip();
+    hoverTooltipInteractingRef.current = false;
+    setHoveredEventState(null);
+    handleSelectEvent(activePopupEvent);
+  }, [activePopupEvent, clearHoverTooltip, handleSelectEvent]);
+
+  const applyVenueFilter = useCallback((event: HistoricalEvent) => {
+    const venueLabel = event.city ?? event.region;
+    if (!venueLabel) return;
+
+    clearHoverTooltip();
+    hoverTooltipInteractingRef.current = false;
+    setSelectedEvent(null);
+    setFocusedVenueEvent(event);
+    setCurrentYear(event.year);
+    setSelectedWorldCupGroup("Todos");
+    setPanelQuickFilters([venueLabel]);
+  }, [clearHoverTooltip]);
+
+  const handleApplyGroupFilter = useCallback((event: HistoricalEvent) => {
+    if (!event.groupName) return;
+
+    clearHoverTooltip();
+    hoverTooltipInteractingRef.current = false;
+    setSelectedEvent(null);
+    setFocusedVenueEvent(null);
+    setCurrentYear(event.year);
+    setSelectedWorldCupGroup(event.groupName);
+    setPanelQuickFilters([]);
+  }, [clearHoverTooltip]);
+
+  const handleApplyTeamFilter = useCallback((teamName: string | undefined, event: HistoricalEvent) => {
+    if (!teamName) return;
+
+    clearHoverTooltip();
+    hoverTooltipInteractingRef.current = false;
+    setSelectedEvent(null);
+    setFocusedVenueEvent(null);
+    setCurrentYear(event.year);
+    setSelectedWorldCupGroup("Todos");
+    setPanelQuickFilters([teamName]);
+  }, [clearHoverTooltip]);
+
+  const handleSelectVenueFromMap = useCallback((event: HistoricalEvent, x = 0, y = 0) => {
+    clearHoverTooltip();
+    hoverTooltipInteractingRef.current = false;
+
+    if (hoveredEventState?.event.id === event.id) {
+      applyVenueFilter(event);
+      return;
+    }
+
+    setSelectedEvent(null);
+    setFocusedVenueEvent(event);
+    setCurrentYear(event.year);
+    setHoveredEventState({ event, x, y });
+  }, [applyVenueFilter, clearHoverTooltip, hoveredEventState]);
 
   const handleSelectSafari = useCallback((safariId: string) => {
     if (safariId.startsWith("world-cup-")) {
@@ -379,6 +591,12 @@ export default function Index() {
 
     setActiveSafariId(safariId);
     setShowSafariModal(false);
+
+    if (safariId === CURRENT_WORLD_CUP_SAFARI_ID) {
+      setSelectedEvent(null);
+      setCurrentYear(CURRENT_WORLD_CUP_YEAR);
+      return;
+    }
 
     const safari = datasetSafaris.find((item) => item.id === safariId);
     const firstEvent = getPreferredSafariEvent(safari, allDatasetEvents, safariId.startsWith("world-cup-"));
@@ -433,8 +651,10 @@ export default function Index() {
           events={mapVisibleEvents}
           allEvents={allDatasetEvents}
           selectedEvent={selectedEvent}
+          focusedEvent={focusedVenueEvent}
           activeSafari={activeSafari}
           onSelectEvent={handleSelectEvent}
+          onSelectVenue={handleSelectVenueFromMap}
           onHoverEvent={handleHoverEvent}
           isMobile={isMobile}
           mapStyle={mapStyle}
@@ -444,49 +664,162 @@ export default function Index() {
         <LoadingScreen />
       )}
 
-      {/* ── Hover Tooltip Overlay (desktop only) ── */}
-      {!isMobile && hoveredEventState && (
+      {/* ── Map popup overlay ── */}
+      {activePopupEvent && (
         <div
           className="fixed z-50 pointer-events-none"
-          style={{
-            left: hoveredEventState.x + 14,
-            top: hoveredEventState.y - 8,
-            maxWidth: "220px",
-            transform:
-              hoveredEventState.x > window.innerWidth - 260
-                ? "translateX(-110%)"
-                : undefined,
-          }}
+          style={
+            !isMobile && hoveredEventState
+              ? {
+                  left: hoveredEventState.x + 14,
+                  top: hoveredEventState.y - 8,
+                  maxWidth: activePopupEvent.dataset === "worldcup" ? "280px" : "220px",
+                  transform:
+                    hoveredEventState.x > window.innerWidth - 260
+                      ? "translateX(-110%)"
+                      : undefined,
+                }
+              : {
+                  left: isMobile ? "12px" : "18px",
+                  right: isMobile ? "12px" : undefined,
+                  bottom: "calc(var(--timeline-height) + 18px)",
+                  maxWidth: isMobile ? undefined : activePopupEvent.dataset === "worldcup" ? "320px" : "240px",
+                }
+          }
         >
           <div
-            className="px-3 py-2.5 rounded-lg flex flex-col gap-1"
+            className="pointer-events-auto rounded-xl border px-3.5 py-3 shadow-xl"
             style={{
               background: "hsl(var(--card) / 0.97)",
               border: "1px solid hsl(var(--border))",
-              boxShadow: "0 4px 20px hsl(0 0% 0% / 0.5)",
+              boxShadow: "0 10px 28px hsl(0 0% 0% / 0.42)",
               backdropFilter: "blur(10px)",
             }}
+            onMouseEnter={() => {
+              hoverTooltipInteractingRef.current = true;
+              clearHoverTooltip();
+            }}
+            onMouseLeave={() => {
+              hoverTooltipInteractingRef.current = false;
+              setHoveredEventState(null);
+            }}
           >
-            <span
-              className="font-mono-space text-xs font-bold leading-snug"
-              style={{ color: "hsl(var(--foreground))" }}
-            >
-              {hoveredEventState.event.title}
-            </span>
-            <p
-              className="text-[10px] leading-relaxed line-clamp-2"
-              style={{ color: "hsl(var(--muted-foreground))" }}
-            >
-              {hoveredEventState.event.description}
-            </p>
-            <span
-              className="font-mono-space text-[9px] mt-0.5"
-              style={{ color: "hsl(var(--primary))" }}
-            >
-              {hoveredEventState.event.year < 0
-                ? `${Math.abs(hoveredEventState.event.year)} a.C.`
-                : `${hoveredEventState.event.year} d.C.`}
-            </span>
+            {activePopupEvent.dataset === "worldcup" && activePopupEvent.eventType === "match" ? (
+              <div className="flex flex-col gap-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  {activePopupEvent.groupName ? (
+                    <button
+                      type="button"
+                      onClick={() => handleApplyGroupFilter(activePopupEvent)}
+                      className="rounded-full px-2 py-0.5 font-mono-space text-[9px] uppercase tracking-[0.18em] transition-opacity hover:opacity-80"
+                      style={{
+                        color: "hsl(var(--primary))",
+                        background: "hsl(var(--primary) / 0.12)",
+                      }}
+                    >
+                      {activePopupEvent.groupName}
+                    </button>
+                  ) : (
+                    <span
+                      className="rounded-full px-2 py-0.5 font-mono-space text-[9px] uppercase tracking-[0.18em]"
+                      style={{
+                        color: "hsl(var(--primary))",
+                        background: "hsl(var(--primary) / 0.12)",
+                      }}
+                    >
+                      {activePopupEvent.stage ?? "Partido"}
+                    </span>
+                  )}
+                  <span
+                    className="text-[11px]"
+                    style={{ color: "hsl(var(--muted-foreground))" }}
+                  >
+                    {`${formatEventDate(activePopupEvent, { includeEra: false })}${activePopupEvent.kickoff ? ` · ${activePopupEvent.kickoff}` : ""}`}
+                  </span>
+                </div>
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => applyVenueFilter(activePopupEvent)}
+                    className="text-left text-sm font-semibold leading-tight transition-opacity hover:opacity-80"
+                    style={{ color: "hsl(var(--foreground))" }}
+                  >
+                    {activePopupEvent.city ?? activePopupEvent.region}
+                  </button>
+                  {isNextPopupEvent && (
+                    <p
+                      className="mt-0.5 text-[11px] leading-relaxed"
+                      style={{ color: "hsl(var(--muted-foreground))" }}
+                    >
+                      Próximo partido del calendario mundialista
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 text-[13px] font-semibold leading-snug" style={{ color: "hsl(var(--foreground))" }}>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTeamFilter(activePopupEvent.homeTeam, activePopupEvent)}
+                    className="flex min-w-0 items-center gap-1.5 text-left transition-opacity hover:opacity-80"
+                  >
+                    {activePopupEvent.homeFlag && (
+                      <img
+                        src={`https://flagcdn.com/w20/${activePopupEvent.homeFlag.toLowerCase()}.png`}
+                        alt={activePopupEvent.homeTeam ?? "Local"}
+                        className="h-3.5 w-5 rounded-[2px] object-cover shadow-sm"
+                      />
+                    )}
+                    <span className="truncate">{activePopupEvent.homeTeam ?? "Local"}</span>
+                  </button>
+                  <span style={{ color: "hsl(var(--muted-foreground))" }}>vs</span>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTeamFilter(activePopupEvent.awayTeam, activePopupEvent)}
+                    className="flex min-w-0 items-center gap-1.5 text-left transition-opacity hover:opacity-80"
+                  >
+                    {activePopupEvent.awayFlag && (
+                      <img
+                        src={`https://flagcdn.com/w20/${activePopupEvent.awayFlag.toLowerCase()}.png`}
+                        alt={activePopupEvent.awayTeam ?? "Visitante"}
+                        className="h-3.5 w-5 rounded-[2px] object-cover shadow-sm"
+                      />
+                    )}
+                    <span className="truncate">{activePopupEvent.awayTeam ?? "Visitante"}</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleOpenHoveredMatchInfo}
+                  className="self-start rounded-md px-0 py-0.5 text-[11px] font-semibold transition-colors hover:opacity-80"
+                  style={{ color: "hsl(var(--primary))" }}
+                >
+                  Ver más información
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <span
+                  className="font-mono-space text-xs font-bold leading-snug"
+                  style={{ color: "hsl(var(--foreground))" }}
+                >
+                  {activePopupEvent.title}
+                </span>
+                <p
+                  className="text-[10px] leading-relaxed line-clamp-2"
+                  style={{ color: "hsl(var(--muted-foreground))" }}
+                >
+                  {activePopupEvent.description}
+                </p>
+                <span
+                  className="font-mono-space text-[9px] mt-0.5"
+                  style={{ color: "hsl(var(--primary))" }}
+                >
+                  {formatYear(activePopupEvent.year)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -612,9 +945,11 @@ export default function Index() {
         forceOpen={timelineHoverActive}
         onMediaModalChange={setIsMediaModalOpen}
         onVisibleEventsChange={handlePanelVisibleEventsChange}
+        onQuickFiltersChange={handlePanelQuickFiltersChange}
         onPanelOffsetChange={setRightPanelOffset}
         activeGroupFilter={showWorldCupGroupsDrawer ? selectedWorldCupGroup : undefined}
         onClearGroupFilter={() => setSelectedWorldCupGroup("Todos")}
+        quickFiltersFromRoute={panelQuickFilters}
       />
 
       {/* ── Bottom navigation ── */}

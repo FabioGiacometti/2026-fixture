@@ -552,7 +552,7 @@ export default function FixturePipPanel({
           {getScoreText(match)}
         </span>
         <div className="mt-1 flex items-center justify-between gap-2 pl-1 font-mono-space text-[9px] text-white/45">
-          <span className="truncate">{formatEventDate(match)}</span>
+          <span className="truncate">{formatEventDate(match, { includeEra: false })}</span>
           {match.city && <span className="truncate text-right">{match.city}</span>}
         </div>
       </button>
@@ -739,7 +739,7 @@ export default function FixturePipPanel({
                     </p>
                     {nextScheduledMatch && (
                       <p className="mt-1 font-mono-space text-[9px] text-white/60">
-                        {formatEventDate(nextScheduledMatch)}
+                        {formatEventDate(nextScheduledMatch, { includeEra: false })}
                         {nextScheduledMatch.kickoff ? ` · ${nextScheduledMatch.kickoff}` : ""}
                         {nextScheduledMatch.city ? ` · ${nextScheduledMatch.city}` : ""}
                       </p>

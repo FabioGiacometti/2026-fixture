@@ -6,7 +6,10 @@ import {
   getCameraHeightForZoomPercent,
   getMapThemeColors,
   getMarkerAppearance,
+  getNextUpcomingWorldCupEvent,
   getSafariPathEvents,
+  getUpcomingMatchTooltipLabel,
+  getUpcomingWorldCupMapEvents,
   getWorldCupCountryBounds,
   getZoomIndicatorState,
 } from "../lib/globe-ui";
@@ -25,6 +28,34 @@ describe("globe UI helpers", () => {
 
     expect(marker.color).toBe(INACTIVE_EVENT_COLOR);
     expect(marker.colorAlpha).toBeLessThan(1);
+  });
+
+  it("emphasizes upcoming venue markers so all upcoming matches stay visible on the map", () => {
+    const defaultMarker = getMarkerAppearance(false);
+    const upcomingMarker = getMarkerAppearance(false, true);
+
+    expect(upcomingMarker.pixelSize).toBeGreaterThan(defaultMarker.pixelSize);
+    expect(upcomingMarker.outlineWidth).toBeGreaterThanOrEqual(defaultMarker.outlineWidth);
+    expect(upcomingMarker.colorAlpha).toBeGreaterThan(defaultMarker.colorAlpha);
+  });
+
+  it("formats upcoming match tooltip labels with date and flags", () => {
+    const label = getUpcomingMatchTooltipLabel({
+      city: "San Francisco Bay Area Stadium",
+      region: "América",
+      year: 2026,
+      month: 6,
+      day: 25,
+      kickoff: "18:00",
+      homeTeam: "Qatar",
+      awayTeam: "Suiza",
+      homeFlag: "qa",
+      awayFlag: "ch",
+    });
+
+    expect(label).toContain("San Francisco Bay Area Stadium");
+    expect(label).toContain("25-06-2026 · 18:00");
+    expect(label).toContain("🇶🇦 Qatar vs 🇨🇭 Suiza");
   });
 
   it("reports closer camera heights as more zoomed in", () => {
@@ -74,6 +105,53 @@ describe("globe UI helpers", () => {
     );
     expect(mapColors.sceneBackground.length).toBeGreaterThan(0);
     expect(mapColors.safariPathColor.length).toBeGreaterThan(0);
+  });
+
+  it("filters map events down to upcoming World Cup matches only", () => {
+    const events = [
+      { id: "played-match", dataset: "worldcup", eventType: "match", score: { home: 2, away: 1 } },
+      { id: "upcoming-match", dataset: "worldcup", eventType: "match" },
+      { id: "historic-event", dataset: "historical", eventType: "milestone" },
+    ];
+
+    expect(
+      getUpcomingWorldCupMapEvents(events as Parameters<typeof getUpcomingWorldCupMapEvents>[0]).map((event) => event.id)
+    ).toEqual(["upcoming-match"]);
+  });
+
+  it("returns the earliest unresolved World Cup match as the next popup target", () => {
+    const nextMatch = getNextUpcomingWorldCupEvent([
+      {
+        id: "later-match",
+        dataset: "worldcup",
+        eventType: "match",
+        year: 2026,
+        month: 6,
+        day: 18,
+        kickoff: "21:00",
+      },
+      {
+        id: "earlier-match",
+        dataset: "worldcup",
+        eventType: "match",
+        year: 2026,
+        month: 6,
+        day: 16,
+        kickoff: "18:00",
+      },
+      {
+        id: "resolved-match",
+        dataset: "worldcup",
+        eventType: "match",
+        year: 2026,
+        month: 6,
+        day: 15,
+        kickoff: "16:00",
+        score: { home: 2, away: 1 },
+      },
+    ] as Parameters<typeof getNextUpcomingWorldCupEvent>[0]);
+
+    expect(nextMatch?.id).toBe("earlier-match");
   });
 
   it("builds the safari path from only the matches currently visible in the filtered list", () => {

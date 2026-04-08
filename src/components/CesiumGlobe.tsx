@@ -8,6 +8,8 @@ import {
   getMapThemeColors,
   getMarkerAppearance,
   getSafariPathEvents,
+  getUpcomingMatchTooltipLabel,
+  isUpcomingWorldCupMatch,
   getWorldCupCountryBounds,
   getZoomIndicatorState,
 } from "@/lib/globe-ui";
@@ -23,8 +25,10 @@ interface CesiumGlobeProps {
   events: HistoricalEvent[];
   allEvents: HistoricalEvent[];
   selectedEvent: HistoricalEvent | null;
+  focusedEvent?: HistoricalEvent | null;
   activeSafari: Safari | null;
   onSelectEvent: (event: HistoricalEvent) => void;
+  onSelectVenue?: (event: HistoricalEvent, x: number, y: number) => void;
   onHoverEvent: (event: HistoricalEvent | null, x: number, y: number) => void;
   isMobile: boolean;
   mapStyle: "political" | "geographic";
@@ -35,8 +39,10 @@ export default function CesiumGlobe({
   events,
   allEvents,
   selectedEvent,
+  focusedEvent = null,
   activeSafari,
   onSelectEvent,
+  onSelectVenue,
   onHoverEvent,
   isMobile,
   mapStyle,
@@ -52,6 +58,7 @@ export default function CesiumGlobe({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const countryOutlineRef = useRef<any>(null);
   const onSelectRef = useRef(onSelectEvent);
+  const onSelectVenueRef = useRef(onSelectVenue);
   const onHoverRef = useRef(onHoverEvent);
   const allEventsRef = useRef(allEvents);
   const [zoomIndicator, setZoomIndicator] = useState(() => getZoomIndicatorState(22_000_000));
@@ -61,6 +68,7 @@ export default function CesiumGlobe({
   const mapThemeColors = getMapThemeColors();
 
   useEffect(() => { onSelectRef.current = onSelectEvent; }, [onSelectEvent]);
+  useEffect(() => { onSelectVenueRef.current = onSelectVenue; }, [onSelectVenue]);
   useEffect(() => { onHoverRef.current = onHoverEvent; }, [onHoverEvent]);
   useEffect(() => { allEventsRef.current = allEvents; }, [allEvents]);
 
@@ -138,7 +146,19 @@ export default function CesiumGlobe({
       if (Cesium.defined(picked) && picked.id && picked.id._customEventId) {
         const eventId: string = picked.id._customEventId;
         const found = allEventsRef.current.find((e) => e.id === eventId);
-        if (found) onSelectRef.current(found);
+        if (!found) return;
+
+        if (isUpcomingWorldCupMatch(found) && onSelectVenueRef.current) {
+          const rect = viewer.scene.canvas.getBoundingClientRect();
+          onSelectVenueRef.current(
+            found,
+            click.position.x + rect.left,
+            click.position.y + rect.top
+          );
+          return;
+        }
+
+        onSelectRef.current(found);
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
@@ -240,8 +260,19 @@ export default function CesiumGlobe({
     events.forEach((event) => {
       if (entitiesRef.current.has(event.id)) return;
 
-      const isSelected = selectedEvent?.id === event.id;
-      const markerAppearance = getMarkerAppearance(isSelected);
+      const isSelected = selectedEvent?.id === event.id || focusedEvent?.id === event.id;
+      const isUpcomingVenueMarker = isUpcomingWorldCupMatch(event);
+      const markerAppearance = getMarkerAppearance(isSelected, isUpcomingVenueMarker);
+      const maxDisplayDistance = isUpcomingVenueMarker
+        ? 30_000_000.0
+        : event.importance === 1
+          ? 30_000_000.0
+          : event.importance === 2
+            ? 9_000_000.0
+            : 3_000_000.0;
+      const labelText = isUpcomingVenueMarker
+        ? getUpcomingMatchTooltipLabel(event)
+        : event.title;
 
       const entity = viewer.entities.add({
         position: Cesium.Cartesian3.fromDegrees(event.lng, event.lat),
@@ -252,28 +283,35 @@ export default function CesiumGlobe({
           outlineWidth: markerAppearance.outlineWidth,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, event.importance === 1 ? 30000000.0 : event.importance === 2 ? 9000000.0 : 3000000.0),
+          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, maxDisplayDistance),
         },
         label: {
-          text: event.title,
-          font: "11px 'Space Mono', monospace",
+          text: labelText,
+          font: isUpcomingVenueMarker
+            ? "600 13px 'Source Sans 3', 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif"
+            : "12px 'Source Sans 3', sans-serif",
           fillColor: Cesium.Color.fromCssColorString(markerAppearance.labelColor),
           outlineColor: Cesium.Color.fromCssColorString(mapThemeColors.labelOutlineColor),
-          outlineWidth: 2,
-          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          outlineWidth: 0,
+          style: Cesium.LabelStyle.FILL,
+          showBackground: isUpcomingVenueMarker,
+          backgroundColor: Cesium.Color.fromCssColorString(mapThemeColors.tooltipBackgroundColor).withAlpha(
+            isUpcomingVenueMarker ? 0.92 : 0
+          ),
+          horizontalOrigin: isUpcomingVenueMarker ? Cesium.HorizontalOrigin.LEFT : Cesium.HorizontalOrigin.CENTER,
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-          pixelOffset: new Cesium.Cartesian2(0, -14),
+          pixelOffset: isUpcomingVenueMarker ? new Cesium.Cartesian2(16, -8) : new Cesium.Cartesian2(0, -14),
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          show: isMobile || isSelected,
+          show: isUpcomingVenueMarker ? false : (isMobile || isSelected),
           scale: isSelected ? 1 : 0.9,
-          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, event.importance === 1 ? 30000000.0 : event.importance === 2 ? 9000000.0 : 3000000.0),
+          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, maxDisplayDistance),
         },
       });
 
       entity._customEventId = event.id;
       entitiesRef.current.set(event.id, entity);
     });
-  }, [events, selectedEvent, isMobile, mapThemeColors.labelOutlineColor]);
+  }, [events, selectedEvent, isMobile, mapThemeColors.labelOutlineColor, mapThemeColors.tooltipBackgroundColor]);
 
   /* ── Highlight selected event and fly camera ── */
   useEffect(() => {
@@ -282,8 +320,10 @@ export default function CesiumGlobe({
     const Cesium = window.Cesium;
 
     entitiesRef.current.forEach((entity, id) => {
-      const isSelected = selectedEvent?.id === id;
-      const markerAppearance = getMarkerAppearance(isSelected);
+      const linkedEvent = events.find((event) => event.id === id) ?? allEvents.find((event) => event.id === id);
+      const isSelected = selectedEvent?.id === id || focusedEvent?.id === id;
+      const isUpcomingVenueMarker = isUpcomingWorldCupMatch(linkedEvent);
+      const markerAppearance = getMarkerAppearance(isSelected, isUpcomingVenueMarker);
 
       if (entity.point) {
         entity.point.pixelSize = markerAppearance.pixelSize;
@@ -292,18 +332,27 @@ export default function CesiumGlobe({
         entity.point.outlineWidth = markerAppearance.outlineWidth;
       }
       if (entity.label) {
-        entity.label.show = isMobile || isSelected;
+        entity.label.show = isUpcomingVenueMarker ? false : (isMobile || isSelected);
         entity.label.fillColor = Cesium.Color.fromCssColorString(markerAppearance.labelColor);
         entity.label.outlineColor = Cesium.Color.fromCssColorString(mapThemeColors.labelOutlineColor);
+        entity.label.outlineWidth = 0;
+        entity.label.style = Cesium.LabelStyle.FILL;
+        entity.label.showBackground = isUpcomingVenueMarker;
+        entity.label.backgroundColor = Cesium.Color.fromCssColorString(mapThemeColors.tooltipBackgroundColor).withAlpha(
+          isUpcomingVenueMarker ? 0.92 : 0
+        );
+        entity.label.horizontalOrigin = isUpcomingVenueMarker ? Cesium.HorizontalOrigin.LEFT : Cesium.HorizontalOrigin.CENTER;
+        entity.label.pixelOffset = isUpcomingVenueMarker ? new Cesium.Cartesian2(16, -8) : new Cesium.Cartesian2(0, -14);
         entity.label.scale = isSelected ? 1 : 0.9;
       }
     });
 
+    const cameraTargetEvent = selectedEvent ?? focusedEvent;
     const worldCupCountryBounds = activeSafari?.id.startsWith("world-cup-")
-      ? getWorldCupCountryBounds(selectedEvent?.tournamentId ?? activeSafari.id)
+      ? getWorldCupCountryBounds(cameraTargetEvent?.tournamentId ?? activeSafari.id)
       : null;
 
-    if (worldCupCountryBounds && (!selectedEvent || selectedEvent.eventType !== "match")) {
+    if (worldCupCountryBounds && (!cameraTargetEvent || cameraTargetEvent.eventType !== "match")) {
       viewer.camera.flyTo({
         destination: Cesium.Rectangle.fromDegrees(
           worldCupCountryBounds.west,
@@ -322,12 +371,12 @@ export default function CesiumGlobe({
       return;
     }
 
-    if (selectedEvent) {
+    if (cameraTargetEvent) {
       viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(
-          selectedEvent.lng,
-          selectedEvent.lat,
-          getCameraHeightForZoomPercent(getEventZoomPercent(selectedEvent))
+          cameraTargetEvent.lng,
+          cameraTargetEvent.lat,
+          getCameraHeightForZoomPercent(getEventZoomPercent(cameraTargetEvent))
         ),
         duration: 1.6,
         easingFunction: Cesium.EasingFunction.QUARTIC_IN_OUT,
@@ -338,7 +387,7 @@ export default function CesiumGlobe({
         },
       });
     }
-  }, [selectedEvent, isMobile, activeSafari, themeKey, mapThemeColors.labelOutlineColor]);
+  }, [selectedEvent, focusedEvent, isMobile, activeSafari, allEvents, events, themeKey, mapThemeColors.labelOutlineColor, mapThemeColors.tooltipBackgroundColor]);
 
   /* ── Render World Cup host outline ── */
   useEffect(() => {
@@ -351,7 +400,7 @@ export default function CesiumGlobe({
       countryOutlineRef.current = null;
     }
 
-    if (!activeSafari?.id.startsWith("world-cup-")) return;
+    if (!showSafariPath || !activeSafari?.id.startsWith("world-cup-")) return;
 
     const bounds = getWorldCupCountryBounds(activeSafari.id);
     if (!bounds) return;
@@ -370,7 +419,7 @@ export default function CesiumGlobe({
         material: Cesium.Color.fromCssColorString(mapThemeColors.countryOutlineColor).withAlpha(0.9),
       },
     });
-  }, [activeSafari, themeKey, mapThemeColors.countryOutlineColor]);
+  }, [activeSafari, showSafariPath, themeKey, mapThemeColors.countryOutlineColor]);
 
   /* ── Render Safari Polyline ── */
   useEffect(() => {

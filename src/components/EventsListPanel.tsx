@@ -19,9 +19,11 @@ interface EventsListPanelProps {
   forceOpen?: boolean; // triggered by timeline hover
   onMediaModalChange?: (isOpen: boolean) => void;
   onVisibleEventsChange?: (events: HistoricalEvent[]) => void;
+  onQuickFiltersChange?: (filters: string[]) => void;
   onPanelOffsetChange?: (offset: number) => void;
   activeGroupFilter?: string;
   onClearGroupFilter?: () => void;
+  quickFiltersFromRoute?: string[];
 }
 
 const regionColors: Record<string, string> = {
@@ -100,6 +102,8 @@ const COUNTRY_CODE_ALIASES: Record<string, string[]> = {
   US: ["usa", "us", "united states", "estados unidos", "eeuu", "eua"],
   UY: ["uruguay"],
 };
+
+const EMPTY_QUICK_FILTERS: string[] = [];
 
 function formatCoordinate(value: number, positiveLabel: string, negativeLabel: string) {
   return `${Math.abs(value).toFixed(2)}° ${value >= 0 ? positiveLabel : negativeLabel}`;
@@ -294,15 +298,18 @@ export default function EventsListPanel({
   forceOpen,
   onMediaModalChange,
   onVisibleEventsChange,
+  onQuickFiltersChange,
   onPanelOffsetChange,
   activeGroupFilter,
   onClearGroupFilter,
+  quickFiltersFromRoute,
 }: EventsListPanelProps) {
+  const routeQuickFilters = quickFiltersFromRoute ?? EMPTY_QUICK_FILTERS;
   const [panelState, setPanelState] = useState<PanelState>("collapsed");
   const [activeMediaIndex, setActiveMediaIndex] = useState<number | null>(null);
   const [panelWidth, setPanelWidth] = useState(300);
   const [quickFilterInput, setQuickFilterInput] = useState("");
-  const [quickFilters, setQuickFilters] = useState<string[]>([]);
+  const [quickFilters, setQuickFilters] = useState<string[]>(routeQuickFilters);
   const [suggestedQuickFilter, setSuggestedQuickFilter] = useState<string | null>(null);
   const isDragging = useRef(false);
   const visitorPrefillStartedRef = useRef(false);
@@ -454,11 +461,31 @@ export default function EventsListPanel({
   }, [filteredEventsList, onVisibleEventsChange]);
 
   useEffect(() => {
+    onQuickFiltersChange?.(quickFilters);
+  }, [quickFilters, onQuickFiltersChange]);
+
+  useEffect(() => {
+    setQuickFilters((prev) => {
+      const hasSameFilters =
+        prev.length === routeQuickFilters.length &&
+        prev.every((chip, index) => chip === routeQuickFilters[index]);
+
+      return hasSameFilters ? prev : routeQuickFilters;
+    });
+  }, [routeQuickFilters]);
+
+  useEffect(() => {
     onPanelOffsetChange?.(panelState === "collapsed" ? 36 : panelWidth);
   }, [panelState, panelWidth, onPanelOffsetChange]);
 
   const hasActiveGroupFilter = Boolean(activeGroupFilter && activeGroupFilter !== "Todos");
   const isFilteredSubSafari = hasActiveGroupFilter || quickFilters.length > 0;
+
+  useEffect(() => {
+    if (panelState === "collapsed" && isFilteredSubSafari) {
+      setPanelState("list");
+    }
+  }, [panelState, isFilteredSubSafari]);
 
   const baseNavigationEvents = useMemo(
     () =>
@@ -942,8 +969,8 @@ export default function EventsListPanel({
                               style={{ color: "hsl(var(--primary))" }}
                             >
                               {event.eventType === "match" && event.stage
-                                ? `${stageLabel[event.stage] ?? "Partido"}: ${formatEventDate(event)}`
-                                : formatEventDate(event)}
+                                ? `${stageLabel[event.stage] ?? "Partido"}: ${formatEventDate(event, { includeEra: event.dataset !== "worldcup" })}`
+                                : formatEventDate(event, { includeEra: event.dataset !== "worldcup" })}
                             </span>
                             <span
                               className="font-mono-space text-[9px] px-1.5 py-0.5 rounded-full shrink-0"
@@ -1048,7 +1075,7 @@ export default function EventsListPanel({
                     className="font-mono-space text-xl font-bold leading-none"
                     style={{ color: "hsl(var(--primary))" }}
                   >
-                    {formatEventDate(selectedEvent)}
+                    {formatEventDate(selectedEvent, { includeEra: selectedEvent.dataset !== "worldcup" })}
                   </span>
                 </div>
 

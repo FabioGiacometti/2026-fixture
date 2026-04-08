@@ -305,7 +305,7 @@ describe("EventsListPanel match detail view", () => {
       region: "Espacio",
       importance: 3,
       dataset: "historical",
-      eventType: "event",
+      eventType: "milestone",
       city: "Mar de la Tranquilidad",
     } as HistoricalEvent;
 
@@ -330,6 +330,46 @@ describe("EventsListPanel match detail view", () => {
     });
 
     expect(screen.queryByRole("button", { name: /colapsar panel/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /cerrar panel/i })).toBeInTheDocument();
+  });
+
+  it("opens the list when route-driven quick filters are applied", async () => {
+    const event = {
+      id: "route-chip-open-panel",
+      title: "Apollo 11 llega a la Luna",
+      description: "Neil Armstrong y Buzz Aldrin alunizan.",
+      year: 1969,
+      month: 7,
+      day: 20,
+      lat: 0.6741,
+      lng: 23.4729,
+      region: "Espacio",
+      importance: 3,
+      dataset: "historical",
+      eventType: "milestone",
+      city: "Mar de la Tranquilidad",
+    } as HistoricalEvent;
+
+    render(
+      <EventsListPanel
+        visibleEvents={[event]}
+        allEvents={[event]}
+        selectedEvent={null}
+        currentYear={1969}
+        windowSize={10}
+        activeSafari={null}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={vi.fn()}
+        quickFiltersFromRoute={["Tranquilidad"]}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Apollo 11 llega a la Luna")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole("button", { name: /abrir lista de eventos/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /cerrar panel/i })).toBeInTheDocument();
   });
 
@@ -463,6 +503,74 @@ describe("EventsListPanel match detail view", () => {
 
     expect(screen.queryByText("Calendario del torneo")).not.toBeInTheDocument();
     expect(screen.getByText("Uruguay vs Peru")).toBeInTheDocument();
+  });
+
+  it("reports quick filter changes so the route can reflect user filtering", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("geo unavailable")));
+    vi.spyOn(window.navigator, "languages", "get").mockReturnValue(["fr-FR"]);
+    vi.spyOn(window.navigator, "language", "get").mockReturnValue("fr-FR");
+
+    const argentinaMatch = {
+      id: "wc2026-route-filter",
+      title: "Grupo C: Argentina vs Japón",
+      description: "Argentina vs Japón · 20:00.",
+      year: 2026,
+      month: 6,
+      day: 14,
+      lat: 34.1613,
+      lng: -118.1676,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo C",
+      homeTeam: "Argentina",
+      awayTeam: "Japón",
+      kickoff: "20:00",
+      city: "Los Angeles Stadium",
+    } as HistoricalEvent;
+
+    const safari: Safari = {
+      id: "world-cup-2026",
+      name: "Copa Mundial 2026",
+      description: "Canadá / México / Estados Unidos · Norteamérica.",
+      overview: "Seguimiento del torneo.",
+      eventIds: [argentinaMatch.id],
+    };
+
+    const onQuickFiltersChange = vi.fn();
+
+    render(
+      <EventsListPanel
+        visibleEvents={[argentinaMatch]}
+        allEvents={[argentinaMatch]}
+        selectedEvent={null}
+        currentYear={2026}
+        windowSize={6}
+        activeSafari={safari}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={vi.fn()}
+        onCloseSafari={vi.fn()}
+        onQuickFiltersChange={onQuickFiltersChange}
+      />
+    );
+
+    const input = screen.getByPlaceholderText("Filtrar por país, sede o fecha");
+
+    fireEvent.change(input, { target: { value: "Argentina" } });
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+
+    await waitFor(() => {
+      expect(onQuickFiltersChange).toHaveBeenLastCalledWith(["Argentina"]);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Quitar filtro Argentina" }));
+
+    await waitFor(() => {
+      expect(onQuickFiltersChange).toHaveBeenLastCalledWith([]);
+    });
   });
 
   it("applies cumulative quick filter chips as union matches", async () => {

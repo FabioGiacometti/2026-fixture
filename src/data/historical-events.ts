@@ -1927,24 +1927,33 @@ export const safaris: Safari[] = [
   }
 ];
 
-export function formatYear(year: number): string {
+export function formatYear(year: number, options?: { includeEra?: boolean }): string {
+  const includeEra = options?.includeEra ?? true;
+
   if (year < 0) {
-    return `${Math.abs(year).toLocaleString()} a.C.`;
+    return includeEra ? `${Math.abs(year).toLocaleString()} a.C.` : `${Math.abs(year).toLocaleString()}`;
   }
-  return `${year} d.C.`;
+
+  return includeEra ? `${year} d.C.` : `${year}`;
 }
 
-export function formatEventDate(event: Pick<HistoricalEvent, "year" | "month" | "day">): string {
+export function formatEventDate(
+  event: Pick<HistoricalEvent, "year" | "month" | "day">,
+  options?: { includeEra?: boolean }
+): string {
+  const includeEra = options?.includeEra ?? true;
   const day = Math.max(1, Math.min(31, event.day ?? 1));
   const month = Math.max(1, Math.min(12, event.month ?? 1));
   const dayPart = String(day).padStart(2, "0");
   const monthPart = String(month).padStart(2, "0");
 
   if (event.year < 0) {
-    return `${dayPart}-${monthPart}-${Math.abs(event.year).toLocaleString()} a.C.`;
+    return includeEra
+      ? `${dayPart}-${monthPart}-${Math.abs(event.year).toLocaleString()} a.C.`
+      : `${dayPart}-${monthPart}-${Math.abs(event.year).toLocaleString()}`;
   }
 
-  return `${dayPart}-${monthPart}-${event.year} d.C.`;
+  return includeEra ? `${dayPart}-${monthPart}-${event.year} d.C.` : `${dayPart}-${monthPart}-${event.year}`;
 }
 
 export function getEventsInRange(year: number, windowSize = 300, sourceEvents: HistoricalEvent[] = historicalEvents): HistoricalEvent[] {

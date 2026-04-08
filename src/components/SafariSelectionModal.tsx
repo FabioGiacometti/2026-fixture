@@ -800,8 +800,8 @@ export default function SafariSelectionModal({
                               <div className="flex items-center justify-between gap-2">
                                 <span className="text-[10px] text-primary/80 font-mono-space font-bold">
                                   {event.eventType === "match" && event.stage
-                                    ? `${stageLabel[event.stage] ?? "Partido"}: ${formatEventDate(event)}`
-                                    : formatEventDate(event)}
+                                    ? `${stageLabel[event.stage] ?? "Partido"}: ${formatEventDate(event, { includeEra: event.dataset !== "worldcup" })}`
+                                    : formatEventDate(event, { includeEra: event.dataset !== "worldcup" })}
                                 </span>
                                 <span
                                   className="font-mono-space text-[9px] px-1.5 py-0.5 rounded-full shrink-0"
