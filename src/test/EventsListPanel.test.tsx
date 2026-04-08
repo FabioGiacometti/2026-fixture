@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import EventsListPanel from "@/components/EventsListPanel";
@@ -594,6 +595,125 @@ describe("EventsListPanel match detail view", () => {
     await waitFor(() => {
       expect(onVisibleEventsChange).toHaveBeenLastCalledWith([argentinaMatch]);
     });
+  });
+
+  it("uses the filtered list for previous/next match navigation", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("geo unavailable")));
+    vi.spyOn(window.navigator, "languages", "get").mockReturnValue(["fr-FR"]);
+    vi.spyOn(window.navigator, "language", "get").mockReturnValue("fr-FR");
+
+    const firstArgentinaMatch = {
+      id: "wc2026-nav-arg-1",
+      title: "Grupo C: Argentina vs Japón",
+      description: "Argentina vs Japón · 20:00.",
+      year: 2026,
+      month: 6,
+      day: 14,
+      lat: 34.1613,
+      lng: -118.1676,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo C",
+      homeTeam: "Argentina",
+      awayTeam: "Japón",
+      kickoff: "20:00",
+      city: "Los Angeles Stadium",
+    } as HistoricalEvent;
+
+    const usaMatch = {
+      id: "wc2026-nav-usa",
+      title: "Grupo B: USA vs Marruecos",
+      description: "USA vs Marruecos · 18:00.",
+      year: 2026,
+      month: 6,
+      day: 15,
+      lat: 40.8135,
+      lng: -74.0745,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo B",
+      homeTeam: "Estados Unidos",
+      awayTeam: "Marruecos",
+      kickoff: "18:00",
+      city: "New York / New Jersey Stadium",
+    } as HistoricalEvent;
+
+    const secondArgentinaMatch = {
+      id: "wc2026-nav-arg-2",
+      title: "Grupo D: Argentina vs Nigeria",
+      description: "Argentina vs Nigeria · 21:00.",
+      year: 2026,
+      month: 6,
+      day: 16,
+      lat: 29.7604,
+      lng: -95.3698,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo D",
+      homeTeam: "Argentina",
+      awayTeam: "Nigeria",
+      kickoff: "21:00",
+      city: "Houston Stadium",
+    } as HistoricalEvent;
+
+    const safari: Safari = {
+      id: "world-cup-2026",
+      name: "Copa Mundial 2026",
+      description: "Canadá / México / Estados Unidos · Norteamérica.",
+      overview: "Seguimiento del torneo.",
+      eventIds: [firstArgentinaMatch.id, usaMatch.id, secondArgentinaMatch.id],
+    };
+
+    const visibleEvents = [firstArgentinaMatch, usaMatch, secondArgentinaMatch];
+
+    function TestHarness() {
+      const [selectedEvent, setSelectedEvent] = useState<HistoricalEvent | null>(null);
+      const [currentYear, setCurrentYear] = useState(2026);
+
+      return (
+        <EventsListPanel
+          visibleEvents={visibleEvents}
+          allEvents={visibleEvents}
+          selectedEvent={selectedEvent}
+          currentYear={currentYear}
+          windowSize={6}
+          activeSafari={safari}
+          onSelectEvent={setSelectedEvent}
+          onYearChange={setCurrentYear}
+          onClose={vi.fn()}
+          onCloseSafari={vi.fn()}
+        />
+      );
+    }
+
+    render(<TestHarness />);
+
+    const input = screen.getByPlaceholderText("Filtrar por país, sede o fecha");
+    fireEvent.change(input, { target: { value: "argentina" } });
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Grupo C: Argentina vs Japón" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Próximo evento" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Próximo evento" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Grupo D: Argentina vs Nigeria")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Grupo B: USA vs Marruecos")).not.toBeInTheDocument();
   });
 
   it("filters matches by venue and date chips", async () => {

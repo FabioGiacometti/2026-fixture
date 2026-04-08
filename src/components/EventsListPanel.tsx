@@ -450,21 +450,31 @@ export default function EventsListPanel({
   useEffect(() => {
     onVisibleEventsChange?.(filteredEventsList);
   }, [filteredEventsList, onVisibleEventsChange]);
-  
-  // For navigation (Back/Next), use all events sorted by year, OR safari events if active
-  const navigationEvents = activeSafari 
-    ? activeSafari.eventIds
-        .map(id => allEvents.find(e => e.id === id))
-        .filter((e): e is HistoricalEvent => !!e)
-    : [...allEvents].sort((a, b) => a.year - b.year);
 
-  const selectedIndex = selectedEvent 
-    ? navigationEvents.findIndex(e => e.id === selectedEvent.id) 
+  const hasActiveGroupFilter = Boolean(activeGroupFilter && activeGroupFilter !== "Todos");
+  const isFilteredSubSafari = hasActiveGroupFilter || quickFilters.length > 0;
+
+  const baseNavigationEvents = useMemo(
+    () =>
+      activeSafari
+        ? activeSafari.eventIds
+            .map((id) => allEvents.find((event) => event.id === id))
+            .filter((event): event is HistoricalEvent => !!event)
+        : [...allEvents].sort((a, b) => a.year - b.year),
+    [activeSafari, allEvents]
+  );
+
+  const navigationEvents = isFilteredSubSafari ? filteredEventsList : baseNavigationEvents;
+
+  const selectedIndex = selectedEvent
+    ? navigationEvents.findIndex((event) => event.id === selectedEvent.id)
     : -1;
 
   const hasPrev = selectedIndex > 0;
   const hasNext = selectedIndex !== -1 && selectedIndex < navigationEvents.length - 1;
-  const isFinalSafariEvent = activeSafari && selectedIndex === navigationEvents.length - 1;
+  const isFinalSafariEvent = Boolean(
+    activeSafari && !isFilteredSubSafari && selectedIndex === navigationEvents.length - 1
+  );
 
   const safariMatchEvents = activeSafari
     ? activeSafari.eventIds
@@ -519,7 +529,6 @@ export default function EventsListPanel({
   const hasSuggestedChip = suggestedQuickFilter
     ? quickFilters.some((chip) => normalizeText(chip) === normalizeText(suggestedQuickFilter))
     : false;
-  const hasActiveGroupFilter = Boolean(activeGroupFilter && activeGroupFilter !== "Todos");
 
   const handlePrev = () => {
     if (hasPrev) {

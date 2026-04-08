@@ -5,6 +5,7 @@ import {
   MATCH_EVENT_ZOOM_PERCENT,
   getCameraHeightForZoomPercent,
   getMarkerAppearance,
+  getSafariPathEvents,
   getWorldCupCountryBounds,
   getZoomIndicatorState,
 } from "../lib/globe-ui";
@@ -57,6 +58,29 @@ describe("globe UI helpers", () => {
     expect(MATCH_EVENT_ZOOM_PERCENT).toBeGreaterThan(90);
     expect(matchFocusIndicator.percent).toBeGreaterThanOrEqual(90);
     expect(matchFocusIndicator.label).toBe("Local");
+  });
+
+  it("builds the safari path from only the matches currently visible in the filtered list", () => {
+    const safari = {
+      id: "world-cup-2026",
+      eventIds: ["match-1", "match-2", "match-3"],
+    };
+
+    const allEvents = [
+      { id: "match-1", title: "A", lat: 0, lng: 0 },
+      { id: "match-2", title: "B", lat: 1, lng: 1 },
+      { id: "match-3", title: "C", lat: 2, lng: 2 },
+    ];
+
+    const visibleEvents = [allEvents[2], allEvents[0]];
+
+    expect(
+      getSafariPathEvents(
+        safari as Parameters<typeof getSafariPathEvents>[0],
+        allEvents as Parameters<typeof getSafariPathEvents>[1],
+        visibleEvents as Parameters<typeof getSafariPathEvents>[2]
+      ).map((event) => event.id)
+    ).toEqual(["match-1", "match-3"]);
   });
 
   it("provides country bounds for World Cup safari overviews", () => {

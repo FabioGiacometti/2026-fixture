@@ -336,12 +336,10 @@ export default function Index() {
     });
   }, []);
 
-  const showSafariPath = useMemo(() => {
-    const hasGroupFilter = showWorldCupGroupsDrawer && selectedWorldCupGroup !== "Todos";
-    const hasPanelFilter = mapVisibleEvents.length !== visibleEvents.length;
-
-    return !hasGroupFilter && !hasPanelFilter;
-  }, [showWorldCupGroupsDrawer, selectedWorldCupGroup, mapVisibleEvents.length, visibleEvents.length]);
+  const showSafariPath = useMemo(
+    () => Boolean(activeSafari && mapVisibleEvents.length > 1),
+    [activeSafari, mapVisibleEvents.length]
+  );
 
   const handleYearChange = useCallback((year: number) => {
     setCurrentYear(year);

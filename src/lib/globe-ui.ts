@@ -1,4 +1,4 @@
-import type { HistoricalEvent } from "@/data/historical-events";
+import type { HistoricalEvent, Safari } from "@/data/historical-events";
 
 export const ACTIVE_EVENT_COLOR = "#22C55E";
 export const INACTIVE_EVENT_COLOR = "#F2A900";
@@ -96,6 +96,22 @@ export function getEventZoomPercent(
   }
 
   return ACTIVE_EVENT_ZOOM_PERCENT;
+}
+
+export function getSafariPathEvents(
+  safari: Pick<Safari, "eventIds"> | null | undefined,
+  allEvents: HistoricalEvent[],
+  visibleEvents: HistoricalEvent[]
+): HistoricalEvent[] {
+  if (!safari?.eventIds?.length || visibleEvents.length < 2) {
+    return [];
+  }
+
+  const visibleIds = new Set(visibleEvents.map((event) => event.id));
+
+  return safari.eventIds
+    .map((id) => allEvents.find((event) => event.id === id))
+    .filter((event): event is HistoricalEvent => Boolean(event) && visibleIds.has(event.id));
 }
 
 export function getWorldCupCountryBounds(tournamentId?: string | null): CountryBounds | null {

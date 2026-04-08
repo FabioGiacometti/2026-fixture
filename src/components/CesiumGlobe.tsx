@@ -5,6 +5,7 @@ import {
   getCameraHeightForZoomPercent,
   getEventZoomPercent,
   getMarkerAppearance,
+  getSafariPathEvents,
   getWorldCupCountryBounds,
   getZoomIndicatorState,
 } from "@/lib/globe-ui";
@@ -369,35 +370,30 @@ export default function CesiumGlobe({
       polylineRef.current = null;
     }
 
-    // Only draw if we have an active safari with at least 2 events and no active filtering.
     if (!showSafariPath) return;
 
-    if (activeSafari && activeSafari.eventIds.length > 1) {
-      const safariEvents = activeSafari.eventIds
-        .map(id => allEvents.find(e => e.id === id))
-        .filter((e): e is HistoricalEvent => !!e);
+    const safariPathEvents = getSafariPathEvents(activeSafari, allEvents, events);
 
-      if (safariEvents.length > 1) {
-        const positions = safariEvents.map(e => 
-          Cesium.Cartesian3.fromDegrees(e.lng, e.lat)
-        );
+    if (safariPathEvents.length > 1) {
+      const positions = safariPathEvents.map((event) =>
+        Cesium.Cartesian3.fromDegrees(event.lng, event.lat)
+      );
 
-        polylineRef.current = viewer.entities.add({
-          polyline: {
-            positions: positions,
-            width: 1,
-            material: new Cesium.PolylineDashMaterialProperty({
-              color: Cesium.Color.fromCssColorString(activeSafari.color || "#F2A900"),
-              dashLength: 20,
-              gapColor: Cesium.Color.TRANSPARENT,
-            }),
-            arcType: Cesium.ArcType.GEODESIC,
-            clampToGround: true,
-          }
-        });
-      }
+      polylineRef.current = viewer.entities.add({
+        polyline: {
+          positions,
+          width: 1,
+          material: new Cesium.PolylineDashMaterialProperty({
+            color: Cesium.Color.fromCssColorString(activeSafari?.color || "#F2A900"),
+            dashLength: 20,
+            gapColor: Cesium.Color.TRANSPARENT,
+          }),
+          arcType: Cesium.ArcType.GEODESIC,
+          clampToGround: true,
+        }
+      });
     }
-  }, [activeSafari, allEvents, showSafariPath]);
+  }, [activeSafari, allEvents, events, showSafariPath]);
 
   return (
     <div className="absolute inset-0">
