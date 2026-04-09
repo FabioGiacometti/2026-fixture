@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from "react";
 import { track } from "@vercel/analytics";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Switch } from "@/components/ui/switch";
 import CesiumGlobe from "@/components/CesiumGlobe";
 import TimelineBar from "@/components/TimelineBar";
 import EventsListPanel from "@/components/EventsListPanel";
@@ -27,6 +26,7 @@ const CESIUM_LOADED_CHECK_INTERVAL = 200;
 const DATASET_MODE_KEY = "history-map-dataset-mode";
 
 type DatasetMode = "historical" | "worldcup";
+const LOCKED_DATASET_MODE: DatasetMode = "worldcup";
 
 interface HoveredEventState {
   event: HistoricalEvent;
@@ -57,14 +57,7 @@ function areStringArraysEqual(left: string[], right: string[]) {
 }
 
 export default function Index() {
-  const [datasetMode, setDatasetMode] = useState<DatasetMode>(() => {
-    try {
-      const rawMode = localStorage.getItem(DATASET_MODE_KEY);
-      return rawMode === "historical" ? "historical" : "worldcup";
-    } catch {
-      return "worldcup";
-    }
-  });
+  const [datasetMode, setDatasetMode] = useState<DatasetMode>(LOCKED_DATASET_MODE);
   const [currentYear, setCurrentYear] = useState<number>(
     datasetMode === "worldcup" ? CURRENT_WORLD_CUP_YEAR : 0
   );
@@ -128,6 +121,7 @@ export default function Index() {
 
   const showWorldCupGroupsDrawer =
     datasetMode === "worldcup" && activeSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID;
+  const showStandaloneGroupsDrawer = showWorldCupGroupsDrawer && !isMobile;
 
   const worldCupGroupOptions = useMemo(() => {
     if (!showWorldCupGroupsDrawer || !activeSafari) {
@@ -309,12 +303,12 @@ export default function Index() {
 
   useEffect(() => {
     const routeState = parseAppRouteState(location.pathname, location.search);
-    const nextDatasetMode = routeState.datasetMode;
-    const nextSafariId = nextDatasetMode === "worldcup"
-      ? routeState.activeSafariId ?? CURRENT_WORLD_CUP_SAFARI_ID
-      : routeState.activeSafariId ?? null;
+    const allowedSafariIds = new Set(worldCupSafaris.map((safari) => safari.id));
+    const nextSafariId = routeState.activeSafariId && allowedSafariIds.has(routeState.activeSafariId)
+      ? routeState.activeSafariId
+      : CURRENT_WORLD_CUP_SAFARI_ID;
 
-    setDatasetMode((prev) => (prev === nextDatasetMode ? prev : nextDatasetMode));
+    setDatasetMode((prev) => (prev === LOCKED_DATASET_MODE ? prev : LOCKED_DATASET_MODE));
     setActiveSafariId((prev) => (prev === nextSafariId ? prev : nextSafariId));
     setSelectedWorldCupGroup(routeState.selectedWorldCupGroup ?? "Todos");
     setPanelQuickFilters((prev) => areStringArraysEqual(prev, routeState.quickFilters) ? prev : routeState.quickFilters);
@@ -332,7 +326,7 @@ export default function Index() {
       if (routedEvent) {
         setSelectedEvent((prev) => (prev?.id === routedEvent.id ? prev : routedEvent));
       }
-    } else if (nextDatasetMode === "worldcup" && nextSafariId === CURRENT_WORLD_CUP_SAFARI_ID) {
+    } else if (nextSafariId === CURRENT_WORLD_CUP_SAFARI_ID) {
       setSelectedEvent(null);
     }
 
@@ -450,7 +444,8 @@ export default function Index() {
     venueContextLabel && !panelQuickFilters.includes(venueContextLabel) ? venueContextLabel : null,
   ].filter((value): value is string => Boolean(value));
   const shouldPrioritizeMobilePopup = isMobile && Boolean(activePopupEvent) && !selectedEvent;
-  const shouldHideBottomNavigation = isMobile && (Boolean(activePopupEvent) || Boolean(selectedEvent));
+  const isMobilePanelOpen = isMobile && rightPanelOffset > 36;
+  const shouldHideBottomNavigation = isMobile && (Boolean(activePopupEvent) || Boolean(selectedEvent) || isMobilePanelOpen);
   const showMobileContextChips = isMobile && !activePopupEvent && !selectedEvent && popupContextChips.length > 0;
 
   useEffect(() => {
@@ -677,9 +672,11 @@ export default function Index() {
         background: "hsl(var(--background))",
         ["--timeline-height" as string]: shouldHideBottomNavigation
           ? "0px"
-          : showWorldCupGroupsDrawer
+          : showStandaloneGroupsDrawer
             ? (isGroupsDrawerExpanded ? "156px" : "58px")
-            : "96px",
+            : showWorldCupGroupsDrawer
+              ? "0px"
+              : "96px",
       } as CSSProperties}
     >
       {/* ── Globe ── */}
@@ -894,9 +891,10 @@ export default function Index() {
       )}
 
       {/* ── App badge (top-left) ── */}
-      <div
-        className={`fixed z-40 flex items-center rounded-full cursor-pointer hover:bg-white/5 transition-colors ${
-          isMobile ? "top-3 left-3 gap-2 px-3 py-1.5" : "top-5 left-6 gap-3 px-4 py-2"
+      <button
+        type="button"
+        className={`fixed z-40 rounded-full cursor-pointer transition-colors hover:bg-white/5 ${
+          isMobile ? "top-3 left-3 px-3 py-1.5" : "top-5 left-6 px-4 py-2"
         }`}
         style={{
           background: "hsl(var(--card) / 0.85)",
@@ -904,71 +902,15 @@ export default function Index() {
           backdropFilter: "blur(8px)",
         }}
         onClick={() => setShowSafariModal(true)}
+        aria-label="Abrir selector del Mundial 2026"
       >
-        {datasetMode === "worldcup" && activeSafari?.thumbnail ? (
-          <img
-            src={activeSafari.thumbnail}
-            alt={`${activeSafari.name} mascot`}
-            className={`${isMobile ? "h-6 w-6" : "h-7 w-7"} rounded-full border border-white/10 bg-white/5 object-contain p-1`}
-          />
-        ) : (
-          <div
-            className="w-2 h-2 rounded-full animate-pulse"
-            style={{ background: "hsl(var(--primary))" }}
-          />
-        )}
         <span
-          className={`font-mono-space ${isMobile ? "text-[10px]" : "text-xs"}`}
+          className={`font-mono-space font-semibold uppercase tracking-[0.18em] ${isMobile ? "text-[10px]" : "text-xs"}`}
           style={{ color: "hsl(var(--foreground))" }}
         >
-          {datasetMode === "worldcup"
-            ? (isMobile ? activeSafari?.name ?? "Copa Mundial" : "Safaris mundialistas")
-            : (isMobile ? "Historia" : "Safaris históricos")}
+          Mundial 2026
         </span>
-        {(!isMobile || !shouldPrioritizeMobilePopup) && (
-          <span
-            className="font-mono-space text-xs"
-            style={{ color: "hsl(var(--muted-foreground))" }}
-          >
-            {datasetMode === "worldcup"
-              ? `${activeSafari?.name ?? "Copa Mundial actual"} · ${mapVisibleEvents.length} partidos`
-              : `${allDatasetEvents.length} eventos`}
-          </span>
-        )}
-      </div>
-
-      {/* ── Dataset Mode Toggle (title area) ── */}
-      {!shouldPrioritizeMobilePopup && (
-        <div
-          className={`fixed z-40 flex items-center gap-2 rounded-full px-3 py-1.5 ${
-            isMobile ? "left-3 top-[3.6rem]" : "left-6 top-20"
-          }`}
-          style={{
-            background: "hsl(var(--card) / 0.85)",
-            border: "1px solid hsl(var(--border))",
-            backdropFilter: "blur(8px)",
-          }}
-        >
-          <span
-            className="font-mono-space text-[10px] uppercase tracking-wider"
-            style={{ color: datasetMode === "historical" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
-          >
-            Histórico
-          </span>
-          <Switch
-            id="dataset-mode"
-            checked={datasetMode === "worldcup"}
-            onCheckedChange={(checked) => setDatasetMode(checked ? "worldcup" : "historical")}
-            style={datasetMode === "worldcup" ? { backgroundColor: "hsl(var(--primary))" } : {}}
-          />
-          <span
-            className="font-mono-space text-[10px] uppercase tracking-wider"
-            style={{ color: datasetMode === "worldcup" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
-          >
-            Mundialista
-          </span>
-        </div>
-      )}
+      </button>
 
       {showMobileContextChips && (
         <div className="fixed left-3 right-3 top-[6.4rem] z-40 flex flex-wrap gap-1.5">
@@ -1026,6 +968,7 @@ export default function Index() {
           mapStyle={mapStyle}
           onMapStyleChange={(style) => setMapStyle(style)}
           panelOffset={rightPanelOffset}
+          isMobile={isMobile}
         />
       )}
 
@@ -1084,10 +1027,12 @@ export default function Index() {
         quickFiltersFromRoute={panelQuickFilters}
         isMobile={isMobile}
         hideCollapsedTrigger={shouldPrioritizeMobilePopup}
+        worldCupGroups={worldCupGroupOptions}
+        onSelectGroupFilter={setSelectedWorldCupGroup}
       />
 
       {/* ── Bottom navigation ── */}
-      {!shouldHideBottomNavigation && (showWorldCupGroupsDrawer ? (
+      {!shouldHideBottomNavigation && (showStandaloneGroupsDrawer ? (
         <WorldCupGroupsDrawer
           groups={worldCupGroupOptions}
           selectedGroup={selectedWorldCupGroup}
@@ -1097,7 +1042,7 @@ export default function Index() {
           isMediaModalOpen={isMediaModalOpen}
           title="Grupos · Copa Mundial 2026"
         />
-      ) : (
+      ) : !showWorldCupGroupsDrawer ? (
         <TimelineBar
           currentYear={currentYear}
           windowSize={windowSize}
@@ -1111,7 +1056,7 @@ export default function Index() {
           maxYear={datasetMode === "worldcup" ? WORLD_CUP_YEARS[WORLD_CUP_YEARS.length - 1] : 2024}
           yearSnapPoints={datasetMode === "worldcup" ? WORLD_CUP_YEARS : undefined}
         />
-      ))}
+      ) : null)}
 
       <SafariSelectionModal
         isOpen={showSafariModal}

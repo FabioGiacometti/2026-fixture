@@ -43,7 +43,7 @@ export default function WorldCupGroupsDrawer({
     >
       <div
         className={`pointer-events-auto flex w-full flex-col overflow-hidden rounded-t-[28px] border border-b-0 transition-[height] duration-500 ${
-          isExpanded ? "h-[calc(100vh-4.5rem)]" : "h-[76px]"
+          isExpanded ? "h-[calc(100vh-4.5rem)]" : "h-[68px]"
         }`}
         style={{
           background: "hsl(var(--card))",
@@ -53,7 +53,7 @@ export default function WorldCupGroupsDrawer({
           transitionTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       >
-        <div className="flex justify-center px-4 pt-2">
+        <div className="flex justify-center px-4 pt-1.5">
           <span
             className="h-1.5 w-14 rounded-full"
             style={{ background: "hsl(var(--border) / 0.9)" }}
@@ -61,7 +61,7 @@ export default function WorldCupGroupsDrawer({
           />
         </div>
 
-        <div className="flex items-center gap-2 px-4 pb-3 pt-2">
+        <div className="flex items-center gap-2 px-4 pb-2 pt-1.5">
           <button
             type="button"
             onClick={onToggleExpanded}
@@ -69,39 +69,27 @@ export default function WorldCupGroupsDrawer({
             aria-expanded={isExpanded}
             aria-label={isExpanded ? "Colapsar grupos" : "Expandir grupos"}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <div
-                className="flex h-8 w-8 items-center justify-center rounded-full"
+                className="flex h-7 w-7 items-center justify-center rounded-full"
                 style={{
                   background: "hsl(var(--primary) / 0.12)",
                   color: "hsl(var(--primary))",
                 }}
               >
-                <Layers3 className="h-4 w-4" />
+                <Layers3 className="h-3.5 w-3.5" />
               </div>
               <div>
                 <p
-                  className="font-mono-space text-[10px] uppercase tracking-[0.24em]"
+                  className="font-mono-space text-[10px] uppercase tracking-[0.18em]"
                   style={{ color: "hsl(var(--primary))" }}
                 >
                   {title}
                 </p>
-                <p
-                  className="font-mono-space text-[10px]"
-                  style={{ color: "hsl(var(--muted-foreground))" }}
-                >
-                  {groups.length} grupos · tablas rápidas
-                </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span
-                className="font-mono-space text-[10px] uppercase tracking-widest"
-                style={{ color: "hsl(var(--muted-foreground))" }}
-              >
-                {isExpanded ? "Ocultar" : "Ver"}
-              </span>
+            <div className="flex items-center">
               {isExpanded ? (
                 <ChevronDown className="h-4 w-4" style={{ color: "hsl(var(--primary))" }} />
               ) : (
@@ -117,21 +105,7 @@ export default function WorldCupGroupsDrawer({
             className="flex-1 overflow-y-auto border-t px-4 pb-5 pt-3"
             style={{ borderColor: "hsl(var(--border) / 0.7)" }}
           >
-            <p
-              className="font-mono-space text-[10px] uppercase tracking-[0.18em]"
-              style={{ color: "hsl(var(--muted-foreground))" }}
-            >
-              Explora el calendario por grupo
-            </p>
-
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <p
-                className="font-mono-space text-[10px] uppercase tracking-[0.18em]"
-                style={{ color: "hsl(var(--muted-foreground))" }}
-              >
-                {selectedGroup === "Todos" ? "Mostrando todos los grupos" : `Filtro activo: ${selectedGroup}`}
-              </p>
-
+            <div className="flex items-center justify-end gap-3">
               {selectedGroup !== "Todos" && (
                 <button
                   type="button"
