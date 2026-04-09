@@ -121,6 +121,7 @@ export default function Index() {
 
   const showWorldCupGroupsDrawer =
     datasetMode === "worldcup" && activeSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID;
+  const showStandaloneGroupsDrawer = showWorldCupGroupsDrawer && !isMobile;
 
   const worldCupGroupOptions = useMemo(() => {
     if (!showWorldCupGroupsDrawer || !activeSafari) {
@@ -443,7 +444,8 @@ export default function Index() {
     venueContextLabel && !panelQuickFilters.includes(venueContextLabel) ? venueContextLabel : null,
   ].filter((value): value is string => Boolean(value));
   const shouldPrioritizeMobilePopup = isMobile && Boolean(activePopupEvent) && !selectedEvent;
-  const shouldHideBottomNavigation = isMobile && (Boolean(activePopupEvent) || Boolean(selectedEvent));
+  const isMobilePanelOpen = isMobile && rightPanelOffset > 36;
+  const shouldHideBottomNavigation = isMobile && (Boolean(activePopupEvent) || Boolean(selectedEvent) || isMobilePanelOpen);
   const showMobileContextChips = isMobile && !activePopupEvent && !selectedEvent && popupContextChips.length > 0;
 
   useEffect(() => {
@@ -670,9 +672,11 @@ export default function Index() {
         background: "hsl(var(--background))",
         ["--timeline-height" as string]: shouldHideBottomNavigation
           ? "0px"
-          : showWorldCupGroupsDrawer
+          : showStandaloneGroupsDrawer
             ? (isGroupsDrawerExpanded ? "156px" : "58px")
-            : "96px",
+            : showWorldCupGroupsDrawer
+              ? "0px"
+              : "96px",
       } as CSSProperties}
     >
       {/* ── Globe ── */}
@@ -964,6 +968,7 @@ export default function Index() {
           mapStyle={mapStyle}
           onMapStyleChange={(style) => setMapStyle(style)}
           panelOffset={rightPanelOffset}
+          isMobile={isMobile}
         />
       )}
 
@@ -1022,10 +1027,12 @@ export default function Index() {
         quickFiltersFromRoute={panelQuickFilters}
         isMobile={isMobile}
         hideCollapsedTrigger={shouldPrioritizeMobilePopup}
+        worldCupGroups={worldCupGroupOptions}
+        onSelectGroupFilter={setSelectedWorldCupGroup}
       />
 
       {/* ── Bottom navigation ── */}
-      {!shouldHideBottomNavigation && (showWorldCupGroupsDrawer ? (
+      {!shouldHideBottomNavigation && (showStandaloneGroupsDrawer ? (
         <WorldCupGroupsDrawer
           groups={worldCupGroupOptions}
           selectedGroup={selectedWorldCupGroup}
@@ -1035,7 +1042,7 @@ export default function Index() {
           isMediaModalOpen={isMediaModalOpen}
           title="Grupos · Copa Mundial 2026"
         />
-      ) : (
+      ) : !showWorldCupGroupsDrawer ? (
         <TimelineBar
           currentYear={currentYear}
           windowSize={windowSize}
@@ -1049,7 +1056,7 @@ export default function Index() {
           maxYear={datasetMode === "worldcup" ? WORLD_CUP_YEARS[WORLD_CUP_YEARS.length - 1] : 2024}
           yearSnapPoints={datasetMode === "worldcup" ? WORLD_CUP_YEARS : undefined}
         />
-      ))}
+      ) : null)}
 
       <SafariSelectionModal
         isOpen={showSafariModal}

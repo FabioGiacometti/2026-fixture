@@ -289,6 +289,113 @@ describe("EventsListPanel match detail view", () => {
     expect(screen.getByRole("button", { name: "Grupo A: México vs Sudáfrica" })).toBeInTheDocument();
   });
 
+  it("shows a mobile Grupos tab that filters groups by participating country", async () => {
+    const mexicoMatch = {
+      id: "wc2026-grupos-mx",
+      title: "Grupo A: México vs Sudáfrica",
+      description: "México vs Sudáfrica · 16:00. Programado.",
+      year: 2026,
+      month: 6,
+      day: 11,
+      lat: 19.3029,
+      lng: -99.1505,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo A",
+      homeTeam: "México",
+      awayTeam: "Sudáfrica",
+      kickoff: "16:00",
+      city: "Estadio Ciudad de México",
+    } as HistoricalEvent;
+
+    const spainMatch = {
+      id: "wc2026-grupos-es",
+      title: "Grupo B: España vs Túnez",
+      description: "España vs Túnez · 21:00. Programado.",
+      year: 2026,
+      month: 6,
+      day: 12,
+      lat: 42.3601,
+      lng: -71.0589,
+      region: "Europa",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo B",
+      homeTeam: "España",
+      awayTeam: "Túnez",
+      kickoff: "21:00",
+      city: "Boston Stadium",
+    } as HistoricalEvent;
+
+    const safari: Safari = {
+      id: CURRENT_WORLD_CUP_SAFARI_ID,
+      name: "Copa Mundial 2026",
+      description: "Canadá / México / Estados Unidos · Norteamérica.",
+      overview: "Seguimiento del torneo.",
+      eventIds: [mexicoMatch.id, spainMatch.id],
+    };
+
+    const onSelectGroupFilter = vi.fn();
+
+    render(
+      <EventsListPanel
+        visibleEvents={[mexicoMatch, spainMatch]}
+        allEvents={[mexicoMatch, spainMatch]}
+        selectedEvent={null}
+        currentYear={2026}
+        windowSize={6}
+        activeSafari={safari}
+        worldCupGroups={[
+          {
+            name: "Grupo A",
+            count: 4,
+            resolvedCount: 0,
+            standings: [
+              { team: "México", flag: "MX", played: 0, goalDiff: 0, points: 0 },
+              { team: "Sudáfrica", flag: "ZA", played: 0, goalDiff: 0, points: 0 },
+            ],
+          },
+          {
+            name: "Grupo B",
+            count: 4,
+            resolvedCount: 0,
+            standings: [
+              { team: "España", flag: "ES", played: 0, goalDiff: 0, points: 0 },
+              { team: "Túnez", flag: "TN", played: 0, goalDiff: 0, points: 0 },
+            ],
+          },
+        ]}
+        onSelectGroupFilter={onSelectGroupFilter}
+        isMobile={true}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={vi.fn()}
+        onCloseSafari={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /abrir calendario de partidos/i }));
+    fireEvent.click(screen.getByRole("button", { name: /grupos/i }));
+
+    expect(screen.getAllByText("México").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("España").length).toBeGreaterThan(0);
+
+    fireEvent.change(screen.getByPlaceholderText(/filtrar por país, sede o fecha/i), {
+      target: { value: "México" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /add/i }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText("México").length).toBeGreaterThan(0);
+      expect(screen.queryByText("España")).not.toBeInTheDocument();
+    });
+  });
+
   it("shows a removable chip when a group filter is active", async () => {
     const groupMatch = {
       id: "wc2026-group-chip",

@@ -31,12 +31,14 @@ interface ThemeSwitcherProps {
   mapStyle: MapStyle;
   onMapStyleChange: (style: MapStyle) => void;
   panelOffset?: number;
+  isMobile?: boolean;
 }
 
 export default function ThemeSwitcher({
   mapStyle,
   onMapStyleChange,
   panelOffset = 36,
+  isMobile = false,
 }: ThemeSwitcherProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -92,8 +94,11 @@ export default function ThemeSwitcher({
 
   return (
     <div
-      className="fixed top-5 z-40 transition-[right] duration-300 ease-out"
-      style={{ right: `${panelOffset + 16}px` }}
+      className="fixed z-40 transition-[right,top] duration-300 ease-out"
+      style={{
+        top: isMobile ? "12px" : "20px",
+        right: isMobile ? "12px" : `${panelOffset + 16}px`,
+      }}
     >
       <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
@@ -109,7 +114,7 @@ export default function ThemeSwitcher({
               }
             }}
             onClick={handleToggleSettingsMenu}
-            className="h-11 w-11 rounded-full border-border/80 bg-card/85 text-foreground shadow-lg backdrop-blur-md hover:bg-accent/80"
+            className={`${isMobile ? "h-10 w-10" : "h-11 w-11"} rounded-full border-border/80 bg-card/85 text-foreground shadow-lg backdrop-blur-md hover:bg-accent/80`}
           >
             <Settings2 className="h-4 w-4" />
           </Button>
