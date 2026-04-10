@@ -3,11 +3,15 @@ import { useTheme } from "next-themes";
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
 import {
   ACTIVE_EVENT_COLOR,
+  DEFAULT_MAX_CAMERA_HEIGHT,
+  MIN_CAMERA_HEIGHT,
   getCameraHeightForZoomPercent,
   getEventZoomPercent,
   getMapThemeColors,
   getMarkerAppearance,
+  getMaxZoomOutCameraHeight,
   getSafariPathEvents,
+  getWheelZoomCameraHeight,
   getUpcomingMatchTooltipLabel,
   isUpcomingWorldCupMatch,
   getWorldCupCountryBounds,
@@ -61,7 +65,11 @@ export default function CesiumGlobe({
   const onSelectVenueRef = useRef(onSelectVenue);
   const onHoverRef = useRef(onHoverEvent);
   const allEventsRef = useRef(allEvents);
-  const [zoomIndicator, setZoomIndicator] = useState(() => getZoomIndicatorState(22_000_000));
+  const maxZoomOutHeightRef = useRef(DEFAULT_MAX_CAMERA_HEIGHT);
+  const pinchStartDistanceRef = useRef<number | null>(null);
+  const pinchStartHeightRef = useRef(DEFAULT_MAX_CAMERA_HEIGHT);
+  const isSyncingCameraRef = useRef(false);
+  const [zoomIndicator, setZoomIndicator] = useState(() => getZoomIndicatorState(DEFAULT_MAX_CAMERA_HEIGHT));
   const showZoomIndicator = false;
   const { theme } = useTheme();
   const themeKey = theme ?? "geological-dark";
@@ -114,6 +122,7 @@ export default function CesiumGlobe({
       selectionIndicator: false,
       creditContainer: document.createElement("div"),
     });
+    viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 
     // Scene settings
     viewer.scene.backgroundColor = Cesium.Color.fromCssColorString(mapThemeColors.sceneBackground);
@@ -122,21 +131,154 @@ export default function CesiumGlobe({
     viewer.scene.sun.show = false;
     viewer.scene.moon.show = false;
     viewer.scene.skyAtmosphere.show = false; // off — prevents blue haze over tiles
+    viewer.camera.constrainedAxis = Cesium.Cartesian3.UNIT_Z;
+
+    const cameraController = viewer.scene.screenSpaceCameraController;
 
     const updateZoomIndicator = () => {
-      const cameraHeight = viewer.camera.positionCartographic?.height ?? 22_000_000;
-      setZoomIndicator(getZoomIndicatorState(cameraHeight));
+      const cameraHeight = viewer.camera.positionCartographic?.height ?? maxZoomOutHeightRef.current;
+      setZoomIndicator(getZoomIndicatorState(cameraHeight, maxZoomOutHeightRef.current));
+    };
+
+    const applyCenteredZoom = (nextHeight: number) => {
+      const cameraPosition = viewer.camera.positionCartographic;
+      if (!cameraPosition) return;
+
+      const clampedHeight = Math.min(
+        maxZoomOutHeightRef.current,
+        Math.max(MIN_CAMERA_HEIGHT, nextHeight)
+      );
+
+      isSyncingCameraRef.current = true;
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromRadians(
+          cameraPosition.longitude,
+          cameraPosition.latitude,
+          clampedHeight
+        ),
+        orientation: {
+          heading: viewer.camera.heading,
+          pitch: -Cesium.Math.PI_OVER_TWO,
+          roll: 0,
+        },
+      });
+      isSyncingCameraRef.current = false;
+      updateZoomIndicator();
+    };
+
+    const lockCameraToTopDownView = () => {
+      if (isSyncingCameraRef.current) return;
+
+      const cameraPosition = viewer.camera.positionCartographic;
+      if (!cameraPosition) return;
+
+      const clampedHeight = Math.min(
+        maxZoomOutHeightRef.current,
+        Math.max(MIN_CAMERA_HEIGHT, cameraPosition.height ?? maxZoomOutHeightRef.current)
+      );
+      const needsPitchReset = Math.abs(viewer.camera.pitch + Cesium.Math.PI_OVER_TWO) > 1e-4;
+      const needsRollReset = Math.abs(viewer.camera.roll) > 1e-4;
+      const needsHeightClamp = Math.abs(clampedHeight - (cameraPosition.height ?? clampedHeight)) > 1;
+
+      if (!needsPitchReset && !needsRollReset && !needsHeightClamp) {
+        return;
+      }
+
+      applyCenteredZoom(clampedHeight);
+    };
+
+    const syncInteractionConstraints = () => {
+      const viewportWidth = containerRef.current?.clientWidth ?? viewer.scene.canvas.clientWidth ?? window.innerWidth;
+      const viewportHeight = containerRef.current?.clientHeight ?? viewer.scene.canvas.clientHeight ?? window.innerHeight;
+      const maxZoomOutHeight = getMaxZoomOutCameraHeight(viewportWidth, viewportHeight);
+
+      maxZoomOutHeightRef.current = maxZoomOutHeight;
+      cameraController.enableRotate = true;
+      cameraController.enableZoom = true;
+      cameraController.enableTilt = false;
+      cameraController.enableLook = false;
+      cameraController.enableTranslate = false;
+      cameraController.minimumZoomDistance = MIN_CAMERA_HEIGHT;
+      cameraController.maximumZoomDistance = maxZoomOutHeight;
+      cameraController.rotateEventTypes = [Cesium.CameraEventType.LEFT_DRAG];
+      cameraController.zoomEventTypes = [];
+      cameraController.translateEventTypes = [];
+      cameraController.tiltEventTypes = [];
+      cameraController.lookEventTypes = [];
+      cameraController.inertiaSpin = 0.85;
+      cameraController.inertiaTranslate = 0;
+      cameraController.inertiaZoom = 0.7;
+
+      lockCameraToTopDownView();
+      updateZoomIndicator();
     };
 
     viewer.camera.percentageChanged = 0.02;
     viewer.camera.changed.addEventListener(updateZoomIndicator);
-    updateZoomIndicator();
+    viewer.camera.changed.addEventListener(lockCameraToTopDownView);
+    syncInteractionConstraints();
+    window.addEventListener("resize", syncInteractionConstraints);
 
     // Initial camera
     viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(15, 20, 22_000_000),
+      destination: Cesium.Cartesian3.fromDegrees(15, 20, maxZoomOutHeightRef.current),
       duration: 2,
+      orientation: {
+        heading: 0,
+        pitch: -Cesium.Math.PI_OVER_TWO,
+        roll: 0,
+      },
     });
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const currentHeight = viewer.camera.positionCartographic?.height ?? maxZoomOutHeightRef.current;
+      const nextHeight = getWheelZoomCameraHeight(currentHeight, event.deltaY, maxZoomOutHeightRef.current);
+      applyCenteredZoom(nextHeight);
+    };
+
+    const getTouchDistance = (touches: TouchList) => {
+      const firstTouch = touches.item(0);
+      const secondTouch = touches.item(1);
+      if (!firstTouch || !secondTouch) return null;
+
+      return Math.hypot(
+        secondTouch.clientX - firstTouch.clientX,
+        secondTouch.clientY - firstTouch.clientY
+      );
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 2) return;
+
+      const touchDistance = getTouchDistance(event.touches);
+      if (!touchDistance) return;
+
+      pinchStartDistanceRef.current = touchDistance;
+      pinchStartHeightRef.current = viewer.camera.positionCartographic?.height ?? maxZoomOutHeightRef.current;
+      event.preventDefault();
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (event.touches.length !== 2 || pinchStartDistanceRef.current == null) return;
+
+      const touchDistance = getTouchDistance(event.touches);
+      if (!touchDistance) return;
+
+      const scale = pinchStartDistanceRef.current / touchDistance;
+      applyCenteredZoom(pinchStartHeightRef.current * scale);
+      event.preventDefault();
+    };
+
+    const handleTouchEnd = () => {
+      pinchStartDistanceRef.current = null;
+    };
+
+    viewer.scene.canvas.addEventListener("wheel", handleWheel, { passive: false });
+    viewer.scene.canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+    viewer.scene.canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+    viewer.scene.canvas.addEventListener("touchend", handleTouchEnd);
+    viewer.scene.canvas.addEventListener("touchcancel", handleTouchEnd);
 
     // Click handler
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
@@ -190,7 +332,14 @@ export default function CesiumGlobe({
     viewerRef.current = viewer;
 
     return () => {
+      window.removeEventListener("resize", syncInteractionConstraints);
+      viewer.scene.canvas.removeEventListener("wheel", handleWheel);
+      viewer.scene.canvas.removeEventListener("touchstart", handleTouchStart);
+      viewer.scene.canvas.removeEventListener("touchmove", handleTouchMove);
+      viewer.scene.canvas.removeEventListener("touchend", handleTouchEnd);
+      viewer.scene.canvas.removeEventListener("touchcancel", handleTouchEnd);
       viewer.camera.changed.removeEventListener(updateZoomIndicator);
+      viewer.camera.changed.removeEventListener(lockCameraToTopDownView);
       handler.destroy();
       if (viewerRef.current && !viewerRef.current.isDestroyed()) {
         viewerRef.current.destroy();

@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   ACTIVE_EVENT_COLOR,
+  DEFAULT_MAX_CAMERA_HEIGHT,
   INACTIVE_EVENT_COLOR,
   MATCH_EVENT_ZOOM_PERCENT,
+  MIN_CAMERA_HEIGHT,
   getCameraHeightForZoomPercent,
+  getMaxZoomOutCameraHeight,
   getMapThemeColors,
+  getWheelZoomCameraHeight,
   getMarkerAppearance,
   getNextUpcomingWorldCupEvent,
   getSafariPathEvents,
@@ -63,7 +67,7 @@ describe("globe UI helpers", () => {
     const nearView = getZoomIndicatorState(800_000);
     const eventFocusView = getZoomIndicatorState(3_500_000);
     const highAltitudeView = getZoomIndicatorState(250_000);
-    const streetLevelView = getZoomIndicatorState(10_000);
+    const streetLevelView = getZoomIndicatorState(MIN_CAMERA_HEIGHT);
 
     expect(farView.label).toBe("Global");
     expect(nearView.label).toBe("Local");
@@ -80,6 +84,31 @@ describe("globe UI helpers", () => {
     expect(indicator.percent).toBeGreaterThanOrEqual(79);
     expect(indicator.percent).toBeLessThanOrEqual(81);
     expect(indicator.label).toBe("Local");
+  });
+
+  it("zooms relative to the current centered camera height and respects clamps", () => {
+    const currentHeight = 8_000_000;
+    const zoomInHeight = getWheelZoomCameraHeight(currentHeight, -240, DEFAULT_MAX_CAMERA_HEIGHT);
+    const zoomOutHeight = getWheelZoomCameraHeight(currentHeight, 240, DEFAULT_MAX_CAMERA_HEIGHT);
+
+    expect(zoomInHeight).toBeLessThan(currentHeight);
+    expect(zoomOutHeight).toBeGreaterThan(currentHeight);
+    expect(MIN_CAMERA_HEIGHT).toBe(500);
+    expect(getWheelZoomCameraHeight(9_000, -5000, DEFAULT_MAX_CAMERA_HEIGHT)).toBe(MIN_CAMERA_HEIGHT);
+    expect(getWheelZoomCameraHeight(DEFAULT_MAX_CAMERA_HEIGHT, 500, DEFAULT_MAX_CAMERA_HEIGHT)).toBe(
+      DEFAULT_MAX_CAMERA_HEIGHT
+    );
+  });
+
+  it("limits global zoom-out to the viewport-constrained globe size", () => {
+    const desktopMaxHeight = getMaxZoomOutCameraHeight(1440, 900);
+    const mobileMaxHeight = getMaxZoomOutCameraHeight(390, 844);
+
+    expect(desktopMaxHeight).toBeGreaterThan(9_500_000);
+    expect(desktopMaxHeight).toBeLessThan(13_000_000);
+    expect(mobileMaxHeight).toBeGreaterThan(19_000_000);
+    expect(mobileMaxHeight).toBeLessThanOrEqual(22_000_000);
+    expect(mobileMaxHeight).toBeGreaterThan(desktopMaxHeight);
   });
 
   it("keeps World Cup match focus tight enough to reveal the stadium area", () => {

@@ -341,6 +341,7 @@ export default function EventsListPanel({
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
   const userCollapsedRef = useRef(false);
+  const selectedEventRef = useRef(selectedEvent);
   const isCurrentWorldCupSafari = activeSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID;
 
   const handleDragStart = useCallback((e: React.PointerEvent) => {
@@ -361,6 +362,10 @@ export default function EventsListPanel({
   const handleDragEnd = useCallback(() => {
     isDragging.current = false;
   }, []);
+
+  useEffect(() => {
+    selectedEventRef.current = selectedEvent;
+  }, [selectedEvent]);
 
   // When a marker is clicked (selectedEvent changes), open detail
   useEffect(() => {
@@ -538,22 +543,20 @@ export default function EventsListPanel({
     }
 
     if (isMobile) {
-      if (selectedEvent) {
-        return;
+      if (!selectedEventRef.current) {
+        setPanelState("collapsed");
       }
-
-      setPanelState(isFilteredSubSafari ? "list" : "collapsed");
       return;
     }
 
     setPanelState("list");
-  }, [isCurrentWorldCupSafari, activeSafari?.id, isMobile, isFilteredSubSafari]);
+  }, [isCurrentWorldCupSafari, activeSafari?.id, isMobile]);
 
   useEffect(() => {
-    if (panelState === "collapsed" && isFilteredSubSafari && !userCollapsedRef.current) {
+    if (!isMobile && panelState === "collapsed" && isFilteredSubSafari && !userCollapsedRef.current) {
       setPanelState("list");
     }
-  }, [panelState, isFilteredSubSafari]);
+  }, [panelState, isFilteredSubSafari, isMobile]);
 
   const baseNavigationEvents = useMemo(
     () =>
@@ -606,8 +609,9 @@ export default function EventsListPanel({
   const isPanelOpen = panelState !== "collapsed";
   const showMobileWorldCupTabs = isMobilePanel && isCurrentWorldCupSafari;
   const isShowingGroupsTab = showMobileWorldCupTabs && mobileListTab === "groups";
-  const mobilePanelHeight = isCurrentWorldCupSafari && panelState !== "collapsed"
-    ? "calc(100vh - 8px)"
+  const isFullScreenMobilePanel = isMobilePanel && isCurrentWorldCupSafari && panelState === "list";
+  const mobilePanelHeight = isFullScreenMobilePanel
+    ? "100vh"
     : panelState === "detail"
       ? "min(74vh, 620px)"
       : "min(62vh, 500px)";
@@ -662,12 +666,16 @@ export default function EventsListPanel({
     <div
       className={
         isMobilePanel
-          ? "fixed inset-x-0 bottom-0 z-40 flex flex-col items-end pointer-events-none"
+          ? isFullScreenMobilePanel
+            ? "fixed inset-0 z-40 flex flex-col pointer-events-none"
+            : "fixed inset-x-0 bottom-0 z-40 flex flex-col items-end pointer-events-none"
           : "fixed top-0 right-0 h-full z-40 flex"
       }
       style={{
         paddingBottom: isMobilePanel
-          ? "calc(var(--timeline-height, 0px) + 12px)"
+          ? isFullScreenMobilePanel
+            ? "0px"
+            : "calc(var(--timeline-height, 0px) + 12px)"
           : "var(--timeline-height, 96px)",
       }}
     >
@@ -747,30 +755,37 @@ export default function EventsListPanel({
 
       {/* ── Sliding panel content ── */}
       <div
+        role={isPanelOpen ? "dialog" : undefined}
+        aria-modal={isFullScreenMobilePanel ? true : undefined}
+        aria-label={isCurrentWorldCupSafari ? "Calendario del torneo" : "Panel de eventos"}
         className="flex flex-col overflow-hidden transition-[opacity,box-shadow,transform,height,width] duration-300 ease-out"
         style={{
           width: isPanelOpen
-            ? (isMobilePanel ? "calc(100vw - 16px)" : `${panelWidth}px`)
+            ? (isFullScreenMobilePanel ? "100vw" : isMobilePanel ? "calc(100vw - 16px)" : `${panelWidth}px`)
             : "0px",
-          minWidth: isPanelOpen ? (isMobilePanel ? "min(320px, calc(100vw - 16px))" : "220px") : undefined,
-          maxWidth: isPanelOpen ? (isMobilePanel ? "calc(100vw - 16px)" : "600px") : undefined,
+          minWidth: isPanelOpen ? (isFullScreenMobilePanel ? "100vw" : isMobilePanel ? "min(320px, calc(100vw - 16px))" : "220px") : undefined,
+          maxWidth: isPanelOpen ? (isFullScreenMobilePanel ? "100vw" : isMobilePanel ? "calc(100vw - 16px)" : "600px") : undefined,
           height: isMobilePanel ? (isPanelOpen ? mobilePanelHeight : "0px") : "100%",
           transition: isDragging.current && !isMobilePanel
             ? "none"
             : "width 300ms ease-out, height 300ms ease-out, opacity 300ms ease-out, transform 300ms ease-out",
           transform: isMobilePanel ? (isPanelOpen ? "translateY(0)" : "translateY(12px)") : undefined,
-          background: "hsl(var(--card))",
-          borderLeft: "1px solid hsl(var(--border))",
-          borderRight: isMobilePanel ? "1px solid hsl(var(--border))" : undefined,
-          borderTop: isMobilePanel ? "1px solid hsl(var(--border))" : undefined,
-          borderRadius: isMobilePanel ? "24px" : undefined,
+          background: isFullScreenMobilePanel ? "hsl(var(--background))" : "hsl(var(--card))",
+          borderLeft: isFullScreenMobilePanel ? undefined : "1px solid hsl(var(--border))",
+          borderRight: isMobilePanel && !isFullScreenMobilePanel ? "1px solid hsl(var(--border))" : undefined,
+          borderTop: isMobilePanel && !isFullScreenMobilePanel ? "1px solid hsl(var(--border))" : undefined,
+          borderRadius: isMobilePanel ? (isFullScreenMobilePanel ? "0px" : "24px") : undefined,
           boxShadow: isPanelOpen
-            ? (isMobilePanel ? "0 -10px 32px hsl(0 0% 0% / 0.35)" : "-6px 0 32px hsl(0 0% 0% / 0.4)")
+            ? (isFullScreenMobilePanel
+                ? "none"
+                : isMobilePanel
+                  ? "0 -10px 32px hsl(0 0% 0% / 0.35)"
+                  : "-6px 0 32px hsl(0 0% 0% / 0.4)")
             : "none",
           opacity: isPanelOpen ? 1 : 0,
           pointerEvents: isPanelOpen ? "auto" : "none",
           position: "relative",
-          backdropFilter: isMobilePanel ? "blur(12px)" : undefined,
+          backdropFilter: isMobilePanel && !isFullScreenMobilePanel ? "blur(12px)" : undefined,
         }}
       >
         {isMobilePanel && isPanelOpen && (

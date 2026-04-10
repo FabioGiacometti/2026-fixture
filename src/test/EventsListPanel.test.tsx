@@ -289,6 +289,124 @@ describe("EventsListPanel match detail view", () => {
     expect(screen.getByRole("button", { name: "Grupo A: México vs Sudáfrica" })).toBeInTheDocument();
   });
 
+  it("does not auto-open the mobile World Cup panel when the visitor-country prefilter loads", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ countryCode: "AR", country: "Argentina" }),
+      })
+    );
+
+    const argentinaMatch = {
+      id: "wc2026-mobile-prefill",
+      title: "Grupo C: Argentina vs Japón",
+      description: "Argentina vs Japón · 20:00. Programado.",
+      year: 2026,
+      month: 6,
+      day: 14,
+      lat: 34.1613,
+      lng: -118.1676,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo C",
+      homeTeam: "Argentina",
+      awayTeam: "Japón",
+      kickoff: "20:00",
+      city: "Los Angeles Stadium",
+    } as HistoricalEvent;
+
+    const safari: Safari = {
+      id: CURRENT_WORLD_CUP_SAFARI_ID,
+      name: "Copa Mundial 2026",
+      description: "Canadá / México / Estados Unidos · Norteamérica.",
+      overview: "Seguimiento del torneo.",
+      eventIds: [argentinaMatch.id],
+    };
+
+    render(
+      <EventsListPanel
+        visibleEvents={[argentinaMatch]}
+        allEvents={[argentinaMatch]}
+        selectedEvent={null}
+        currentYear={2026}
+        windowSize={6}
+        activeSafari={safari}
+        isMobile={true}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={vi.fn()}
+        onCloseSafari={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalled();
+    });
+
+    expect(screen.getByRole("button", { name: /abrir calendario de partidos/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Grupo C: Argentina vs Japón" })).not.toBeInTheDocument();
+  });
+
+  it("renders the mobile World Cup calendar as a true full-screen sheet when opened", async () => {
+    const upcomingMatch = {
+      id: "wc2026-mobile-fullscreen",
+      title: "Grupo A: México vs Sudáfrica",
+      description: "México vs Sudáfrica · 16:00. Programado.",
+      year: 2026,
+      month: 6,
+      day: 11,
+      lat: 19.3029,
+      lng: -99.1505,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo A",
+      homeTeam: "México",
+      awayTeam: "Sudáfrica",
+      kickoff: "16:00",
+      city: "Estadio Ciudad de México",
+    } as HistoricalEvent;
+
+    const safari: Safari = {
+      id: CURRENT_WORLD_CUP_SAFARI_ID,
+      name: "Copa Mundial 2026",
+      description: "Canadá / México / Estados Unidos · Norteamérica.",
+      overview: "Seguimiento del torneo.",
+      eventIds: [upcomingMatch.id],
+    };
+
+    render(
+      <EventsListPanel
+        visibleEvents={[upcomingMatch]}
+        allEvents={[upcomingMatch]}
+        selectedEvent={null}
+        currentYear={2026}
+        windowSize={6}
+        activeSafari={safari}
+        isMobile={true}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={vi.fn()}
+        onCloseSafari={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /abrir calendario de partidos/i }));
+
+    const calendarDialog = await screen.findByRole("dialog", { name: /calendario del torneo/i });
+    expect(calendarDialog).toHaveStyle({
+      width: "100vw",
+      height: "100vh",
+      borderRadius: "0px",
+    });
+  });
+
   it("shows a mobile Grupos tab that filters groups by participating country", async () => {
     const mexicoMatch = {
       id: "wc2026-grupos-mx",

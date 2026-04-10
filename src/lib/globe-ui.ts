@@ -38,8 +38,66 @@ export function getMapThemeColors(): MapThemeColors {
 export const ACTIVE_EVENT_ZOOM_PERCENT = 80;
 export const MATCH_EVENT_ZOOM_PERCENT = 100;
 
-const MIN_CAMERA_HEIGHT = 10_000;
-const MAX_CAMERA_HEIGHT = 22_000_000;
+const BASE_MIN_CAMERA_HEIGHT = 500;
+const ZOOM_OUT_EXTENSION_FACTOR = 1.3;
+
+export const MIN_CAMERA_HEIGHT = BASE_MIN_CAMERA_HEIGHT;
+export const DEFAULT_MAX_CAMERA_HEIGHT = 22_000_000;
+const EARTH_RADIUS_METERS = 6_378_137;
+const DEFAULT_CAMERA_FOV_RADIANS = Math.PI / 3;
+const WHEEL_ZOOM_STEP = 0.0025;
+
+function getClampedMaxCameraHeight(maxHeight = DEFAULT_MAX_CAMERA_HEIGHT) {
+  const safeMaxHeight = Number.isFinite(maxHeight) ? maxHeight : DEFAULT_MAX_CAMERA_HEIGHT;
+  return Math.max(MIN_CAMERA_HEIGHT, safeMaxHeight);
+}
+
+export function getMaxZoomOutCameraHeight(viewportWidth: number, viewportHeight: number): number {
+  const safeWidth = Math.max(1, Number.isFinite(viewportWidth) ? viewportWidth : 1);
+  const safeHeight = Math.max(1, Number.isFinite(viewportHeight) ? viewportHeight : 1);
+  const aspectRatio = safeWidth / safeHeight;
+  const limitingFov = aspectRatio >= 1
+    ? DEFAULT_CAMERA_FOV_RADIANS
+    : 2 * Math.atan(Math.tan(DEFAULT_CAMERA_FOV_RADIANS / 2) * aspectRatio);
+
+  // On desktop, leave a little extra breathing room so the full globe sits comfortably
+  // inside the viewport instead of touching the top and bottom edges.
+  const viewportFillRatio = safeWidth >= 1024 ? 0.9 : 1;
+  const halfFov = Math.max((limitingFov * viewportFillRatio) / 2, 0.01);
+  const centerDistance = EARTH_RADIUS_METERS / Math.sin(halfFov);
+  const expandedHeight = (centerDistance - EARTH_RADIUS_METERS) * ZOOM_OUT_EXTENSION_FACTOR;
+
+  return Math.round(
+    Math.min(DEFAULT_MAX_CAMERA_HEIGHT, Math.max(MIN_CAMERA_HEIGHT, expandedHeight))
+  );
+}
+
+function clampCameraHeight(height: number, maxHeight = DEFAULT_MAX_CAMERA_HEIGHT): number {
+  const clampedMaxHeight = getClampedMaxCameraHeight(maxHeight);
+  const safeHeight = Number.isFinite(height) ? height : clampedMaxHeight;
+
+  return Math.round(Math.min(clampedMaxHeight, Math.max(MIN_CAMERA_HEIGHT, safeHeight)));
+}
+
+export function getWheelZoomCameraHeight(
+  currentHeight: number,
+  deltaY: number,
+  maxHeight = DEFAULT_MAX_CAMERA_HEIGHT
+): number {
+  const clampedCurrentHeight = clampCameraHeight(currentHeight, maxHeight);
+  const safeDeltaY = Number.isFinite(deltaY) ? deltaY : 0;
+
+  if (safeDeltaY === 0) {
+    return clampedCurrentHeight;
+  }
+
+  const zoomScale = Math.exp(Math.abs(safeDeltaY) * WHEEL_ZOOM_STEP);
+  const nextHeight = safeDeltaY > 0
+    ? clampedCurrentHeight * zoomScale
+    : clampedCurrentHeight / zoomScale;
+
+  return clampCameraHeight(nextHeight, maxHeight);
+}
 
 export interface CountryBounds {
   west: number;
@@ -184,11 +242,12 @@ export function getUpcomingWorldCupMapEvents(events: HistoricalEvent[]): Histori
   return [...uniqueVenueEvents.values()];
 }
 
-export function getCameraHeightForZoomPercent(percent: number): number {
+export function getCameraHeightForZoomPercent(percent: number, maxHeight = DEFAULT_MAX_CAMERA_HEIGHT): number {
   const safePercent = Number.isFinite(percent) ? percent : 0;
   const clampedPercent = Math.min(100, Math.max(0, safePercent));
-  const zoomRange = Math.log10(MAX_CAMERA_HEIGHT) - Math.log10(MIN_CAMERA_HEIGHT);
-  const logHeight = Math.log10(MAX_CAMERA_HEIGHT) - (clampedPercent / 100) * zoomRange;
+  const clampedMaxHeight = getClampedMaxCameraHeight(maxHeight);
+  const zoomRange = Math.log10(clampedMaxHeight) - Math.log10(MIN_CAMERA_HEIGHT);
+  const logHeight = Math.log10(clampedMaxHeight) - (clampedPercent / 100) * zoomRange;
 
   return Math.round(10 ** logHeight);
 }
@@ -226,14 +285,15 @@ export function getWorldCupCountryBounds(tournamentId?: string | null): CountryB
   return WORLD_CUP_COUNTRY_BOUNDS[year] ?? null;
 }
 
-export function getZoomIndicatorState(heightMeters: number): ZoomIndicatorState {
-  const safeHeight = Number.isFinite(heightMeters) ? heightMeters : MAX_CAMERA_HEIGHT;
-  const clampedHeight = Math.min(MAX_CAMERA_HEIGHT, Math.max(MIN_CAMERA_HEIGHT, safeHeight));
+export function getZoomIndicatorState(heightMeters: number, maxHeight = DEFAULT_MAX_CAMERA_HEIGHT): ZoomIndicatorState {
+  const clampedMaxHeight = getClampedMaxCameraHeight(maxHeight);
+  const safeHeight = Number.isFinite(heightMeters) ? heightMeters : clampedMaxHeight;
+  const clampedHeight = Math.min(clampedMaxHeight, Math.max(MIN_CAMERA_HEIGHT, safeHeight));
 
   // Cesium camera altitude spans several orders of magnitude, so a logarithmic curve
   // gives users a more intuitive "how close am I?" indicator than a linear scale.
-  const zoomRange = Math.log10(MAX_CAMERA_HEIGHT) - Math.log10(MIN_CAMERA_HEIGHT);
-  const zoomProgress = Math.log10(MAX_CAMERA_HEIGHT) - Math.log10(clampedHeight);
+  const zoomRange = Math.log10(clampedMaxHeight) - Math.log10(MIN_CAMERA_HEIGHT);
+  const zoomProgress = Math.log10(clampedMaxHeight) - Math.log10(clampedHeight);
   const percent = Math.round((zoomProgress / zoomRange) * 100);
 
   let label: ZoomIndicatorState["label"] = "Global";
