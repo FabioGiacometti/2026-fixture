@@ -27,6 +27,7 @@ interface EventsListPanelProps {
   quickFiltersFromRoute?: string[];
   isMobile?: boolean;
   hideCollapsedTrigger?: boolean;
+  collapsedBottomOffset?: number;
   worldCupGroups?: WorldCupGroupOption[];
   onSelectGroupFilter?: (group: string) => void;
 }
@@ -325,6 +326,7 @@ export default function EventsListPanel({
   quickFiltersFromRoute,
   isMobile = false,
   hideCollapsedTrigger = false,
+  collapsedBottomOffset = 12,
   worldCupGroups = [],
   onSelectGroupFilter,
 }: EventsListPanelProps) {
@@ -609,7 +611,7 @@ export default function EventsListPanel({
   const isPanelOpen = panelState !== "collapsed";
   const showMobileWorldCupTabs = isMobilePanel && isCurrentWorldCupSafari;
   const isShowingGroupsTab = showMobileWorldCupTabs && mobileListTab === "groups";
-  const isFullScreenMobilePanel = isMobilePanel && isCurrentWorldCupSafari && panelState === "list";
+  const isFullScreenMobilePanel = isMobilePanel && isCurrentWorldCupSafari && isPanelOpen;
   const mobilePanelHeight = isFullScreenMobilePanel
     ? "100vh"
     : panelState === "detail"
@@ -667,15 +669,15 @@ export default function EventsListPanel({
       className={
         isMobilePanel
           ? isFullScreenMobilePanel
-            ? "fixed inset-0 z-40 flex flex-col pointer-events-none"
-            : "fixed inset-x-0 bottom-0 z-40 flex flex-col items-end pointer-events-none"
+            ? "fixed inset-0 z-[60] flex flex-col pointer-events-none"
+            : "fixed inset-x-0 bottom-0 z-[60] flex flex-col items-end pointer-events-none"
           : "fixed top-0 right-0 h-full z-40 flex"
       }
       style={{
         paddingBottom: isMobilePanel
           ? isFullScreenMobilePanel
             ? "0px"
-            : "calc(var(--timeline-height, 0px) + 12px)"
+            : `calc(var(--timeline-height, 0px) + ${collapsedBottomOffset}px)`
           : "var(--timeline-height, 96px)",
       }}
     >
@@ -920,7 +922,10 @@ export default function EventsListPanel({
             </div>
 
             {/* Events list */}
-            <div className="flex-1 overflow-y-auto">
+            <div
+              className="flex-1 overflow-y-auto"
+              style={{ paddingBottom: isFullScreenMobilePanel ? "84px" : undefined }}
+            >
               {sortedEventsList.length > 0 && (
                 <div className="sticky top-0 z-10 border-b px-3 py-1.5" style={{
                   background: "hsl(var(--card) / 0.97)",
@@ -1345,6 +1350,31 @@ export default function EventsListPanel({
                 </ul>
               )}
             </div>
+
+            {isFullScreenMobilePanel && (
+              <div
+                className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-end px-4 pb-4"
+                style={{
+                  background: "linear-gradient(180deg, transparent 0%, hsl(var(--background) / 0.92) 55%, hsl(var(--background)) 100%)",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleCollapse}
+                  className="pointer-events-auto inline-flex items-center gap-2 rounded-full border px-4 py-2 font-mono-space text-[10px] uppercase tracking-[0.18em] shadow-lg transition-opacity hover:opacity-90"
+                  style={{
+                    borderColor: "hsl(var(--border))",
+                    background: "hsl(var(--card) / 0.94)",
+                    color: "hsl(var(--foreground))",
+                    backdropFilter: "blur(8px)",
+                  }}
+                  aria-label="Ver mapa"
+                >
+                  <Globe className="h-4 w-4" style={{ color: "hsl(var(--primary))" }} />
+                  <span>Ver mapa</span>
+                </button>
+              </div>
+            )}
           </>
         )}
 

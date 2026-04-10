@@ -1,4 +1,4 @@
-import { formatEventDate, type HistoricalEvent, type Safari } from "@/data/historical-events";
+import { formatEventDate, formatExplicitEventDate, type HistoricalEvent, type Safari } from "@/data/historical-events";
 
 export const ACTIVE_EVENT_COLOR = "#22C55E";
 export const INACTIVE_EVENT_COLOR = "#F2A900";
@@ -147,7 +147,22 @@ export interface ZoomIndicatorState {
   altitudeKm: number;
 }
 
-export function getMarkerAppearance(isSelected: boolean, emphasizeVenue = false): MarkerAppearance {
+export function getMarkerAppearance(
+  isSelected: boolean,
+  emphasizeVenue = false,
+  useSoftFocus = false
+): MarkerAppearance {
+  if (useSoftFocus) {
+    return {
+      pixelSize: emphasizeVenue ? 26 : 22,
+      color: getThemeCssColor("--map-active-marker", ACTIVE_EVENT_COLOR),
+      colorAlpha: emphasizeVenue ? 0.26 : 0.18,
+      outlineColor: getThemeCssColor("--map-active-marker-outline", "#DCFCE7"),
+      outlineWidth: emphasizeVenue ? 12 : 8,
+      labelColor: getThemeCssColor("--map-active-marker", ACTIVE_EVENT_COLOR),
+    };
+  }
+
   if (isSelected) {
     return {
       pixelSize: emphasizeVenue ? 20 : 16,
@@ -210,7 +225,7 @@ export function getUpcomingMatchTooltipLabel(
   event: Pick<HistoricalEvent, "city" | "region" | "homeTeam" | "awayTeam" | "homeFlag" | "awayFlag" | "year" | "month" | "day" | "kickoff">
 ): string {
   const venueLine = event.city ?? event.region ?? "Sede";
-  const dateLine = `${formatEventDate(event, { includeEra: false })}${event.kickoff ? ` · ${event.kickoff}` : ""}`;
+  const dateLine = formatExplicitEventDate(event, { includeEra: false, includeTime: true });
   const homeLabel = `${getFlagEmoji(event.homeFlag)} ${event.homeTeam ?? "Local"}`.trim();
   const awayLabel = `${getFlagEmoji(event.awayFlag)} ${event.awayTeam ?? "Visitante"}`.trim();
 

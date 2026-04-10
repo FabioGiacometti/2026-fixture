@@ -407,6 +407,117 @@ describe("EventsListPanel match detail view", () => {
     });
   });
 
+  it("offers a Ver mapa button in the mobile calendar view that collapses back to the map", async () => {
+    const upcomingMatch = {
+      id: "wc2026-mobile-ver-mapa",
+      title: "Grupo A: México vs Sudáfrica",
+      description: "México vs Sudáfrica · 16:00. Programado.",
+      year: 2026,
+      month: 6,
+      day: 11,
+      lat: 19.3029,
+      lng: -99.1505,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo A",
+      homeTeam: "México",
+      awayTeam: "Sudáfrica",
+      kickoff: "16:00",
+      city: "Estadio Ciudad de México",
+    } as HistoricalEvent;
+
+    const safari: Safari = {
+      id: CURRENT_WORLD_CUP_SAFARI_ID,
+      name: "Copa Mundial 2026",
+      description: "Canadá / México / Estados Unidos · Norteamérica.",
+      overview: "Seguimiento del torneo.",
+      eventIds: [upcomingMatch.id],
+    };
+
+    const onClose = vi.fn();
+
+    render(
+      <EventsListPanel
+        visibleEvents={[upcomingMatch]}
+        allEvents={[upcomingMatch]}
+        selectedEvent={null}
+        currentYear={2026}
+        windowSize={6}
+        activeSafari={safari}
+        isMobile={true}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={onClose}
+        onCloseSafari={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /abrir calendario de partidos/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /ver mapa/i }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /abrir calendario de partidos/i })).toBeInTheDocument();
+    });
+  });
+
+  it("renders the mobile World Cup match detail as a true full-screen sheet", async () => {
+    const upcomingMatch = {
+      id: "wc2026-mobile-detail-fullscreen",
+      title: "Grupo A: México vs Sudáfrica",
+      description: "México vs Sudáfrica · 16:00. Programado.",
+      year: 2026,
+      month: 6,
+      day: 11,
+      lat: 19.3029,
+      lng: -99.1505,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      groupName: "Grupo A",
+      homeTeam: "México",
+      awayTeam: "Sudáfrica",
+      kickoff: "16:00",
+      city: "Estadio Ciudad de México",
+    } as HistoricalEvent;
+
+    const safari: Safari = {
+      id: CURRENT_WORLD_CUP_SAFARI_ID,
+      name: "Copa Mundial 2026",
+      description: "Canadá / México / Estados Unidos · Norteamérica.",
+      overview: "Seguimiento del torneo.",
+      eventIds: [upcomingMatch.id],
+    };
+
+    render(
+      <EventsListPanel
+        visibleEvents={[upcomingMatch]}
+        allEvents={[upcomingMatch]}
+        selectedEvent={upcomingMatch}
+        currentYear={2026}
+        windowSize={6}
+        activeSafari={safari}
+        isMobile={true}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={vi.fn()}
+        onCloseSafari={vi.fn()}
+      />
+    );
+
+    const detailDialog = await screen.findByRole("dialog", { name: /calendario del torneo/i });
+    expect(detailDialog).toHaveStyle({
+      width: "100vw",
+      height: "100vh",
+      borderRadius: "0px",
+    });
+  });
+
   it("shows a mobile Grupos tab that filters groups by participating country", async () => {
     const mexicoMatch = {
       id: "wc2026-grupos-mx",

@@ -43,6 +43,19 @@ describe("globe UI helpers", () => {
     expect(upcomingMarker.colorAlpha).toBeGreaterThan(defaultMarker.colorAlpha);
   });
 
+  it("renders a tapped mobile focus marker as large but translucent", () => {
+    const defaultMarker = getMarkerAppearance(false);
+    const previewMarker = (getMarkerAppearance as (...args: unknown[]) => ReturnType<typeof getMarkerAppearance>)(
+      false,
+      false,
+      true
+    );
+
+    expect(previewMarker.pixelSize).toBeGreaterThan(defaultMarker.pixelSize);
+    expect(previewMarker.colorAlpha).toBeLessThan(defaultMarker.colorAlpha);
+    expect(previewMarker.outlineWidth).toBeGreaterThan(defaultMarker.outlineWidth);
+  });
+
   it("formats upcoming match tooltip labels with date and flags", () => {
     const label = getUpcomingMatchTooltipLabel({
       city: "San Francisco Bay Area Stadium",
@@ -58,7 +71,8 @@ describe("globe UI helpers", () => {
     });
 
     expect(label).toContain("San Francisco Bay Area Stadium");
-    expect(label).toContain("25-06-2026 · 18:00");
+    expect(label).toContain("jueves");
+    expect(label).toContain("25 de junio de 2026 · 18:00");
     expect(label).toContain("🇶🇦 Qatar vs 🇨🇭 Suiza");
   });
 

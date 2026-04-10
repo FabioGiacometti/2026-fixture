@@ -1956,6 +1956,31 @@ export function formatEventDate(
   return includeEra ? `${dayPart}-${monthPart}-${event.year} d.C.` : `${dayPart}-${monthPart}-${event.year}`;
 }
 
+export function formatExplicitEventDate(
+  event: Pick<HistoricalEvent, "year" | "month" | "day" | "kickoff">,
+  options?: { includeEra?: boolean; includeTime?: boolean }
+): string {
+  const includeEra = options?.includeEra ?? true;
+  const includeTime = options?.includeTime ?? true;
+
+  if (event.year > 0) {
+    const date = new Date(event.year, Math.max(0, (event.month ?? 1) - 1), Math.max(1, event.day ?? 1));
+    const explicitDate = new Intl.DateTimeFormat("es-AR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }).format(date);
+
+    return includeTime && event.kickoff
+      ? `${explicitDate} · ${event.kickoff}`
+      : explicitDate;
+  }
+
+  const fallbackDate = formatEventDate(event, { includeEra });
+  return includeTime && event.kickoff ? `${fallbackDate} · ${event.kickoff}` : fallbackDate;
+}
+
 export function getEventsInRange(year: number, windowSize = 300, sourceEvents: HistoricalEvent[] = historicalEvents): HistoricalEvent[] {
   return sourceEvents.filter(
     (e) => e.year >= year - windowSize && e.year <= year + windowSize

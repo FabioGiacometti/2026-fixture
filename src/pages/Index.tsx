@@ -8,7 +8,7 @@ import SafariSelectionModal from "@/components/SafariSelectionModal";
 import FixturePipPanel from "@/components/FixturePipPanel";
 import WorldCupGroupsDrawer from "@/components/WorldCupGroupsDrawer";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
-import { historicalEvents, formatEventDate, formatYear, getEventsInRange, safaris } from "@/data/historical-events";
+import { historicalEvents, formatEventDate, formatExplicitEventDate, formatYear, getEventsInRange, safaris } from "@/data/historical-events";
 import {
   CURRENT_WORLD_CUP_SAFARI_ID,
   CURRENT_WORLD_CUP_YEAR,
@@ -86,7 +86,9 @@ export default function Index() {
   const [rightPanelOffset, setRightPanelOffset] = useState<number>(
     datasetMode === "worldcup" ? 300 : 36
   );
+  const [mobilePopupCardHeight, setMobilePopupCardHeight] = useState(0);
   const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mobilePopupCardRef = useRef<HTMLDivElement | null>(null);
   const hoverClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverTooltipInteractingRef = useRef(false);
   const hasAppliedRouteStateRef = useRef(false);
@@ -445,12 +447,41 @@ export default function Index() {
   ].filter((value): value is string => Boolean(value));
   const shouldPrioritizeMobilePopup = isMobile && Boolean(activePopupEvent) && !selectedEvent;
   const isMobilePanelOpen = isMobile && rightPanelOffset > 36;
+  const mobileCalendarioOffset = shouldPrioritizeMobilePopup ? mobilePopupCardHeight + 16 : 12;
   const shouldHideBottomNavigation = isMobile && (Boolean(activePopupEvent) || Boolean(selectedEvent) || isMobilePanelOpen);
   const showMobileContextChips = isMobile && !activePopupEvent && !selectedEvent && popupContextChips.length > 0;
 
   useEffect(() => {
     setIsMobilePopupDismissed(false);
   }, [nextUpcomingPopupEvent?.id, activeSafari?.id, datasetMode]);
+
+  useEffect(() => {
+    if (!shouldPrioritizeMobilePopup) {
+      setMobilePopupCardHeight(0);
+      return;
+    }
+
+    const updatePopupHeight = () => {
+      const nextHeight = mobilePopupCardRef.current?.getBoundingClientRect().height ?? 0;
+      setMobilePopupCardHeight(Math.round(nextHeight));
+    };
+
+    updatePopupHeight();
+
+    if (typeof ResizeObserver === "undefined" || !mobilePopupCardRef.current) {
+      window.addEventListener("resize", updatePopupHeight);
+      return () => window.removeEventListener("resize", updatePopupHeight);
+    }
+
+    const observer = new ResizeObserver(() => updatePopupHeight());
+    observer.observe(mobilePopupCardRef.current);
+    window.addEventListener("resize", updatePopupHeight);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updatePopupHeight);
+    };
+  }, [shouldPrioritizeMobilePopup, activePopupEvent?.id]);
 
   const routeState = useMemo(
     () => buildAppRouteState({
@@ -510,6 +541,7 @@ export default function Index() {
 
   const handleClosePanel = useCallback(() => {
     setSelectedEvent(null);
+    setFocusedVenueEvent(null);
   }, []);
 
   const clearHoverTooltip = useCallback(() => {
@@ -552,6 +584,7 @@ export default function Index() {
     clearHoverTooltip();
     hoverTooltipInteractingRef.current = false;
     setHoveredEventState(null);
+    setFocusedVenueEvent(null);
     setIsMobilePopupDismissed(true);
   }, [clearHoverTooltip]);
 
@@ -603,7 +636,7 @@ export default function Index() {
     hoverTooltipInteractingRef.current = false;
     setIsMobilePopupDismissed(false);
 
-    if (hoveredEventState?.event.id === event.id) {
+    if (!isMobile && hoveredEventState?.event.id === event.id) {
       applyVenueFilter(event);
       return;
     }
@@ -612,7 +645,7 @@ export default function Index() {
     setFocusedVenueEvent(event);
     setCurrentYear(event.year);
     setHoveredEventState({ event, x, y });
-  }, [applyVenueFilter, clearHoverTooltip, hoveredEventState]);
+  }, [applyVenueFilter, clearHoverTooltip, hoveredEventState, isMobile]);
 
   const handleSelectSafari = useCallback((safariId: string) => {
     if (safariId.startsWith("world-cup-")) {
@@ -701,7 +734,11 @@ export default function Index() {
       {/* ── Map popup overlay ── */}
       {activePopupEvent && (
         <div
-          className="fixed z-50 pointer-events-none"
+          className={
+            isMobile
+              ? "fixed inset-x-0 bottom-0 z-50 flex flex-col justify-end pointer-events-none"
+              : "fixed z-50 pointer-events-none"
+          }
           style={
             !isMobile && hoveredEventState
               ? {
@@ -713,22 +750,29 @@ export default function Index() {
                       ? "translateX(-110%)"
                       : undefined,
                 }
-              : {
-                  left: isMobile ? "12px" : "18px",
-                  right: isMobile ? "12px" : undefined,
-                  bottom: "calc(var(--timeline-height) + 18px)",
-                  maxWidth: isMobile ? undefined : activePopupEvent.dataset === "worldcup" ? "320px" : "240px",
-                }
+              : isMobile
+                ? undefined
+                : {
+                    left: "18px",
+                    bottom: "calc(var(--timeline-height) + 18px)",
+                    maxWidth: activePopupEvent.dataset === "worldcup" ? "320px" : "240px",
+                  }
           }
         >
           <div
-            className="pointer-events-auto relative rounded-xl border px-3.5 py-3 shadow-xl"
+            ref={isMobile ? mobilePopupCardRef : undefined}
+            className={`pointer-events-auto border px-3.5 py-3 shadow-xl ${
+              isMobile ? "w-full rounded-none border-b-0 border-l-0 border-r-0 px-4 pb-4 pt-3" : "relative rounded-xl"
+            }`}
             style={{
-              background: "hsl(var(--card) / 0.97)",
-              border: "1px solid hsl(var(--border))",
-              boxShadow: "0 10px 28px hsl(0 0% 0% / 0.42)",
+              background: isMobile ? "hsl(var(--card))" : "hsl(var(--card) / 0.97)",
+              border: isMobile ? "1px solid hsl(var(--border))" : "1px solid hsl(var(--border))",
+              borderTopLeftRadius: isMobile ? "24px" : undefined,
+              borderTopRightRadius: isMobile ? "24px" : undefined,
+              boxShadow: isMobile ? "0 -16px 40px hsl(0 0% 0% / 0.42)" : "0 10px 28px hsl(0 0% 0% / 0.42)",
               backdropFilter: "blur(10px)",
             }}
+            onClick={isMobile ? handleOpenHoveredMatchInfo : undefined}
             onMouseEnter={() => {
               hoverTooltipInteractingRef.current = true;
               clearHoverTooltip();
@@ -741,7 +785,10 @@ export default function Index() {
             {isMobile && (
               <button
                 type="button"
-                onClick={handleDismissPopup}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleDismissPopup();
+                }}
                 aria-label="Cerrar tooltip del mapa"
                 className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-base font-semibold transition-opacity hover:opacity-80"
                 style={{
@@ -753,13 +800,29 @@ export default function Index() {
               </button>
             )}
             {activePopupEvent.dataset === "worldcup" && activePopupEvent.eventType === "match" ? (
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-3">
+                <div className="pr-10">
+                  <p
+                    className="text-[17px] font-semibold leading-tight"
+                    style={{ color: "hsl(var(--foreground))" }}
+                  >
+                    {isNextPopupEvent
+                      ? popupContextChips.length > 0
+                        ? "Tu próximo partido relevante"
+                        : "Próximo partido del torneo"
+                      : "Partido seleccionado en el mapa"}
+                  </p>
+                </div>
+
                 <div className="flex items-center justify-between gap-2">
                   {activePopupEvent.groupName ? (
                     <button
                       type="button"
-                      onClick={() => handleApplyGroupFilter(activePopupEvent)}
-                      className="rounded-full px-2 py-0.5 font-mono-space text-[9px] uppercase tracking-[0.18em] transition-opacity hover:opacity-80"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleApplyGroupFilter(activePopupEvent);
+                      }}
+                      className="rounded-full px-2.5 py-1 font-mono-space text-[10px] uppercase tracking-[0.18em] transition-opacity hover:opacity-80"
                       style={{
                         color: "hsl(var(--primary))",
                         background: "hsl(var(--primary) / 0.12)",
@@ -769,7 +832,7 @@ export default function Index() {
                     </button>
                   ) : (
                     <span
-                      className="rounded-full px-2 py-0.5 font-mono-space text-[9px] uppercase tracking-[0.18em]"
+                      className="rounded-full px-2.5 py-1 font-mono-space text-[10px] uppercase tracking-[0.18em]"
                       style={{
                         color: "hsl(var(--primary))",
                         background: "hsl(var(--primary) / 0.12)",
@@ -778,90 +841,93 @@ export default function Index() {
                       {activePopupEvent.stage ?? "Partido"}
                     </span>
                   )}
-                  <span
-                    className="text-[11px]"
-                    style={{ color: "hsl(var(--muted-foreground))" }}
-                  >
-                    {`${formatEventDate(activePopupEvent, { includeEra: false })}${activePopupEvent.kickoff ? ` · ${activePopupEvent.kickoff}` : ""}`}
-                  </span>
                 </div>
 
-                <div>
+                <div className="flex items-center gap-2 text-[18px] font-semibold leading-snug" style={{ color: "hsl(var(--foreground))" }}>
                   <button
                     type="button"
-                    onClick={() => applyVenueFilter(activePopupEvent)}
-                    className="text-left text-sm font-semibold leading-tight transition-opacity hover:opacity-80"
-                    style={{ color: "hsl(var(--foreground))" }}
-                  >
-                    {activePopupEvent.city ?? activePopupEvent.region}
-                  </button>
-                  {isNextPopupEvent && (
-                    <p
-                      className="mt-0.5 text-[11px] leading-relaxed"
-                      style={{ color: "hsl(var(--muted-foreground))" }}
-                    >
-                      {popupContextChips.length > 0
-                        ? "Tu próximo partido relevante"
-                        : "Próximo partido del calendario mundialista"}
-                    </p>
-                  )}
-                  {isMobile && popupContextChips.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {popupContextChips.map((chip) => (
-                        <span
-                          key={`popup-chip-${chip}`}
-                          className="rounded-full px-2 py-0.5 font-mono-space text-[9px] uppercase tracking-[0.18em]"
-                          style={{
-                            color: "hsl(var(--primary))",
-                            background: "hsl(var(--primary) / 0.1)",
-                          }}
-                        >
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 text-[13px] font-semibold leading-snug" style={{ color: "hsl(var(--foreground))" }}>
-                  <button
-                    type="button"
-                    onClick={() => handleApplyTeamFilter(activePopupEvent.homeTeam, activePopupEvent)}
-                    className="flex min-w-0 items-center gap-1.5 text-left transition-opacity hover:opacity-80"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleApplyTeamFilter(activePopupEvent.homeTeam, activePopupEvent);
+                    }}
+                    className="flex min-w-0 items-center gap-2 text-left transition-opacity hover:opacity-80"
                   >
                     {activePopupEvent.homeFlag && (
                       <img
                         src={`https://flagcdn.com/w20/${activePopupEvent.homeFlag.toLowerCase()}.png`}
                         alt={activePopupEvent.homeTeam ?? "Local"}
-                        className="h-3.5 w-5 rounded-[2px] object-cover shadow-sm"
+                        className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
                       />
                     )}
-                    <span className="truncate">{activePopupEvent.homeTeam ?? "Local"}</span>
+                    <span className="truncate text-[19px] font-semibold">{activePopupEvent.homeTeam ?? "Local"}</span>
                   </button>
                   <span style={{ color: "hsl(var(--muted-foreground))" }}>vs</span>
                   <button
                     type="button"
-                    onClick={() => handleApplyTeamFilter(activePopupEvent.awayTeam, activePopupEvent)}
-                    className="flex min-w-0 items-center gap-1.5 text-left transition-opacity hover:opacity-80"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleApplyTeamFilter(activePopupEvent.awayTeam, activePopupEvent);
+                    }}
+                    className="flex min-w-0 items-center gap-2 text-left transition-opacity hover:opacity-80"
                   >
                     {activePopupEvent.awayFlag && (
                       <img
                         src={`https://flagcdn.com/w20/${activePopupEvent.awayFlag.toLowerCase()}.png`}
                         alt={activePopupEvent.awayTeam ?? "Visitante"}
-                        className="h-3.5 w-5 rounded-[2px] object-cover shadow-sm"
+                        className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
                       />
                     )}
-                    <span className="truncate">{activePopupEvent.awayTeam ?? "Visitante"}</span>
+                    <span className="truncate text-[19px] font-semibold">{activePopupEvent.awayTeam ?? "Visitante"}</span>
                   </button>
                 </div>
 
+                <div className="space-y-1">
+                  <p
+                    className="text-[12px] uppercase tracking-[0.18em]"
+                    style={{ color: "hsl(var(--muted-foreground))" }}
+                  >
+                    {formatExplicitEventDate(activePopupEvent, { includeEra: false, includeTime: true })}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      applyVenueFilter(activePopupEvent);
+                    }}
+                    className="text-left text-[15px] font-semibold leading-tight transition-opacity hover:opacity-80"
+                    style={{ color: "hsl(var(--foreground))" }}
+                  >
+                    {activePopupEvent.city ?? activePopupEvent.region}
+                  </button>
+                </div>
+
+                {isMobile && popupContextChips.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {popupContextChips.map((chip) => (
+                      <span
+                        key={`popup-chip-${chip}`}
+                        className="rounded-full px-2 py-0.5 font-mono-space text-[9px] uppercase tracking-[0.18em]"
+                        style={{
+                          color: "hsl(var(--primary))",
+                          background: "hsl(var(--primary) / 0.1)",
+                        }}
+                      >
+                        {chip}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 <button
                   type="button"
-                  onClick={handleOpenHoveredMatchInfo}
-                  className="self-start rounded-md px-0 py-0.5 text-[11px] font-semibold transition-colors hover:opacity-80"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleOpenHoveredMatchInfo();
+                  }}
+                  className="self-start rounded-md px-0 py-0.5 text-[12px] font-semibold transition-colors hover:opacity-80"
                   style={{ color: "hsl(var(--primary))" }}
                 >
-                  Ver más información
+                  Ver información del partido
                 </button>
               </div>
             ) : (
@@ -913,19 +979,26 @@ export default function Index() {
       </button>
 
       {showMobileContextChips && (
-        <div className="fixed left-3 right-3 top-[6.4rem] z-40 flex flex-wrap gap-1.5">
+        <div className="fixed left-4 top-[4.7rem] z-40 flex max-w-[calc(100vw-2rem)] flex-col gap-2">
           {selectedWorldCupGroup !== "Todos" && (
             <button
               type="button"
-              onClick={() => setSelectedWorldCupGroup("Todos")}
-              className="rounded-full px-2 py-1 font-mono-space text-[9px] uppercase tracking-[0.18em]"
+              onClick={() => {
+                setSelectedWorldCupGroup("Todos");
+                setFocusedVenueEvent(null);
+                setHoveredEventState(null);
+                setIsMobilePopupDismissed(true);
+              }}
+              className="inline-flex w-fit max-w-full items-center gap-2 rounded-full px-4 py-3 font-mono-space text-[10px] uppercase tracking-[0.18em] shadow-lg"
               style={{
                 color: "hsl(var(--primary))",
-                background: "hsl(var(--primary) / 0.12)",
-                border: "1px solid hsl(var(--primary) / 0.25)",
+                background: "hsl(var(--card) / 0.94)",
+                border: "1px solid hsl(var(--primary) / 0.28)",
+                backdropFilter: "blur(10px)",
               }}
             >
-              {selectedWorldCupGroup}
+              <span className="truncate">Grupo {selectedWorldCupGroup}</span>
+              <span aria-hidden="true">×</span>
             </button>
           )}
           {panelQuickFilters.slice(0, 2).map((chip) => (
@@ -934,31 +1007,43 @@ export default function Index() {
               type="button"
               onClick={() => {
                 setPanelQuickFilters((prev) => prev.filter((value) => value !== chip));
-                if (venueContextLabel === chip) {
-                  setFocusedVenueEvent(null);
-                }
+                setFocusedVenueEvent(null);
+                setHoveredEventState(null);
+                setIsMobilePopupDismissed(true);
               }}
-              className="rounded-full px-2 py-1 font-mono-space text-[9px] uppercase tracking-[0.18em]"
+              className="inline-flex w-fit max-w-full items-center gap-2 rounded-full px-4 py-3 text-left font-mono-space text-[10px] uppercase tracking-[0.18em] shadow-lg"
               style={{
-                color: "hsl(var(--primary))",
-                background: "hsl(var(--primary) / 0.12)",
-                border: "1px solid hsl(var(--primary) / 0.25)",
+                color: "hsl(var(--foreground))",
+                background: "hsl(var(--card) / 0.94)",
+                border: "1px solid hsl(var(--border))",
+                backdropFilter: "blur(10px)",
               }}
             >
-              {chip}
+              <span className="truncate">
+                {venueContextLabel === chip ? chip : `Partidos de ${chip}`}
+              </span>
+              <span aria-hidden="true" style={{ color: "hsl(var(--primary))" }}>×</span>
             </button>
           ))}
           {venueContextLabel && !panelQuickFilters.includes(venueContextLabel) && (
-            <span
-              className="rounded-full px-2 py-1 font-mono-space text-[9px] uppercase tracking-[0.18em]"
+            <button
+              type="button"
+              onClick={() => {
+                setFocusedVenueEvent(null);
+                setHoveredEventState(null);
+                setIsMobilePopupDismissed(true);
+              }}
+              className="inline-flex w-fit max-w-full items-center gap-2 rounded-full px-4 py-3 text-left font-mono-space text-[10px] uppercase tracking-[0.18em] shadow-lg"
               style={{
-                color: "hsl(var(--muted-foreground))",
-                background: "hsl(var(--muted) / 0.24)",
-                border: "1px solid hsl(var(--border) / 0.7)",
+                color: "hsl(var(--foreground))",
+                background: "hsl(var(--card) / 0.94)",
+                border: "1px solid hsl(var(--border))",
+                backdropFilter: "blur(10px)",
               }}
             >
-              {venueContextLabel}
-            </span>
+              <span className="truncate">{venueContextLabel}</span>
+              <span aria-hidden="true" style={{ color: "hsl(var(--primary))" }}>×</span>
+            </button>
           )}
         </div>
       )}
@@ -1023,10 +1108,16 @@ export default function Index() {
         onQuickFiltersChange={handlePanelQuickFiltersChange}
         onPanelOffsetChange={setRightPanelOffset}
         activeGroupFilter={showWorldCupGroupsDrawer ? selectedWorldCupGroup : undefined}
-        onClearGroupFilter={() => setSelectedWorldCupGroup("Todos")}
+        onClearGroupFilter={() => {
+          setSelectedWorldCupGroup("Todos");
+          setFocusedVenueEvent(null);
+          setHoveredEventState(null);
+          setIsMobilePopupDismissed(true);
+        }}
         quickFiltersFromRoute={panelQuickFilters}
         isMobile={isMobile}
-        hideCollapsedTrigger={shouldPrioritizeMobilePopup}
+        hideCollapsedTrigger={Boolean(selectedEvent) || isMobilePanelOpen}
+        collapsedBottomOffset={mobileCalendarioOffset}
         worldCupGroups={worldCupGroupOptions}
         onSelectGroupFilter={setSelectedWorldCupGroup}
       />

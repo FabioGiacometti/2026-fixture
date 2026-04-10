@@ -290,7 +290,7 @@ export default function CesiumGlobe({
         const found = allEventsRef.current.find((e) => e.id === eventId);
         if (!found) return;
 
-        if (isUpcomingWorldCupMatch(found) && onSelectVenueRef.current) {
+        if ((isMobile || isUpcomingWorldCupMatch(found)) && onSelectVenueRef.current) {
           const rect = viewer.scene.canvas.getBoundingClientRect();
           onSelectVenueRef.current(
             found,
@@ -409,9 +409,10 @@ export default function CesiumGlobe({
     events.forEach((event) => {
       if (entitiesRef.current.has(event.id)) return;
 
-      const isSelected = selectedEvent?.id === event.id || focusedEvent?.id === event.id;
+      const isFocusedPreview = !selectedEvent && focusedEvent?.id === event.id;
+      const isSelected = selectedEvent?.id === event.id || isFocusedPreview;
       const isUpcomingVenueMarker = isUpcomingWorldCupMatch(event);
-      const markerAppearance = getMarkerAppearance(isSelected, isUpcomingVenueMarker);
+      const markerAppearance = getMarkerAppearance(isSelected, isUpcomingVenueMarker, isFocusedPreview);
       const maxDisplayDistance = isUpcomingVenueMarker
         ? 30_000_000.0
         : event.importance === 1
@@ -470,9 +471,10 @@ export default function CesiumGlobe({
 
     entitiesRef.current.forEach((entity, id) => {
       const linkedEvent = events.find((event) => event.id === id) ?? allEvents.find((event) => event.id === id);
-      const isSelected = selectedEvent?.id === id || focusedEvent?.id === id;
+      const isFocusedPreview = !selectedEvent && focusedEvent?.id === id;
+      const isSelected = selectedEvent?.id === id || isFocusedPreview;
       const isUpcomingVenueMarker = isUpcomingWorldCupMatch(linkedEvent);
-      const markerAppearance = getMarkerAppearance(isSelected, isUpcomingVenueMarker);
+      const markerAppearance = getMarkerAppearance(isSelected, isUpcomingVenueMarker, isFocusedPreview);
 
       if (entity.point) {
         entity.point.pixelSize = markerAppearance.pixelSize;
