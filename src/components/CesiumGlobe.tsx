@@ -25,11 +25,19 @@ declare global {
   }
 }
 
+interface GlobeViewportInsets {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+
 interface CesiumGlobeProps {
   events: HistoricalEvent[];
   allEvents: HistoricalEvent[];
   selectedEvent: HistoricalEvent | null;
   focusedEvent?: HistoricalEvent | null;
+  viewportInsets?: GlobeViewportInsets;
   activeSafari: Safari | null;
   onSelectEvent: (event: HistoricalEvent) => void;
   onSelectVenue?: (event: HistoricalEvent, x: number, y: number) => void;
@@ -44,6 +52,7 @@ export default function CesiumGlobe({
   allEvents,
   selectedEvent,
   focusedEvent = null,
+  viewportInsets,
   activeSafari,
   onSelectEvent,
   onSelectVenue,
@@ -74,6 +83,12 @@ export default function CesiumGlobe({
   const { theme } = useTheme();
   const themeKey = theme ?? "geological-dark";
   const mapThemeColors = getMapThemeColors();
+  const safeViewportInsets = {
+    top: Math.max(0, viewportInsets?.top ?? 0),
+    right: Math.max(0, viewportInsets?.right ?? 0),
+    bottom: Math.max(0, viewportInsets?.bottom ?? 0),
+    left: Math.max(0, viewportInsets?.left ?? 0),
+  };
 
   useEffect(() => { onSelectRef.current = onSelectEvent; }, [onSelectEvent]);
   useEffect(() => { onSelectVenueRef.current = onSelectVenue; }, [onSelectVenue]);
@@ -392,6 +407,14 @@ export default function CesiumGlobe({
     viewer.scene.backgroundColor = Cesium.Color.fromCssColorString(mapThemeColors.sceneBackground);
   }, [themeKey, mapThemeColors.sceneBackground]);
 
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+
+    viewer.resize?.();
+    window.dispatchEvent(new Event("resize"));
+  }, [safeViewportInsets.top, safeViewportInsets.right, safeViewportInsets.bottom, safeViewportInsets.left]);
+
   /* ── Update markers when visible events change ── */
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -461,7 +484,7 @@ export default function CesiumGlobe({
       entity._customEventId = event.id;
       entitiesRef.current.set(event.id, entity);
     });
-  }, [events, selectedEvent, isMobile, mapThemeColors.labelOutlineColor, mapThemeColors.tooltipBackgroundColor]);
+  }, [events, selectedEvent, focusedEvent, isMobile, mapThemeColors.labelOutlineColor, mapThemeColors.tooltipBackgroundColor]);
 
   /* ── Highlight selected event and fly camera ── */
   useEffect(() => {
@@ -613,8 +636,14 @@ export default function CesiumGlobe({
     <div className="absolute inset-0">
       <div
         ref={containerRef}
-        className="absolute inset-0"
-        style={{ background: "hsl(var(--map-scene-background))" }}
+        className="absolute"
+        style={{
+          top: `${safeViewportInsets.top}px`,
+          right: `${safeViewportInsets.right}px`,
+          bottom: `${safeViewportInsets.bottom}px`,
+          left: `${safeViewportInsets.left}px`,
+          background: "hsl(var(--map-scene-background))",
+        }}
       />
 
       {showZoomIndicator && (

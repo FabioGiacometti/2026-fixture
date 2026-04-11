@@ -17,7 +17,7 @@ import {
   worldCupSafaris,
 } from "@/data/world-cup-data";
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
-import { getNextUpcomingWorldCupEvent, getUpcomingWorldCupMapEvents } from "@/lib/globe-ui";
+import { getChronologicalMatchNavigationEvent, getNextUpcomingWorldCupEvent, getUpcomingWorldCupMapEvents } from "@/lib/globe-ui";
 import { buildAppRouteState, parseAppRouteState } from "@/lib/app-route-state";
 import { env } from "@/lib/env";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -90,6 +90,8 @@ export default function Index() {
   const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mobilePopupCardRef = useRef<HTMLDivElement | null>(null);
   const hoverClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const popupSwipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const popupSwipeHandledRef = useRef(false);
   const hoverTooltipInteractingRef = useRef(false);
   const hasAppliedRouteStateRef = useRef(false);
   const lastTrackedRouteRef = useRef<string | null>(null);
@@ -439,17 +441,31 @@ export default function Index() {
       nextUpcomingPopupEvent &&
       activePopupEvent.id === nextUpcomingPopupEvent.id
   );
-  const venueContextLabel = focusedVenueEvent?.city ?? focusedVenueEvent?.region ?? null;
   const popupContextChips = [
     selectedWorldCupGroup !== "Todos" ? selectedWorldCupGroup : null,
     ...panelQuickFilters.slice(0, 2),
-    venueContextLabel && !panelQuickFilters.includes(venueContextLabel) ? venueContextLabel : null,
   ].filter((value): value is string => Boolean(value));
   const shouldPrioritizeMobilePopup = isMobile && Boolean(activePopupEvent) && !selectedEvent;
   const isMobilePanelOpen = isMobile && rightPanelOffset > 36;
   const mobileCalendarioOffset = shouldPrioritizeMobilePopup ? mobilePopupCardHeight + 16 : 12;
   const shouldHideBottomNavigation = isMobile && (Boolean(activePopupEvent) || Boolean(selectedEvent) || isMobilePanelOpen);
-  const showMobileContextChips = isMobile && !activePopupEvent && !selectedEvent && popupContextChips.length > 0;
+  const hasMobileFilterChips = selectedWorldCupGroup !== "Todos" || panelQuickFilters.length > 0;
+  const showMobileContextChips = isMobile && !selectedEvent && hasMobileFilterChips;
+  const swipeablePopupMatches = useMemo(
+    () =>
+      (datasetMode === "worldcup" ? currentWorldCupFilteredEvents : visibleEvents)
+        .filter((event) => event.eventType === "match"),
+    [datasetMode, currentWorldCupFilteredEvents, visibleEvents]
+  );
+  const globeViewportInsets = useMemo(
+    () => ({
+      top: 0,
+      left: 0,
+      right: isMobile ? 0 : rightPanelOffset,
+      bottom: isMobile && shouldPrioritizeMobilePopup ? Math.max(0, mobilePopupCardHeight - 8) : 0,
+    }),
+    [isMobile, rightPanelOffset, shouldPrioritizeMobilePopup, mobilePopupCardHeight]
+  );
 
   useEffect(() => {
     setIsMobilePopupDismissed(false);
@@ -588,6 +604,83 @@ export default function Index() {
     setIsMobilePopupDismissed(true);
   }, [clearHoverTooltip]);
 
+  const resetMobileFiltersView = useCallback(() => {
+    clearHoverTooltip();
+    hoverTooltipInteractingRef.current = false;
+    setHoveredEventState(null);
+    setFocusedVenueEvent(null);
+    setIsMobilePopupDismissed(false);
+  }, [clearHoverTooltip]);
+
+  const handleCyclePopupMatch = useCallback((direction: number) => {
+    if (!activePopupEvent) return;
+
+    const nextMatch = getChronologicalMatchNavigationEvent(
+      swipeablePopupMatches,
+      activePopupEvent.id,
+      direction
+    );
+
+    if (!nextMatch || nextMatch.id === activePopupEvent.id) {
+      return;
+    }
+
+    clearHoverTooltip();
+    hoverTooltipInteractingRef.current = false;
+    setIsMobilePopupDismissed(false);
+    setSelectedEvent(null);
+    setFocusedVenueEvent(nextMatch);
+    setCurrentYear(nextMatch.year);
+    setHoveredEventState((prev) => ({ event: nextMatch, x: prev?.x ?? 0, y: prev?.y ?? 0 }));
+  }, [activePopupEvent, clearHoverTooltip, swipeablePopupMatches]);
+
+  const beginPopupSwipe = useCallback((clientX: number, clientY: number) => {
+    popupSwipeStartRef.current = { x: clientX, y: clientY };
+    popupSwipeHandledRef.current = false;
+  }, []);
+
+  const endPopupSwipe = useCallback((clientX: number, clientY: number) => {
+    const swipeStart = popupSwipeStartRef.current;
+    popupSwipeStartRef.current = null;
+
+    if (!swipeStart) return;
+
+    const deltaX = clientX - swipeStart.x;
+    const deltaY = clientY - swipeStart.y;
+    const absDeltaX = Math.abs(deltaX);
+    const absDeltaY = Math.abs(deltaY);
+
+    if (Math.max(absDeltaX, absDeltaY) < 36) {
+      popupSwipeHandledRef.current = false;
+      return;
+    }
+
+    popupSwipeHandledRef.current = true;
+
+    if (absDeltaX > absDeltaY) {
+      handleCyclePopupMatch(deltaX > 0 ? -1 : 1);
+      return;
+    }
+
+    if (deltaY < -42) {
+      handleOpenHoveredMatchInfo();
+      return;
+    }
+
+    if (deltaY > 42) {
+      handleDismissPopup();
+    }
+  }, [handleCyclePopupMatch, handleDismissPopup, handleOpenHoveredMatchInfo]);
+
+  const handleMobilePopupCardClick = useCallback(() => {
+    if (popupSwipeHandledRef.current) {
+      popupSwipeHandledRef.current = false;
+      return;
+    }
+
+    handleOpenHoveredMatchInfo();
+  }, [handleOpenHoveredMatchInfo]);
+
   const applyVenueFilter = useCallback((event: HistoricalEvent) => {
     const venueLabel = event.city ?? event.region;
     if (!venueLabel) return;
@@ -719,6 +812,7 @@ export default function Index() {
           allEvents={allDatasetEvents}
           selectedEvent={selectedEvent}
           focusedEvent={focusedVenueEvent}
+          viewportInsets={globeViewportInsets}
           activeSafari={activeSafari}
           onSelectEvent={handleSelectEvent}
           onSelectVenue={handleSelectVenueFromMap}
@@ -771,8 +865,13 @@ export default function Index() {
               borderTopRightRadius: isMobile ? "24px" : undefined,
               boxShadow: isMobile ? "0 -16px 40px hsl(0 0% 0% / 0.42)" : "0 10px 28px hsl(0 0% 0% / 0.42)",
               backdropFilter: "blur(10px)",
+              touchAction: isMobile ? "none" : "auto",
             }}
-            onClick={isMobile ? handleOpenHoveredMatchInfo : undefined}
+            onClick={isMobile ? handleMobilePopupCardClick : undefined}
+            onTouchStart={isMobile ? (event) => beginPopupSwipe(event.touches[0].clientX, event.touches[0].clientY) : undefined}
+            onTouchEnd={isMobile ? (event) => endPopupSwipe(event.changedTouches[0].clientX, event.changedTouches[0].clientY) : undefined}
+            onPointerDown={isMobile ? (event) => beginPopupSwipe(event.clientX, event.clientY) : undefined}
+            onPointerUp={isMobile ? (event) => endPopupSwipe(event.clientX, event.clientY) : undefined}
             onMouseEnter={() => {
               hoverTooltipInteractingRef.current = true;
               clearHoverTooltip();
@@ -901,23 +1000,6 @@ export default function Index() {
                   </button>
                 </div>
 
-                {isMobile && popupContextChips.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {popupContextChips.map((chip) => (
-                      <span
-                        key={`popup-chip-${chip}`}
-                        className="rounded-full px-2 py-0.5 font-mono-space text-[9px] uppercase tracking-[0.18em]"
-                        style={{
-                          color: "hsl(var(--primary))",
-                          background: "hsl(var(--primary) / 0.1)",
-                        }}
-                      >
-                        {chip}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
                 <button
                   type="button"
                   onClick={(event) => {
@@ -985,9 +1067,7 @@ export default function Index() {
               type="button"
               onClick={() => {
                 setSelectedWorldCupGroup("Todos");
-                setFocusedVenueEvent(null);
-                setHoveredEventState(null);
-                setIsMobilePopupDismissed(true);
+                resetMobileFiltersView();
               }}
               className="inline-flex w-fit max-w-full items-center gap-2 rounded-full px-4 py-3 font-mono-space text-[10px] uppercase tracking-[0.18em] shadow-lg"
               style={{
@@ -1007,9 +1087,7 @@ export default function Index() {
               type="button"
               onClick={() => {
                 setPanelQuickFilters((prev) => prev.filter((value) => value !== chip));
-                setFocusedVenueEvent(null);
-                setHoveredEventState(null);
-                setIsMobilePopupDismissed(true);
+                resetMobileFiltersView();
               }}
               className="inline-flex w-fit max-w-full items-center gap-2 rounded-full px-4 py-3 text-left font-mono-space text-[10px] uppercase tracking-[0.18em] shadow-lg"
               style={{
@@ -1019,32 +1097,10 @@ export default function Index() {
                 backdropFilter: "blur(10px)",
               }}
             >
-              <span className="truncate">
-                {venueContextLabel === chip ? chip : `Partidos de ${chip}`}
-              </span>
+              <span className="truncate">{`Partidos de ${chip}`}</span>
               <span aria-hidden="true" style={{ color: "hsl(var(--primary))" }}>×</span>
             </button>
           ))}
-          {venueContextLabel && !panelQuickFilters.includes(venueContextLabel) && (
-            <button
-              type="button"
-              onClick={() => {
-                setFocusedVenueEvent(null);
-                setHoveredEventState(null);
-                setIsMobilePopupDismissed(true);
-              }}
-              className="inline-flex w-fit max-w-full items-center gap-2 rounded-full px-4 py-3 text-left font-mono-space text-[10px] uppercase tracking-[0.18em] shadow-lg"
-              style={{
-                color: "hsl(var(--foreground))",
-                background: "hsl(var(--card) / 0.94)",
-                border: "1px solid hsl(var(--border))",
-                backdropFilter: "blur(10px)",
-              }}
-            >
-              <span className="truncate">{venueContextLabel}</span>
-              <span aria-hidden="true" style={{ color: "hsl(var(--primary))" }}>×</span>
-            </button>
-          )}
         </div>
       )}
 

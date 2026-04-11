@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { HistoricalEvent } from "@/data/historical-events";
 import {
   ACTIVE_EVENT_COLOR,
   DEFAULT_MAX_CAMERA_HEIGHT,
@@ -11,6 +12,7 @@ import {
   getWheelZoomCameraHeight,
   getMarkerAppearance,
   getNextUpcomingWorldCupEvent,
+  getChronologicalMatchNavigationEvent,
   getSafariPathEvents,
   getUpcomingMatchTooltipLabel,
   getUpcomingWorldCupMapEvents,
@@ -34,12 +36,12 @@ describe("globe UI helpers", () => {
     expect(marker.colorAlpha).toBeLessThan(1);
   });
 
-  it("emphasizes upcoming venue markers so all upcoming matches stay visible on the map", () => {
+  it("keeps non-current upcoming match dots borderless while the current match remains emphasized", () => {
     const defaultMarker = getMarkerAppearance(false);
     const upcomingMarker = getMarkerAppearance(false, true);
 
     expect(upcomingMarker.pixelSize).toBeGreaterThan(defaultMarker.pixelSize);
-    expect(upcomingMarker.outlineWidth).toBeGreaterThanOrEqual(defaultMarker.outlineWidth);
+    expect(upcomingMarker.outlineWidth).toBe(0);
     expect(upcomingMarker.colorAlpha).toBeGreaterThan(defaultMarker.colorAlpha);
   });
 
@@ -148,6 +150,19 @@ describe("globe UI helpers", () => {
     );
     expect(mapColors.sceneBackground.length).toBeGreaterThan(0);
     expect(mapColors.safariPathColor.length).toBeGreaterThan(0);
+  });
+
+  it("cycles chronologically through the currently filtered matches and wraps around", () => {
+    const matches = [
+      { id: "match-3", year: 2026, month: 6, day: 18, kickoff: "21:00" },
+      { id: "match-1", year: 2026, month: 6, day: 11, kickoff: "16:00" },
+      { id: "match-2", year: 2026, month: 6, day: 11, kickoff: "19:00" },
+    ] as HistoricalEvent[];
+
+    expect(getChronologicalMatchNavigationEvent(matches, "match-1", 1)?.id).toBe("match-2");
+    expect(getChronologicalMatchNavigationEvent(matches, "match-2", 1)?.id).toBe("match-3");
+    expect(getChronologicalMatchNavigationEvent(matches, "match-3", 1)?.id).toBe("match-1");
+    expect(getChronologicalMatchNavigationEvent(matches, "match-1", -1)?.id).toBe("match-3");
   });
 
   it("filters map events down to upcoming World Cup matches only", () => {

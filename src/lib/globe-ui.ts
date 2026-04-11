@@ -179,8 +179,8 @@ export function getMarkerAppearance(
       pixelSize: 14,
       color: getThemeCssColor("--map-active-marker", ACTIVE_EVENT_COLOR),
       colorAlpha: 0.95,
-      outlineColor: getThemeCssColor("--map-active-marker-outline", "#DCFCE7"),
-      outlineWidth: 4,
+      outlineColor: getThemeCssColor("--map-active-marker", ACTIVE_EVENT_COLOR),
+      outlineWidth: 0,
       labelColor: getThemeCssColor("--map-label", DEFAULT_LABEL_COLOR),
     };
   }
@@ -236,6 +236,28 @@ function getSortedUpcomingWorldCupMatches(events: HistoricalEvent[]): Historical
   return events
     .filter((event) => isUpcomingWorldCupMatch(event))
     .sort((a, b) => getEventSortValue(a) - getEventSortValue(b));
+}
+
+export function getChronologicalMatchNavigationEvent(
+  events: HistoricalEvent[],
+  currentEventId: string | null | undefined,
+  direction: number
+): HistoricalEvent | null {
+  const sortedMatches = events
+    .filter((event) => (event.eventType ?? "match") === "match")
+    .sort((a, b) => getEventSortValue(a) - getEventSortValue(b));
+
+  if (sortedMatches.length === 0) return null;
+  if (!currentEventId) return sortedMatches[0] ?? null;
+
+  const currentIndex = sortedMatches.findIndex((event) => event.id === currentEventId);
+  if (currentIndex === -1) {
+    return sortedMatches[0] ?? null;
+  }
+
+  const normalizedDirection = direction < 0 ? -1 : 1;
+  const nextIndex = (currentIndex + normalizedDirection + sortedMatches.length) % sortedMatches.length;
+  return sortedMatches[nextIndex] ?? sortedMatches[0] ?? null;
 }
 
 export function getNextUpcomingWorldCupEvent(events: HistoricalEvent[]): HistoricalEvent | null {

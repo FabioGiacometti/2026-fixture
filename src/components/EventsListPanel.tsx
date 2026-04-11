@@ -343,6 +343,7 @@ export default function EventsListPanel({
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
   const userCollapsedRef = useRef(false);
+  const mobileSheetSwipeStartRef = useRef<{ x: number; y: number; canDismiss: boolean } | null>(null);
   const selectedEventRef = useRef(selectedEvent);
   const isCurrentWorldCupSafari = activeSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID;
 
@@ -427,6 +428,33 @@ export default function EventsListPanel({
     setPanelState("collapsed");
     onClose();
   };
+
+  const beginMobileSheetSwipe = useCallback((clientX: number, clientY: number, canDismiss = true) => {
+    mobileSheetSwipeStartRef.current = { x: clientX, y: clientY, canDismiss };
+  }, []);
+
+  const endMobileSheetSwipe = useCallback((clientX: number, clientY: number) => {
+    const swipeStart = mobileSheetSwipeStartRef.current;
+    mobileSheetSwipeStartRef.current = null;
+
+    if (!swipeStart || !swipeStart.canDismiss) return;
+
+    const deltaX = clientX - swipeStart.x;
+    const deltaY = clientY - swipeStart.y;
+
+    if (Math.abs(deltaY) < 40 || Math.abs(deltaY) < Math.abs(deltaX)) {
+      return;
+    }
+
+    if (deltaY > 0) {
+      if (panelState === "detail") {
+        handleBack();
+        return;
+      }
+
+      handleCollapse();
+    }
+  }, [handleBack, handleCollapse, panelState]);
 
   const sortedEventsList = useMemo(
     () => [...visibleEvents].sort((a, b) => getEventSortValue(a) - getEventSortValue(b)),
@@ -761,6 +789,20 @@ export default function EventsListPanel({
         aria-modal={isFullScreenMobilePanel ? true : undefined}
         aria-label={isCurrentWorldCupSafari ? "Calendario del torneo" : "Panel de eventos"}
         className="flex flex-col overflow-hidden transition-[opacity,box-shadow,transform,height,width] duration-300 ease-out"
+        onTouchStart={isMobilePanel ? (event) => {
+          const bounds = event.currentTarget.getBoundingClientRect();
+          const touch = event.touches[0];
+          beginMobileSheetSwipe(touch.clientX, touch.clientY, touch.clientY - bounds.top <= 140);
+        } : undefined}
+        onTouchEnd={isMobilePanel ? (event) => {
+          const touch = event.changedTouches[0];
+          endMobileSheetSwipe(touch.clientX, touch.clientY);
+        } : undefined}
+        onPointerDown={isMobilePanel ? (event) => {
+          const bounds = event.currentTarget.getBoundingClientRect();
+          beginMobileSheetSwipe(event.clientX, event.clientY, event.clientY - bounds.top <= 140);
+        } : undefined}
+        onPointerUp={isMobilePanel ? (event) => endMobileSheetSwipe(event.clientX, event.clientY) : undefined}
         style={{
           width: isPanelOpen
             ? (isFullScreenMobilePanel ? "100vw" : isMobilePanel ? "calc(100vw - 16px)" : `${panelWidth}px`)
@@ -791,7 +833,14 @@ export default function EventsListPanel({
         }}
       >
         {isMobilePanel && isPanelOpen && (
-          <div className="flex justify-center px-4 pt-1.5">
+          <div
+            className="flex justify-center px-4 pt-1.5"
+            onTouchStart={(event) => beginMobileSheetSwipe(event.touches[0].clientX, event.touches[0].clientY)}
+            onTouchEnd={(event) => endMobileSheetSwipe(event.changedTouches[0].clientX, event.changedTouches[0].clientY)}
+            onPointerDown={(event) => beginMobileSheetSwipe(event.clientX, event.clientY)}
+            onPointerUp={(event) => endMobileSheetSwipe(event.clientX, event.clientY)}
+            style={{ touchAction: "none" }}
+          >
             <span
               className="h-1.5 w-12 rounded-full"
               style={{ background: "hsl(var(--border) / 0.9)" }}
