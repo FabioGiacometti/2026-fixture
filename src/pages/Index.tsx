@@ -553,6 +553,7 @@ export default function Index() {
   const showSafariPath = false;
   const activePopupEvent =
     hoveredEventState?.event ??
+    focusedVenueEvent ??
     ((!isMobile || !isMobilePopupDismissed) ? nextUpcomingPopupEvent : null) ??
     null;
   const isNextPopupEvent = Boolean(
