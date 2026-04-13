@@ -65,6 +65,8 @@ const worldCupLogosByYear: Record<number, string> = Object.entries(worldCupLogoM
   {} as Record<number, string>
 );
 
+const WORLD_CUP_HOST_SMALL_FONT_THRESHOLD = 24;
+
 const countryFlagCodes: Record<string, string[]> = {
   Uruguay: ["uy"],
   Argentina: ["ar"],
@@ -117,6 +119,10 @@ function getCountryFlagCodes(name?: string) {
 function getSafariYear(safari: Safari) {
   const match = safari.id.match(/\d{4}/) ?? safari.name.match(/\d{4}/);
   return match ? Number(match[0]) : undefined;
+}
+
+function shouldUseSmallHostFont(hostLabel: string) {
+  return hostLabel.replace(/\s+/g, " ").trim().length >= WORLD_CUP_HOST_SMALL_FONT_THRESHOLD;
 }
 
 function getReadSafaris(): Set<string> {
@@ -506,7 +512,13 @@ export default function SafariSelectionModal({
                                 {item.year}
                               </p>
                               <div className="mt-2 flex items-end justify-between gap-3">
-                                <h3 className="text-lg font-semibold uppercase tracking-[0.18em] text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)] sm:text-[1.9rem]">
+                                <h3
+                                  className={`font-semibold uppercase text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)] ${
+                                    shouldUseSmallHostFont(item.host)
+                                      ? "text-base tracking-[0.12em] sm:text-[1.5rem]"
+                                      : "text-lg tracking-[0.18em] sm:text-[1.9rem]"
+                                  }`}
+                                >
                                   {item.host}
                                 </h3>
                                 {item.hostFlagCodes.length > 0 && (
