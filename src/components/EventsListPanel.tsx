@@ -1130,8 +1130,8 @@ export default function EventsListPanel({
                           </div>
 
                           <div
-                            className="overflow-hidden rounded-lg border"
-                            style={{ borderColor: "hsl(var(--border) / 0.65)" }}
+                            className="overflow-hidden rounded-lg"
+                            style={{ background: "hsl(var(--background) / 0.22)" }}
                           >
                             <div
                               className="grid grid-cols-[18px,1fr,28px,34px,34px] items-center gap-2 border-b px-2 py-1 font-mono-space text-[9px] uppercase tracking-wider"
@@ -1151,8 +1151,11 @@ export default function EventsListPanel({
                             {group.standings.map((team, index) => (
                               <div
                                 key={`${group.name}-${team.team}`}
-                                className="grid grid-cols-[18px,1fr,28px,34px,34px] items-center gap-2 px-2 py-1.5 text-[10px]"
-                                style={{ color: "hsl(var(--foreground) / 0.9)" }}
+                                className="grid grid-cols-[18px,1fr,28px,34px,34px] items-center gap-2 border-b px-2 py-1.5 text-[10px] last:border-b-0"
+                                style={{
+                                  borderColor: "hsl(var(--border) / 0.45)",
+                                  color: "hsl(var(--foreground) / 0.9)",
+                                }}
                               >
                                 <span className="font-mono-space text-[9px]" style={{ color: "hsl(var(--muted-foreground))" }}>
                                   {index + 1}
