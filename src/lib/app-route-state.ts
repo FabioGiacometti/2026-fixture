@@ -9,6 +9,7 @@ export interface AppRouteStateInput {
   quickFilters?: string[];
   mapStyle?: RouteMapStyle;
   selectedEventId?: string | null;
+  showEventDetails?: boolean;
 }
 
 export interface ParsedAppRouteState {
@@ -19,6 +20,7 @@ export interface ParsedAppRouteState {
   quickFilters: string[];
   mapStyle?: RouteMapStyle;
   selectedEventId?: string | null;
+  showEventDetails: boolean;
 }
 
 export function buildAppRouteState({
@@ -29,6 +31,7 @@ export function buildAppRouteState({
   quickFilters = [],
   mapStyle,
   selectedEventId,
+  showEventDetails,
 }: AppRouteStateInput) {
   const pathname = datasetMode === "historical"
     ? activeSafariId
@@ -58,6 +61,9 @@ export function buildAppRouteState({
 
   if (selectedEventId) {
     searchParams.set("event", selectedEventId);
+    if (typeof showEventDetails === "boolean") {
+      searchParams.set("details", String(showEventDetails));
+    }
   }
 
   const search = searchParams.toString();
@@ -85,6 +91,11 @@ export function parseAppRouteState(pathname: string, search: string): ParsedAppR
   const parsedYear = rawYear !== null ? Number(rawYear) : undefined;
   const filters = searchParams.get("filters");
   const mapValue = searchParams.get("map");
+  const selectedEventId = searchParams.get("event");
+  const detailsValue = searchParams.get("details");
+  const showEventDetails = detailsValue === null
+    ? Boolean(selectedEventId)
+    : detailsValue === "true";
 
   return {
     datasetMode,
@@ -93,6 +104,7 @@ export function parseAppRouteState(pathname: string, search: string): ParsedAppR
     selectedWorldCupGroup: searchParams.get("group") ?? "Todos",
     quickFilters: filters ? filters.split(",").map((value) => value.trim()).filter(Boolean) : [],
     mapStyle: mapValue === "political" || mapValue === "geographic" ? mapValue : undefined,
-    selectedEventId: searchParams.get("event"),
+    selectedEventId,
+    showEventDetails,
   };
 }
