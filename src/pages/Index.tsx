@@ -26,6 +26,9 @@ import { detectVisitorCountryMatch, normalizeText } from "@/lib/visitor-country"
 
 const CESIUM_LOADED_CHECK_INTERVAL = 200;
 const DATASET_MODE_KEY = "history-map-dataset-mode";
+const DEFAULT_SHARE_TITLE = "Fixture Interactivo Copa 2026";
+const DEFAULT_SHARE_DESCRIPTION = "Explora el fixture de la Copa Mundial 2026 en un mapa 3D interactivo y comparte partidos con enlaces directos.";
+const DEFAULT_SHARE_IMAGE_PATH = "/social-share-2026.png";
 
 type DatasetMode = "historical" | "worldcup";
 const LOCKED_DATASET_MODE: DatasetMode = "worldcup";
@@ -80,6 +83,49 @@ function getEventTeamFlagCode(event: HistoricalEvent | null, teamName: string | 
   }
 
   return null;
+}
+
+function updateMetaTag(selector: string, content: string) {
+  if (typeof document === "undefined") return;
+  const node = document.querySelector(selector);
+  if (node instanceof HTMLMetaElement) {
+    node.content = content;
+  }
+}
+
+function updateCanonicalUrl(url: string) {
+  if (typeof document === "undefined") return;
+  const node = document.querySelector('link[rel="canonical"]');
+  if (node instanceof HTMLLinkElement) {
+    node.href = url;
+  }
+}
+
+function buildSharePayload(event: HistoricalEvent | null) {
+  if (!event) {
+    return {
+      title: DEFAULT_SHARE_TITLE,
+      description: DEFAULT_SHARE_DESCRIPTION,
+      imageAlt: DEFAULT_SHARE_TITLE,
+    };
+  }
+
+  if (event.eventType === "match" && event.homeTeam && event.awayTeam) {
+    const title = `${event.homeTeam} vs ${event.awayTeam} | Fixture Interactivo Copa 2026`;
+    const description = `${formatEventDate(event, { includeEra: false })} · ${event.city ?? event.region ?? "Sede por confirmar"}. Comparto este partido de la Copa Mundial 2026.`;
+
+    return {
+      title,
+      description,
+      imageAlt: `${event.homeTeam} vs ${event.awayTeam} - Copa Mundial 2026`,
+    };
+  }
+
+  return {
+    title: `${event.title} | Fixture Interactivo Copa 2026`,
+    description: `${formatEventDate(event, { includeEra: false })} · ${event.city ?? event.region ?? "Copa Mundial 2026"}.`,
+    imageAlt: event.title,
+  };
 }
 
 export default function Index() {
@@ -589,6 +635,8 @@ export default function Index() {
     [datasetMode, activeSafariId, currentYear, selectedWorldCupGroup, panelQuickFilters, mapStyle, selectedEvent, focusedVenueEvent]
   );
 
+  const shareEvent = selectedEvent ?? focusedVenueEvent;
+
   const handleViewEventOnMap = useCallback((event: HistoricalEvent) => {
     setSelectedEvent(null);
     setFocusedVenueEvent(event);
@@ -628,6 +676,25 @@ export default function Index() {
       appEnv: env.appEnv,
     });
   }, [routeState, datasetMode, activeSafariId, selectedWorldCupGroup, panelQuickFilters, mapStyle, selectedEvent]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const shareUrl = `${window.location.origin}${location.pathname}${location.search}`;
+    const shareImageUrl = `${window.location.origin}${DEFAULT_SHARE_IMAGE_PATH}`;
+    const payload = buildSharePayload(shareEvent);
+
+    document.title = payload.title;
+    updateCanonicalUrl(shareUrl);
+    updateMetaTag('meta[property="og:title"]', payload.title);
+    updateMetaTag('meta[property="og:description"]', payload.description);
+    updateMetaTag('meta[property="og:url"]', shareUrl);
+    updateMetaTag('meta[property="og:image"]', shareImageUrl);
+    updateMetaTag('meta[property="og:image:alt"]', payload.imageAlt);
+    updateMetaTag('meta[name="twitter:title"]', payload.title);
+    updateMetaTag('meta[name="twitter:description"]', payload.description);
+    updateMetaTag('meta[name="twitter:image"]', shareImageUrl);
+  }, [shareEvent, location.pathname, location.search]);
 
   useEffect(() => {
     if (!showWelcomeModal || currentWorldCupSafariEvents.length === 0) {
