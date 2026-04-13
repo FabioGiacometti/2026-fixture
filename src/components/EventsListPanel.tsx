@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List, Play, Image as ImageIcon, ExternalLink, Globe, Video, Maximize2 } from "lucide-react";
 import { Safari, HistoricalEvent, formatYear, formatEventDate } from "@/data/historical-events";
 import { CURRENT_WORLD_CUP_SAFARI_ID } from "@/data/world-cup-data";
-import { buildApiUrl } from "@/lib/env";
+import { detectVisitorCountryMatch, normalizeText } from "@/lib/visitor-country";
 
 type PanelState = "collapsed" | "list" | "detail";
 
@@ -16,6 +16,7 @@ interface EventsListPanelProps {
   onSelectEvent: (event: HistoricalEvent) => void;
   onYearChange: (year: number) => void;
   onClose: () => void;
+  onViewOnMap?: (event: HistoricalEvent) => void;
   onCloseSafari?: () => void;
   forceOpen?: boolean; // triggered by timeline hover
   onMediaModalChange?: (isOpen: boolean) => void;
@@ -85,46 +86,11 @@ const FILTER_ALIASES: Record<string, string[]> = {
   usa: ["usa", "us", "u.s.", "united states", "estados unidos", "eeuu", "eua"],
 };
 
-const COUNTRY_CODE_ALIASES: Record<string, string[]> = {
-  AR: ["argentina"],
-  BO: ["bolivia"],
-  BR: ["brasil", "brazil"],
-  CA: ["canada", "canadá"],
-  CH: ["suiza", "switzerland"],
-  CL: ["chile"],
-  CO: ["colombia"],
-  CR: ["costa rica"],
-  CV: ["cabo verde", "cape verde"],
-  DE: ["alemania", "germany", "west germany", "east germany"],
-  EC: ["ecuador"],
-  EG: ["egipto", "egypt"],
-  ES: ["espana", "españa", "spain"],
-  FR: ["francia", "france"],
-  GB: ["inglaterra", "england", "escocia", "scotland", "gales", "wales", "united kingdom", "great britain", "uk"],
-  GH: ["ghana"],
-  HR: ["croacia", "croatia"],
-  IT: ["italia", "italy"],
-  JP: ["japon", "japón", "japan"],
-  KR: ["corea del sur", "south korea", "korea republic", "republic of korea"],
-  MA: ["marruecos", "morocco"],
-  MX: ["mexico", "méxico"],
-  NG: ["nigeria"],
-  NL: ["paises bajos", "países bajos", "netherlands", "holland"],
-  NO: ["noruega", "norway"],
-  PA: ["panama", "panamá"],
-  PE: ["peru", "perú"],
-  PL: ["polonia", "poland"],
-  PT: ["portugal"],
-  QA: ["qatar"],
-  SA: ["arabia saudita", "saudi arabia"],
-  SN: ["senegal"],
-  TN: ["tunez", "túnez", "tunisia"],
-  TR: ["turquia", "turquía", "turkey"],
-  US: ["usa", "us", "united states", "estados unidos", "eeuu", "eua"],
-  UY: ["uruguay"],
-};
-
 const EMPTY_QUICK_FILTERS: string[] = [];
+
+function areFiltersEqual(left: string[], right: string[]) {
+  return left.length === right.length && left.every((chip, index) => chip === right[index]);
+}
 
 function formatCoordinate(value: number, positiveLabel: string, negativeLabel: string) {
   return `${Math.abs(value).toFixed(2)}° ${value >= 0 ? positiveLabel : negativeLabel}`;
@@ -170,13 +136,6 @@ function buildCalendarDays(events: HistoricalEvent[]): CalendarDayBucket[] {
   return [...dayBuckets.values()];
 }
 
-function normalizeText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
 function getEventSearchBlob(event: HistoricalEvent) {
   const isoDate = `${event.year}-${String(event.month ?? 1).padStart(2, "0")}-${String(event.day ?? 1).padStart(2, "0")}`;
   const shortDate = `${String(event.day ?? 1).padStart(2, "0")}-${String(event.month ?? 1).padStart(2, "0")}-${event.year}`;
@@ -207,104 +166,6 @@ function getChipVariants(chip: string) {
   return FILTER_ALIASES[normalized] ?? [normalized];
 }
 
-function getLocaleRegionCode() {
-  if (typeof navigator === "undefined") return null;
-
-  const locales = navigator.languages?.length ? navigator.languages : [navigator.language];
-  for (const locale of locales) {
-    if (!locale) continue;
-    const match = locale.match(/[-_](?<region>[A-Za-z]{2})$/);
-    const region = match?.groups?.region?.toUpperCase();
-    if (region) return region;
-  }
-
-  return null;
-}
-
-function getCountryCandidates(countryCode?: string | null, countryName?: string | null) {
-  const candidates = new Set<string>();
-
-  if (countryName) {
-    candidates.add(normalizeText(countryName));
-  }
-
-  const normalizedCode = countryCode?.toUpperCase();
-  if (normalizedCode) {
-    COUNTRY_CODE_ALIASES[normalizedCode]?.forEach((alias) => candidates.add(normalizeText(alias)));
-
-    try {
-      const spanishName = new Intl.DisplayNames(["es"], { type: "region" }).of(normalizedCode);
-      const englishName = new Intl.DisplayNames(["en"], { type: "region" }).of(normalizedCode);
-      if (spanishName) candidates.add(normalizeText(spanishName));
-      if (englishName) candidates.add(normalizeText(englishName));
-    } catch {
-      // Ignore DisplayNames support issues and rely on alias mapping.
-    }
-  }
-
-  return [...candidates].filter(Boolean);
-}
-
-function findParticipantCountryMatch(events: HistoricalEvent[], countryCode?: string | null, countryName?: string | null) {
-  const candidates = getCountryCandidates(countryCode, countryName);
-  if (candidates.length === 0) return null;
-
-  const participantTeams = Array.from(
-    new Set(
-      events.flatMap((event) => [event.homeTeam, event.awayTeam]).filter((team): team is string => Boolean(team))
-    )
-  );
-
-  const normalizedTeams = participantTeams.map((team) => ({
-    original: team,
-    normalized: normalizeText(team),
-  }));
-
-  for (const candidate of candidates) {
-    const match = normalizedTeams.find(
-      (team) =>
-        team.normalized === candidate ||
-        team.normalized.includes(candidate) ||
-        candidate.includes(team.normalized)
-    );
-
-    if (match) {
-      return match.original;
-    }
-  }
-
-  return null;
-}
-
-async function detectVisitorCountry(events: HistoricalEvent[]) {
-  if (typeof window === "undefined") {
-    return { chip: null as string | null, source: "none" as const };
-  }
-
-  try {
-    const response = await fetch(buildApiUrl("/api/visitor-country"), {
-      headers: { Accept: "application/json" },
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const geoMatch = findParticipantCountryMatch(events, data?.countryCode, data?.country);
-      if (geoMatch) {
-        return { chip: geoMatch, source: "ip" as const };
-      }
-    }
-  } catch {
-    // Ignore network/IP lookup issues and rely on locale as a soft suggestion only.
-  }
-
-  const localeMatch = findParticipantCountryMatch(events, getLocaleRegionCode(), null);
-  if (localeMatch) {
-    return { chip: localeMatch, source: "locale" as const };
-  }
-
-  return { chip: null as string | null, source: "none" as const };
-}
-
 export default function EventsListPanel({
   visibleEvents,
   allEvents,
@@ -315,6 +176,7 @@ export default function EventsListPanel({
   onSelectEvent,
   onYearChange,
   onClose,
+  onViewOnMap,
   onCloseSafari,
   forceOpen,
   onMediaModalChange,
@@ -340,6 +202,7 @@ export default function EventsListPanel({
   const [mobileListTab, setMobileListTab] = useState<"calendar" | "groups">("calendar");
   const isDragging = useRef(false);
   const visitorPrefillStartedRef = useRef(false);
+  const syncingRouteQuickFiltersRef = useRef(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
   const userCollapsedRef = useRef(false);
@@ -429,6 +292,18 @@ export default function EventsListPanel({
     onClose();
   };
 
+  const handleViewOnMap = useCallback(() => {
+    userCollapsedRef.current = true;
+    setPanelState("collapsed");
+
+    if (selectedEvent) {
+      onViewOnMap?.(selectedEvent);
+      return;
+    }
+
+    onClose();
+  }, [onClose, onViewOnMap, selectedEvent]);
+
   const beginMobileSheetSwipe = useCallback((clientX: number, clientY: number, canDismiss = true) => {
     mobileSheetSwipeStartRef.current = { x: clientX, y: clientY, canDismiss };
   }, []);
@@ -483,17 +358,17 @@ export default function EventsListPanel({
 
     let isCancelled = false;
 
-    void detectVisitorCountry(visibleEvents).then(({ chip, source }) => {
-      if (isCancelled || !chip) return;
+    void detectVisitorCountryMatch(visibleEvents).then(({ matchedTeam, source }) => {
+      if (isCancelled || !matchedTeam) return;
 
       if (source === "ip") {
-        applyChip(chip);
+        applyChip(matchedTeam);
         setSuggestedQuickFilter(null);
         return;
       }
 
       if (source === "locale") {
-        setSuggestedQuickFilter(chip);
+        setSuggestedQuickFilter(matchedTeam);
       }
     });
 
@@ -543,22 +418,40 @@ export default function EventsListPanel({
   }, [worldCupGroups, activeGroupFilter, quickFilters]);
 
   useEffect(() => {
-    onVisibleEventsChange?.(filteredEventsList);
-  }, [filteredEventsList, onVisibleEventsChange]);
-
-  useEffect(() => {
-    onQuickFiltersChange?.(quickFilters);
-  }, [quickFilters, onQuickFiltersChange]);
-
-  useEffect(() => {
     setQuickFilters((prev) => {
-      const hasSameFilters =
-        prev.length === routeQuickFilters.length &&
-        prev.every((chip, index) => chip === routeQuickFilters[index]);
+      if (areFiltersEqual(prev, routeQuickFilters)) {
+        syncingRouteQuickFiltersRef.current = false;
+        return prev;
+      }
 
-      return hasSameFilters ? prev : routeQuickFilters;
+      syncingRouteQuickFiltersRef.current = true;
+      return routeQuickFilters;
     });
   }, [routeQuickFilters]);
+
+  useEffect(() => {
+    if (syncingRouteQuickFiltersRef.current && !areFiltersEqual(quickFilters, routeQuickFilters)) {
+      return;
+    }
+
+    if (syncingRouteQuickFiltersRef.current && areFiltersEqual(quickFilters, routeQuickFilters)) {
+      syncingRouteQuickFiltersRef.current = false;
+    }
+
+    onVisibleEventsChange?.(filteredEventsList);
+  }, [filteredEventsList, onVisibleEventsChange, quickFilters, routeQuickFilters]);
+
+  useEffect(() => {
+    if (syncingRouteQuickFiltersRef.current && !areFiltersEqual(quickFilters, routeQuickFilters)) {
+      return;
+    }
+
+    if (syncingRouteQuickFiltersRef.current && areFiltersEqual(quickFilters, routeQuickFilters)) {
+      syncingRouteQuickFiltersRef.current = false;
+    }
+
+    onQuickFiltersChange?.(quickFilters);
+  }, [quickFilters, routeQuickFilters, onQuickFiltersChange]);
 
   useEffect(() => {
     onPanelOffsetChange?.(panelState === "collapsed" ? 36 : panelWidth);
@@ -1409,7 +1302,7 @@ export default function EventsListPanel({
               >
                 <button
                   type="button"
-                  onClick={handleCollapse}
+                  onClick={handleViewOnMap}
                   className="pointer-events-auto inline-flex items-center gap-2 rounded-full border px-4 py-2 font-mono-space text-[10px] uppercase tracking-[0.18em] shadow-lg transition-opacity hover:opacity-90"
                   style={{
                     borderColor: "hsl(var(--border))",
@@ -1466,7 +1359,7 @@ export default function EventsListPanel({
             </div>
 
             {/* Event detail content */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4" style={{ paddingBottom: "84px" }}>
               {/* Date + navigation */}
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -1535,6 +1428,8 @@ export default function EventsListPanel({
                   {formatCoordinate(selectedEvent.lat, "N", "S")}, {formatCoordinate(selectedEvent.lng, "E", "W")}
                 </span>
               </div>
+
+
 
               {/* Title */}
               <h2
@@ -1788,6 +1683,30 @@ export default function EventsListPanel({
               </div>
 
 
+            </div>
+
+            {/* FAB for "Ver en mapa" */}
+            <div
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-end px-4 pb-4"
+              style={{
+                background: "linear-gradient(180deg, transparent 0%, hsl(var(--background) / 0.92) 55%, hsl(var(--background)) 100%)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleViewOnMap}
+                className="pointer-events-auto inline-flex items-center gap-2 rounded-full border px-4 py-2 font-mono-space text-[10px] uppercase tracking-[0.18em] shadow-lg transition-opacity hover:opacity-90"
+                style={{
+                  borderColor: "hsl(var(--border))",
+                  background: "hsl(var(--card) / 0.94)",
+                  color: "hsl(var(--foreground))",
+                  backdropFilter: "blur(8px)",
+                }}
+                aria-label="Ver en mapa"
+              >
+                <Globe className="h-4 w-4" style={{ color: "hsl(var(--primary))" }} />
+                <span>Ver en mapa</span>
+              </button>
             </div>
           </>
         )}

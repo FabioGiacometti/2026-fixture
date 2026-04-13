@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import EventsListPanel from "@/components/EventsListPanel";
 import { CURRENT_WORLD_CUP_SAFARI_ID } from "@/data/world-cup-data";
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
+
+function ControlledQuickFilterPanel({ children }: { children: (filters: string[], setFilters: (filters: string[]) => void) => ReactNode }) {
+  const [filters, setFilters] = useState<string[]>([]);
+  return children(filters, setFilters);
+}
 
 describe("EventsListPanel match detail view", () => {
   afterEach(() => {
@@ -14,6 +19,61 @@ describe("EventsListPanel match detail view", () => {
   it("renders upcoming World Cup matches without crashing when no score is available", async () => {
     const upcomingMatch = {
       id: "wc2026-g-a1",
+      title: "Grupo A: México vs Sudáfrica",
+      description: "México vs Sudáfrica · 16:00. Programado.",
+      year: 2026,
+      month: 6,
+      day: 11,
+      lat: 19.3029,
+      lng: -99.1505,
+      region: "América",
+      importance: 2,
+      dataset: "worldcup",
+      eventType: "match",
+      stage: "group",
+      homeTeam: "México",
+      awayTeam: "Sudáfrica",
+      kickoff: "16:00",
+      city: "Estadio Ciudad de México",
+    } as HistoricalEvent;
+
+    const safari: Safari = {
+      id: "world-cup-2018",
+      name: "Copa Mundial 2026",
+      description: "Canadá / México / Estados Unidos · Norteamérica.",
+      overview: "Seguimiento del torneo.",
+      eventIds: [upcomingMatch.id],
+    };
+
+    render(
+      <EventsListPanel
+        visibleEvents={[upcomingMatch]}
+        allEvents={[upcomingMatch]}
+        selectedEvent={upcomingMatch}
+        currentYear={2026}
+        windowSize={6}
+        activeSafari={safari}
+        onSelectEvent={vi.fn()}
+        onYearChange={vi.fn()}
+        onClose={vi.fn()}
+        onCloseSafari={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Partido programado · 16:00")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Estadio Ciudad de México")).toBeInTheDocument();
+    expect(screen.getByText("México")).toBeInTheDocument();
+    expect(screen.getByText("Sudáfrica")).toBeInTheDocument();
+    expect(screen.queryByText(/^Penales:/)).not.toBeInTheDocument();
+  });
+
+  it("shows a 'Ver en mapa' CTA in match detail without clearing the selected event", async () => {
+    const onClose = vi.fn();
+    const upcomingMatch = {
+      id: "world-cup-2026-g-a1",
       title: "Grupo A: México vs Sudáfrica",
       description: "México vs Sudáfrica · 16:00. Programado.",
       year: 2026,
@@ -50,21 +110,20 @@ describe("EventsListPanel match detail view", () => {
         activeSafari={safari}
         onSelectEvent={vi.fn()}
         onYearChange={vi.fn()}
-        onClose={vi.fn()}
+        onClose={onClose}
         onCloseSafari={vi.fn()}
       />
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Grupo A: México vs Sudáfrica" }));
 
-    await waitFor(() => {
-      expect(screen.getByText("Partido programado · 16:00")).toBeInTheDocument();
-    });
+    const viewOnMapButton = await screen.findByRole("button", { name: "Ver en mapa" });
+    fireEvent.click(viewOnMapButton);
 
-    expect(screen.getByText("Estadio Ciudad de México")).toBeInTheDocument();
-    expect(screen.getByText("México")).toBeInTheDocument();
-    expect(screen.getByText("Sudáfrica")).toBeInTheDocument();
-    expect(screen.queryByText(/^Penales:/)).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.queryByText("Partido programado · 16:00")).not.toBeInTheDocument();
+    });
   });
 
   it("pre-filters the current World Cup by the visitor country when it is a participant", async () => {
@@ -1037,19 +1096,27 @@ describe("EventsListPanel match detail view", () => {
     const onQuickFiltersChange = vi.fn();
 
     render(
-      <EventsListPanel
-        visibleEvents={[argentinaMatch]}
-        allEvents={[argentinaMatch]}
-        selectedEvent={null}
-        currentYear={2026}
-        windowSize={6}
-        activeSafari={safari}
-        onSelectEvent={vi.fn()}
-        onYearChange={vi.fn()}
-        onClose={vi.fn()}
-        onCloseSafari={vi.fn()}
-        onQuickFiltersChange={onQuickFiltersChange}
-      />
+      <ControlledQuickFilterPanel>
+        {(filters, setFilters) => (
+          <EventsListPanel
+            visibleEvents={[argentinaMatch]}
+            allEvents={[argentinaMatch]}
+            selectedEvent={null}
+            currentYear={2026}
+            windowSize={6}
+            activeSafari={safari}
+            onSelectEvent={vi.fn()}
+            onYearChange={vi.fn()}
+            onClose={vi.fn()}
+            onCloseSafari={vi.fn()}
+            quickFiltersFromRoute={filters}
+            onQuickFiltersChange={(nextFilters) => {
+              onQuickFiltersChange(nextFilters);
+              setFilters(nextFilters);
+            }}
+          />
+        )}
+      </ControlledQuickFilterPanel>
     );
 
     const input = screen.getByPlaceholderText("Filtrar por país, sede o fecha");
@@ -1211,21 +1278,31 @@ describe("EventsListPanel match detail view", () => {
     };
 
     const onVisibleEventsChange = vi.fn();
+    const onQuickFiltersChange = vi.fn();
 
     render(
-      <EventsListPanel
-        visibleEvents={[argentinaMatch, usaMatch]}
-        allEvents={[argentinaMatch, usaMatch]}
-        selectedEvent={null}
-        currentYear={2026}
-        windowSize={6}
-        activeSafari={safari}
-        onSelectEvent={vi.fn()}
-        onYearChange={vi.fn()}
-        onClose={vi.fn()}
-        onCloseSafari={vi.fn()}
-        onVisibleEventsChange={onVisibleEventsChange}
-      />
+      <ControlledQuickFilterPanel>
+        {(filters, setFilters) => (
+          <EventsListPanel
+            visibleEvents={[argentinaMatch, usaMatch]}
+            allEvents={[argentinaMatch, usaMatch]}
+            selectedEvent={null}
+            currentYear={2026}
+            windowSize={6}
+            activeSafari={safari}
+            onSelectEvent={vi.fn()}
+            onYearChange={vi.fn()}
+            onClose={vi.fn()}
+            onCloseSafari={vi.fn()}
+            quickFiltersFromRoute={filters}
+            onQuickFiltersChange={(nextFilters) => {
+              onQuickFiltersChange(nextFilters);
+              setFilters(nextFilters);
+            }}
+            onVisibleEventsChange={onVisibleEventsChange}
+          />
+        )}
+      </ControlledQuickFilterPanel>
     );
 
     await waitFor(() => {

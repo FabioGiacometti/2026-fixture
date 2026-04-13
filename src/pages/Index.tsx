@@ -6,6 +6,7 @@ import TimelineBar from "@/components/TimelineBar";
 import EventsListPanel from "@/components/EventsListPanel";
 import SafariSelectionModal from "@/components/SafariSelectionModal";
 import FixturePipPanel from "@/components/FixturePipPanel";
+import WelcomeModal from "@/components/WelcomeModal";
 import WorldCupGroupsDrawer from "@/components/WorldCupGroupsDrawer";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { historicalEvents, formatEventDate, formatExplicitEventDate, formatYear, getEventsInRange, safaris } from "@/data/historical-events";
@@ -21,6 +22,7 @@ import { getChronologicalMatchNavigationEvent, getNextUpcomingWorldCupEvent, get
 import { buildAppRouteState, parseAppRouteState } from "@/lib/app-route-state";
 import { env } from "@/lib/env";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { detectVisitorCountryMatch, normalizeText } from "@/lib/visitor-country";
 
 const CESIUM_LOADED_CHECK_INTERVAL = 200;
 const DATASET_MODE_KEY = "history-map-dataset-mode";
@@ -56,6 +58,30 @@ function areStringArraysEqual(left: string[], right: string[]) {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
+function eventIncludesTeam(event: HistoricalEvent, teamName: string) {
+  const normalizedTeamName = normalizeText(teamName);
+
+  return normalizeText(event.homeTeam ?? "") === normalizedTeamName
+    || normalizeText(event.awayTeam ?? "") === normalizedTeamName;
+}
+
+function getEventTeamFlagCode(event: HistoricalEvent | null, teamName: string | null) {
+  if (!event || !teamName) {
+    return null;
+  }
+
+  const normalizedTeamName = normalizeText(teamName);
+  if (normalizeText(event.homeTeam ?? "") === normalizedTeamName) {
+    return event.homeFlag ?? null;
+  }
+
+  if (normalizeText(event.awayTeam ?? "") === normalizedTeamName) {
+    return event.awayFlag ?? null;
+  }
+
+  return null;
+}
+
 export default function Index() {
   const [datasetMode, setDatasetMode] = useState<DatasetMode>(LOCKED_DATASET_MODE);
   const [currentYear, setCurrentYear] = useState<number>(
@@ -87,6 +113,8 @@ export default function Index() {
     datasetMode === "worldcup" ? 300 : 36
   );
   const [mobilePopupCardHeight, setMobilePopupCardHeight] = useState(0);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [detectedVisitorTeam, setDetectedVisitorTeam] = useState<string | null>(null);
   const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mobilePopupCardRef = useRef<HTMLDivElement | null>(null);
   const hoverClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -94,7 +122,10 @@ export default function Index() {
   const popupSwipeHandledRef = useRef(false);
   const hoverTooltipInteractingRef = useRef(false);
   const hasAppliedRouteStateRef = useRef(false);
+  const routeHydrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTrackedRouteRef = useRef<string | null>(null);
+  const hasDecidedWelcomeModalRef = useRef(false);
+  const [routeHydrationVersion, setRouteHydrationVersion] = useState(0);
   const [mapStyle, setMapStyle] = useState<"political" | "geographic">(
     () => (datasetMode === "worldcup" ? "geographic" : "political")
   );
@@ -312,10 +343,17 @@ export default function Index() {
       ? routeState.activeSafariId
       : CURRENT_WORLD_CUP_SAFARI_ID;
 
+    hasAppliedRouteStateRef.current = false;
+
     setDatasetMode((prev) => (prev === LOCKED_DATASET_MODE ? prev : LOCKED_DATASET_MODE));
     setActiveSafariId((prev) => (prev === nextSafariId ? prev : nextSafariId));
     setSelectedWorldCupGroup(routeState.selectedWorldCupGroup ?? "Todos");
     setPanelQuickFilters((prev) => areStringArraysEqual(prev, routeState.quickFilters) ? prev : routeState.quickFilters);
+
+    if (!hasDecidedWelcomeModalRef.current) {
+      setShowWelcomeModal(!routeState.selectedEventId && nextSafariId === CURRENT_WORLD_CUP_SAFARI_ID);
+      hasDecidedWelcomeModalRef.current = true;
+    }
 
     if (routeState.mapStyle) {
       setMapStyle((prev) => (prev === routeState.mapStyle ? prev : routeState.mapStyle));
@@ -328,13 +366,38 @@ export default function Index() {
     if (routeState.selectedEventId) {
       const routedEvent = allDatasetEvents.find((event) => event.id === routeState.selectedEventId);
       if (routedEvent) {
-        setSelectedEvent((prev) => (prev?.id === routedEvent.id ? prev : routedEvent));
+        if (routeState.showEventDetails) {
+          setSelectedEvent((prev) => (prev?.id === routedEvent.id ? prev : routedEvent));
+        } else {
+          setSelectedEvent(null);
+        }
+        setFocusedVenueEvent((prev) => (prev?.id === routedEvent.id ? prev : routedEvent));
+        setCurrentYear((prev) => (prev === routedEvent.year ? prev : routedEvent.year));
+      } else if (nextSafariId === CURRENT_WORLD_CUP_SAFARI_ID) {
+        setSelectedEvent(null);
+        setFocusedVenueEvent(null);
       }
     } else if (nextSafariId === CURRENT_WORLD_CUP_SAFARI_ID) {
       setSelectedEvent(null);
+      setFocusedVenueEvent(null);
     }
 
-    hasAppliedRouteStateRef.current = true;
+    if (routeHydrationTimeoutRef.current) {
+      clearTimeout(routeHydrationTimeoutRef.current);
+    }
+
+    routeHydrationTimeoutRef.current = setTimeout(() => {
+      hasAppliedRouteStateRef.current = true;
+      setRouteHydrationVersion((value) => value + 1);
+      routeHydrationTimeoutRef.current = null;
+    }, 0);
+
+    return () => {
+      if (routeHydrationTimeoutRef.current) {
+        clearTimeout(routeHydrationTimeoutRef.current);
+        routeHydrationTimeoutRef.current = null;
+      }
+    };
   }, [location.pathname, location.search, allDatasetEvents]);
 
   const visibleEvents = useMemo(() => {
@@ -393,6 +456,21 @@ export default function Index() {
     [currentWorldCupFilteredEvents]
   );
 
+  const nextUpcomingCountryEvent = useMemo(() => {
+    if (!detectedVisitorTeam) {
+      return null;
+    }
+
+    return getNextUpcomingWorldCupEvent(
+      currentWorldCupSafariEvents.filter((event) => eventIncludesTeam(event, detectedVisitorTeam))
+    );
+  }, [currentWorldCupSafariEvents, detectedVisitorTeam]);
+
+  const detectedVisitorFlagCode = useMemo(
+    () => getEventTeamFlagCode(nextUpcomingCountryEvent, detectedVisitorTeam),
+    [nextUpcomingCountryEvent, detectedVisitorTeam]
+  );
+
   const mapVisibleEvents = useMemo(() => {
     if (datasetMode === "worldcup" && activeSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID) {
       return getUpcomingWorldCupMapEvents(currentWorldCupFilteredEvents);
@@ -424,11 +502,6 @@ export default function Index() {
 
   const handlePanelQuickFiltersChange = useCallback((filters: string[]) => {
     setPanelQuickFilters((prev) => (areStringArraysEqual(prev, filters) ? prev : filters));
-    setFocusedVenueEvent((prev) => {
-      if (!prev) return null;
-      const venueLabel = prev.city ?? prev.region ?? "";
-      return filters.includes(venueLabel) ? prev : null;
-    });
   }, []);
 
   const showSafariPath = false;
@@ -500,17 +573,32 @@ export default function Index() {
   }, [shouldPrioritizeMobilePopup, activePopupEvent?.id]);
 
   const routeState = useMemo(
-    () => buildAppRouteState({
-      datasetMode,
-      activeSafariId,
-      currentYear,
-      selectedWorldCupGroup,
-      quickFilters: panelQuickFilters,
-      mapStyle,
-      selectedEventId: selectedEvent?.id ?? null,
-    }),
-    [datasetMode, activeSafariId, currentYear, selectedWorldCupGroup, panelQuickFilters, mapStyle, selectedEvent]
+    () => {
+      const routeEventId = selectedEvent?.id ?? focusedVenueEvent?.id ?? null;
+      return buildAppRouteState({
+        datasetMode,
+        activeSafariId,
+        currentYear,
+        selectedWorldCupGroup,
+        quickFilters: panelQuickFilters,
+        mapStyle,
+        selectedEventId: routeEventId,
+        showEventDetails: Boolean(selectedEvent),
+      });
+    },
+    [datasetMode, activeSafariId, currentYear, selectedWorldCupGroup, panelQuickFilters, mapStyle, selectedEvent, focusedVenueEvent]
   );
+
+  const handleViewEventOnMap = useCallback((event: HistoricalEvent) => {
+    setSelectedEvent(null);
+    setFocusedVenueEvent(event);
+    setCurrentYear(event.year);
+    setIsMobilePopupDismissed(false);
+  }, []);
+
+  const handleDismissWelcomeModal = useCallback(() => {
+    setShowWelcomeModal(false);
+  }, []);
 
   useEffect(() => {
     if (!hasAppliedRouteStateRef.current) return;
@@ -521,7 +609,7 @@ export default function Index() {
     if (nextRoute !== currentRoute) {
       navigate(nextRoute, { replace: true });
     }
-  }, [routeState, location.pathname, location.search, navigate]);
+  }, [routeState, location.pathname, location.search, navigate, routeHydrationVersion]);
 
   useEffect(() => {
     if (!hasAppliedRouteStateRef.current || !env.analyticsEnabled) return;
@@ -540,6 +628,24 @@ export default function Index() {
       appEnv: env.appEnv,
     });
   }, [routeState, datasetMode, activeSafariId, selectedWorldCupGroup, panelQuickFilters, mapStyle, selectedEvent]);
+
+  useEffect(() => {
+    if (!showWelcomeModal || currentWorldCupSafariEvents.length === 0) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    void detectVisitorCountryMatch(currentWorldCupSafariEvents).then(({ matchedTeam }) => {
+      if (!isCancelled) {
+        setDetectedVisitorTeam(matchedTeam);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [showWelcomeModal, currentWorldCupSafariEvents]);
 
   const handleYearChange = useCallback((year: number) => {
     setCurrentYear(year);
@@ -566,6 +672,32 @@ export default function Index() {
       hoverClearTimeoutRef.current = null;
     }
   }, []);
+
+  const handleWelcomeSelectEvent = useCallback((event: HistoricalEvent | null) => {
+    setShowWelcomeModal(false);
+
+    if (!event) {
+      return;
+    }
+
+    clearHoverTooltip();
+    hoverTooltipInteractingRef.current = false;
+    setHoveredEventState(null);
+    setSelectedWorldCupGroup("Todos");
+    setPanelQuickFilters([]);
+    setIsMobilePopupDismissed(false);
+    setSelectedEvent(null);
+    setFocusedVenueEvent(event);
+    setCurrentYear(event.year);
+  }, [clearHoverTooltip]);
+
+  const handleWelcomeViewNextMatch = useCallback(() => {
+    handleWelcomeSelectEvent(nextUpcomingPopupEvent);
+  }, [handleWelcomeSelectEvent, nextUpcomingPopupEvent]);
+
+  const handleWelcomeViewCountryMatch = useCallback(() => {
+    handleWelcomeSelectEvent(nextUpcomingCountryEvent);
+  }, [handleWelcomeSelectEvent, nextUpcomingCountryEvent]);
 
   const handleHoverEvent = useCallback(
     (event: HistoricalEvent | null, x: number, y: number) => {
@@ -1157,6 +1289,7 @@ export default function Index() {
         onSelectEvent={handleSelectEvent}
         onYearChange={handleYearChange}
         onClose={handleClosePanel}
+        onViewOnMap={handleViewEventOnMap}
         onCloseSafari={handleCloseSafari}
         forceOpen={timelineHoverActive}
         onMediaModalChange={setIsMediaModalOpen}
@@ -1172,7 +1305,7 @@ export default function Index() {
         }}
         quickFiltersFromRoute={panelQuickFilters}
         isMobile={isMobile}
-        hideCollapsedTrigger={Boolean(selectedEvent) || isMobilePanelOpen}
+        hideCollapsedTrigger={Boolean(selectedEvent) || isMobilePanelOpen || showWelcomeModal}
         collapsedBottomOffset={mobileCalendarioOffset}
         worldCupGroups={worldCupGroupOptions}
         onSelectGroupFilter={setSelectedWorldCupGroup}
@@ -1213,6 +1346,16 @@ export default function Index() {
         onJumpToEvent={handleJumpToSafariEvent}
         onClose={() => setShowSafariModal(false)}
         title={datasetMode === "worldcup" ? "Safaris Mundialistas" : "Safaris Históricos"}
+      />
+
+      <WelcomeModal
+        isOpen={showWelcomeModal}
+        countryLabel={detectedVisitorTeam}
+        countryFlagCode={detectedVisitorFlagCode}
+        isCountryActionDisabled={!nextUpcomingCountryEvent}
+        onViewNextMatch={handleWelcomeViewNextMatch}
+        onViewCountryMatch={handleWelcomeViewCountryMatch}
+        onExploreFreely={handleDismissWelcomeModal}
       />
     </div>
   );
