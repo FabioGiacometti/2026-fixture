@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List, Play, Image as ImageIcon, ExternalLink, Globe, Video, Maximize2 } from "lucide-react";
-import { Safari, HistoricalEvent, formatYear, formatEventDate } from "@/data/historical-events";
+import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List, Play, Image as ImageIcon, ExternalLink, Globe, Video, Maximize2, Share2, Check } from "lucide-react";
+import { Safari, HistoricalEvent, formatYear, formatEventDate, formatExplicitEventDate } from "@/data/historical-events";
 import { CURRENT_WORLD_CUP_SAFARI_ID } from "@/data/world-cup-data";
 import { detectVisitorCountryMatch, normalizeText } from "@/lib/visitor-country";
 
@@ -199,6 +199,7 @@ export default function EventsListPanel({
   const [quickFilterInput, setQuickFilterInput] = useState("");
   const [quickFilters, setQuickFilters] = useState<string[]>(routeQuickFilters);
   const [suggestedQuickFilter, setSuggestedQuickFilter] = useState<string | null>(null);
+  const [copiedDetailEventId, setCopiedDetailEventId] = useState<string | null>(null);
   const [mobileListTab, setMobileListTab] = useState<"calendar" | "groups">("calendar");
   const isDragging = useRef(false);
   const visitorPrefillStartedRef = useRef(false);
@@ -207,6 +208,7 @@ export default function EventsListPanel({
   const dragStartWidth = useRef(0);
   const userCollapsedRef = useRef(false);
   const mobileSheetSwipeStartRef = useRef<{ x: number; y: number; canDismiss: boolean } | null>(null);
+  const copyDetailTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedEventRef = useRef(selectedEvent);
   const isCurrentWorldCupSafari = activeSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID;
 
@@ -232,6 +234,14 @@ export default function EventsListPanel({
   useEffect(() => {
     selectedEventRef.current = selectedEvent;
   }, [selectedEvent]);
+
+  useEffect(() => {
+    return () => {
+      if (copyDetailTimeoutRef.current) {
+        clearTimeout(copyDetailTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // When a marker is clicked (selectedEvent changes), open detail
   useEffect(() => {
@@ -303,6 +313,49 @@ export default function EventsListPanel({
 
     onClose();
   }, [onClose, onViewOnMap, selectedEvent]);
+
+  const handleCopyDetailEventLink = useCallback(async (event: HistoricalEvent) => {
+    if (typeof window === "undefined") return;
+
+    const targetUrl = window.location.href;
+    const matchLabel = event.eventType === "match" && event.homeTeam && event.awayTeam
+      ? `${event.homeTeam} vs ${event.awayTeam}`
+      : event.title;
+    const matchDate = formatExplicitEventDate(event, { includeEra: false, includeTime: true });
+    const previewShareUrl = `${window.location.origin}/api/share?${new URLSearchParams({
+      target: targetUrl,
+      teams: matchLabel,
+      date: matchDate,
+    }).toString()}`;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(previewShareUrl);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = previewShareUrl;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+
+      setCopiedDetailEventId(event.id);
+
+      if (copyDetailTimeoutRef.current) {
+        clearTimeout(copyDetailTimeoutRef.current);
+      }
+
+      copyDetailTimeoutRef.current = setTimeout(() => {
+        setCopiedDetailEventId(null);
+      }, 1600);
+    } catch {
+      // Silent fail when clipboard API is not available.
+    }
+  }, []);
 
   const beginMobileSheetSwipe = useCallback((clientX: number, clientY: number, canDismiss = true) => {
     mobileSheetSwipeStartRef.current = { x: clientX, y: clientY, canDismiss };
@@ -1427,6 +1480,20 @@ export default function EventsListPanel({
                 >
                   {formatCoordinate(selectedEvent.lat, "N", "S")}, {formatCoordinate(selectedEvent.lng, "E", "W")}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => void handleCopyDetailEventLink(selectedEvent)}
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono-space text-[9px] uppercase tracking-[0.16em] transition-opacity hover:opacity-85"
+                  style={{
+                    borderColor: "hsl(var(--border) / 0.75)",
+                    color: copiedDetailEventId === selectedEvent.id ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+                    background: "hsl(var(--muted) / 0.2)",
+                  }}
+                  aria-label={copiedDetailEventId === selectedEvent.id ? "Link copiado" : "Copiar link del partido"}
+                >
+                  {copiedDetailEventId === selectedEvent.id ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+                  <span>{copiedDetailEventId === selectedEvent.id ? "Copiado" : "Compartir"}</span>
+                </button>
               </div>
 
 

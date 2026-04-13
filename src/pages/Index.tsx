@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from "react";
 import { track } from "@vercel/analytics";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Check, Share2 } from "lucide-react";
 import CesiumGlobe from "@/components/CesiumGlobe";
 import TimelineBar from "@/components/TimelineBar";
 import EventsListPanel from "@/components/EventsListPanel";
@@ -161,6 +162,7 @@ export default function Index() {
   const [mobilePopupCardHeight, setMobilePopupCardHeight] = useState(0);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [detectedVisitorTeam, setDetectedVisitorTeam] = useState<string | null>(null);
+  const [copiedPopupMatchId, setCopiedPopupMatchId] = useState<string | null>(null);
   const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mobilePopupCardRef = useRef<HTMLDivElement | null>(null);
   const hoverClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -169,6 +171,7 @@ export default function Index() {
   const hoverTooltipInteractingRef = useRef(false);
   const hasAppliedRouteStateRef = useRef(false);
   const routeHydrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTrackedRouteRef = useRef<string | null>(null);
   const hasDecidedWelcomeModalRef = useRef(false);
   const [routeHydrationVersion, setRouteHydrationVersion] = useState(0);
@@ -649,6 +652,62 @@ export default function Index() {
     setShowWelcomeModal(false);
   }, []);
 
+  const handleCopyMatchLink = useCallback(async (event: HistoricalEvent, showEventDetails: boolean) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const shareRoute = buildAppRouteState({
+      datasetMode,
+      activeSafariId,
+      currentYear: event.year,
+      selectedWorldCupGroup,
+      quickFilters: panelQuickFilters,
+      mapStyle,
+      selectedEventId: event.id,
+      showEventDetails,
+    });
+
+    const appShareUrl = `${window.location.origin}${shareRoute.pathname}${shareRoute.search}`;
+    const matchLabel = event.eventType === "match" && event.homeTeam && event.awayTeam
+      ? `${event.homeTeam} vs ${event.awayTeam}`
+      : event.title;
+    const matchDate = formatExplicitEventDate(event, { includeEra: false, includeTime: true });
+    const previewShareUrl = `${window.location.origin}/api/share?${new URLSearchParams({
+      target: appShareUrl,
+      teams: matchLabel,
+      date: matchDate,
+    }).toString()}`;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(previewShareUrl);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = previewShareUrl;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+
+      setCopiedPopupMatchId(event.id);
+
+      if (copyFeedbackTimeoutRef.current) {
+        clearTimeout(copyFeedbackTimeoutRef.current);
+      }
+
+      copyFeedbackTimeoutRef.current = setTimeout(() => {
+        setCopiedPopupMatchId(null);
+      }, 1600);
+    } catch {
+      // Silent fail for browsers that block clipboard outside secure/user contexts.
+    }
+  }, [datasetMode, activeSafariId, selectedWorldCupGroup, panelQuickFilters, mapStyle]);
+
   useEffect(() => {
     if (!hasAppliedRouteStateRef.current) return;
 
@@ -714,6 +773,14 @@ export default function Index() {
       isCancelled = true;
     };
   }, [showWelcomeModal, currentWorldCupSafariEvents]);
+
+  useEffect(() => {
+    return () => {
+      if (copyFeedbackTimeoutRef.current) {
+        clearTimeout(copyFeedbackTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleYearChange = useCallback((year: number) => {
     setCurrentYear(year);
@@ -1177,6 +1244,27 @@ export default function Index() {
                       />
                     )}
                     <span className="truncate text-[19px] font-semibold">{activePopupEvent.awayTeam ?? "Visitante"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleCopyMatchLink(activePopupEvent, false);
+                    }}
+                    className="ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
+                    style={{
+                      borderColor: "hsl(var(--border) / 0.7)",
+                      background: "hsl(var(--muted) / 0.2)",
+                      color: copiedPopupMatchId === activePopupEvent.id ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+                    }}
+                    aria-label={copiedPopupMatchId === activePopupEvent.id ? "Link copiado" : "Copiar link del partido"}
+                    title={copiedPopupMatchId === activePopupEvent.id ? "Link copiado" : "Copiar link del partido"}
+                  >
+                    {copiedPopupMatchId === activePopupEvent.id ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Share2 className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
 
