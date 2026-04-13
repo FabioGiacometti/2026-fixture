@@ -1,5 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Soccer ball">
-  <circle cx="32" cy="32" r="30" fill="#f8fafc" stroke="#0f172a" stroke-width="3"/>
-  <polygon points="32,18 22,25 26,37 38,37 42,25" fill="#0f172a"/>
-  <path d="M22 25L14 24M22 25L20 16M42 25L50 24M42 25L44 16M26 37L22 45M26 37L16 40M38 37L42 45M38 37L48 40" fill="none" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Balon oficial">
+  <defs>
+    <radialGradient id="ballBase" cx="34%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="68%" stop-color="#fffdf8"/>
+      <stop offset="100%" stop-color="#eadfd2"/>
+    </radialGradient>
+    <linearGradient id="redPanel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff5b59"/>
+      <stop offset="100%" stop-color="#c51626"/>
+    </linearGradient>
+    <linearGradient id="greenPanel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5ccf79"/>
+      <stop offset="100%" stop-color="#138344"/>
+    </linearGradient>
+    <linearGradient id="bluePanel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#48a2ff"/>
+      <stop offset="100%" stop-color="#1f5ec9"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#6f6256" flood-opacity="0.28"/>
+    </filter>
+    <clipPath id="ballClip">
+      <circle cx="128" cy="128" r="112"/>
+    </clipPath>
+  </defs>
+
+  <ellipse cx="128" cy="222" rx="82" ry="18" fill="#000000" opacity="0.10"/>
+
+  <g filter="url(#shadow)">
+    <circle cx="128" cy="128" r="112" fill="url(#ballBase)"/>
+
+    <g clip-path="url(#ballClip)">
+      <path d="M58 46c26-18 56-26 84-24 16 1 34 5 50 15-14 5-26 14-36 28-8 12-15 20-30 21-17 2-28-8-42-14-13-6-24-5-44-2 4-10 9-18 18-24Z" fill="url(#redPanel)"/>
+      <path d="M177 33c19 7 34 21 45 41-16 3-28 9-37 20-10 12-17 30-10 49-18-13-28-30-27-49 0-14 9-25 29-40Z" fill="url(#greenPanel)"/>
+      <path d="M198 126c20 9 30 25 31 46 1 18-5 36-16 52-10-17-22-27-38-33-16-5-31-2-45 4 8-16 13-29 23-40 11-13 26-22 45-29Z" fill="url(#bluePanel)"/>
+      <path d="M68 173c17-20 36-31 58-32 18 0 31 6 49 17-10 15-17 28-20 45-3 16 0 31 8 46-21-5-42-15-59-32-15-15-27-28-36-44Z" fill="url(#greenPanel)"/>
+      <path d="M23 102c5-18 16-34 31-48 8 16 18 27 33 34 16 8 33 8 47 7-12 12-24 22-33 38-8 15-11 30-11 47-17-10-34-19-48-33-15-13-22-27-19-45Z" fill="url(#redPanel)"/>
+
+      <path d="M56 51c23-15 46-22 69-22 18 0 37 4 56 13" fill="none" stroke="#f5d0c7" stroke-width="4" stroke-linecap="round" opacity="0.55"/>
+      <path d="M171 35c18 8 31 19 42 39" fill="none" stroke="#d7f3d4" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+      <path d="M199 128c18 8 28 21 31 41" fill="none" stroke="#dcecff" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+      <path d="M69 173c15-17 33-27 55-28" fill="none" stroke="#dff4da" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
+
+      <g transform="translate(108 111) rotate(-14)">
+        <path d="M0 0h14v40H0z" fill="#ffffff" rx="1.5"/>
+        <path d="M17 4h12v36H17z" fill="#ffffff" rx="1.5"/>
+        <path d="M32 9h10v31H32z" fill="#ffffff" rx="1.5"/>
+      </g>
+    </g>
+
+    <circle cx="128" cy="128" r="112" fill="none" stroke="#d6c8bb" stroke-width="3"/>
+    <path d="M57 51c18 9 31 25 47 35 16 10 35 10 53 5" fill="none" stroke="#f0e4d9" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
+    <path d="M57 50c7 31 25 62 49 82 16 14 35 24 59 30" fill="none" stroke="#eee5dc" stroke-width="11" stroke-linecap="round" opacity="0.95"/>
+  </g>
 </svg>
