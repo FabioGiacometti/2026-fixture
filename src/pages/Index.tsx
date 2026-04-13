@@ -163,11 +163,14 @@ export default function Index() {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [detectedVisitorTeam, setDetectedVisitorTeam] = useState<string | null>(null);
   const [copiedPopupMatchId, setCopiedPopupMatchId] = useState<string | null>(null);
+  const [popupSwipeDirection, setPopupSwipeDirection] = useState<"left" | "right" | null>(null);
+  const [popupSwipeEventId, setPopupSwipeEventId] = useState<string | null>(null);
   const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mobilePopupCardRef = useRef<HTMLDivElement | null>(null);
   const hoverClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const popupSwipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const popupSwipeHandledRef = useRef(false);
+  const popupSwipeAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverTooltipInteractingRef = useRef(false);
   const hasAppliedRouteStateRef = useRef(false);
   const routeHydrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -600,6 +603,13 @@ export default function Index() {
   }, [nextUpcomingPopupEvent?.id, activeSafari?.id, datasetMode]);
 
   useEffect(() => {
+    if (activePopupEvent?.id !== popupSwipeEventId && popupSwipeEventId) {
+      setPopupSwipeDirection(null);
+      setPopupSwipeEventId(null);
+    }
+  }, [activePopupEvent?.id, popupSwipeEventId]);
+
+  useEffect(() => {
     if (!shouldPrioritizeMobilePopup) {
       setMobilePopupCardHeight(0);
       return;
@@ -783,6 +793,9 @@ export default function Index() {
       if (copyFeedbackTimeoutRef.current) {
         clearTimeout(copyFeedbackTimeoutRef.current);
       }
+      if (popupSwipeAnimationTimeoutRef.current) {
+        clearTimeout(popupSwipeAnimationTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -929,7 +942,18 @@ export default function Index() {
     popupSwipeHandledRef.current = true;
 
     if (absDeltaX > absDeltaY) {
-      handleCyclePopupMatch(deltaX > 0 ? -1 : 1);
+      const swipeDir = deltaX > 0 ? "right" : "left";
+      setPopupSwipeDirection(swipeDir);
+      setPopupSwipeEventId(activePopupEvent?.id ?? null);
+      
+      if (popupSwipeAnimationTimeoutRef.current) {
+        clearTimeout(popupSwipeAnimationTimeoutRef.current);
+      }
+      
+      popupSwipeAnimationTimeoutRef.current = setTimeout(() => {
+        handleCyclePopupMatch(deltaX > 0 ? -1 : 1);
+      }, 300);
+      
       return;
     }
 
@@ -1137,6 +1161,11 @@ export default function Index() {
               boxShadow: isMobile ? "0 -16px 40px hsl(0 0% 0% / 0.42)" : "0 10px 28px hsl(0 0% 0% / 0.42)",
               backdropFilter: "blur(10px)",
               touchAction: isMobile ? "none" : "auto",
+              ...(isMobile && popupSwipeDirection && activePopupEvent?.id === popupSwipeEventId && {
+                transform: popupSwipeDirection === "left" ? "translateX(-120%)" : "translateX(120%)",
+                transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms ease-out",
+                opacity: 0,
+              }),
             }}
             onClick={isMobile ? handleMobilePopupCardClick : undefined}
             onTouchStart={isMobile ? (event) => beginPopupSwipe(event.touches[0].clientX, event.touches[0].clientY) : undefined}
