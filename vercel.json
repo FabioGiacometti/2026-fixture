@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/s/:eventId",
+      "destination": "/api/share?event=:eventId"
+    },
+    {
       "source": "/worldcup/:path*",
       "destination": "/index.html"
     },

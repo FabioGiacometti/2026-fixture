@@ -317,15 +317,14 @@ export default function EventsListPanel({
   const handleCopyDetailEventLink = useCallback(async (event: HistoricalEvent) => {
     if (typeof window === "undefined") return;
 
-    const targetUrl = window.location.href;
     const matchLabel = event.eventType === "match" && event.homeTeam && event.awayTeam
       ? `${event.homeTeam} vs ${event.awayTeam}`
       : event.title;
     const matchDate = formatExplicitEventDate(event, { includeEra: false, includeTime: true });
-    const previewShareUrl = `${window.location.origin}/api/share?${new URLSearchParams({
-      target: targetUrl,
-      teams: matchLabel,
-      date: matchDate,
+    const previewShareUrl = `${window.location.origin}/s/${encodeURIComponent(event.id)}?${new URLSearchParams({
+      d: "1",
+      m: matchLabel,
+      dt: matchDate,
     }).toString()}`;
 
     try {

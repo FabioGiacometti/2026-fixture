@@ -500,6 +500,11 @@ export default function Index() {
     return currentWorldCupSafariEvents.filter((event) => allowedIds.has(event.id));
   }, [currentWorldCupSafariEvents, panelFilteredEventIds]);
 
+  const nextUpcomingGlobalEvent = useMemo(
+    () => getNextUpcomingWorldCupEvent(currentWorldCupSafariEvents),
+    [currentWorldCupSafariEvents]
+  );
+
   const nextUpcomingPopupEvent = useMemo(
     () => getNextUpcomingWorldCupEvent(currentWorldCupFilteredEvents),
     [currentWorldCupFilteredEvents]
@@ -668,15 +673,14 @@ export default function Index() {
       showEventDetails,
     });
 
-    const appShareUrl = `${window.location.origin}${shareRoute.pathname}${shareRoute.search}`;
     const matchLabel = event.eventType === "match" && event.homeTeam && event.awayTeam
       ? `${event.homeTeam} vs ${event.awayTeam}`
       : event.title;
     const matchDate = formatExplicitEventDate(event, { includeEra: false, includeTime: true });
-    const previewShareUrl = `${window.location.origin}/api/share?${new URLSearchParams({
-      target: appShareUrl,
-      teams: matchLabel,
-      date: matchDate,
+    const previewShareUrl = `${window.location.origin}/s/${encodeURIComponent(event.id)}?${new URLSearchParams({
+      d: showEventDetails ? "1" : "0",
+      m: matchLabel,
+      dt: matchDate,
     }).toString()}`;
 
     try {
@@ -827,8 +831,8 @@ export default function Index() {
   }, [clearHoverTooltip]);
 
   const handleWelcomeViewNextMatch = useCallback(() => {
-    handleWelcomeSelectEvent(nextUpcomingPopupEvent);
-  }, [handleWelcomeSelectEvent, nextUpcomingPopupEvent]);
+    handleWelcomeSelectEvent(nextUpcomingGlobalEvent);
+  }, [handleWelcomeSelectEvent, nextUpcomingGlobalEvent]);
 
   const handleWelcomeViewCountryMatch = useCallback(() => {
     handleWelcomeSelectEvent(nextUpcomingCountryEvent);

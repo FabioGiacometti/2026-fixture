@@ -12,14 +12,10 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function resolveTargetUrl(rawTarget, baseUrl) {
-  try {
-    if (!rawTarget) return baseUrl;
-    const url = new URL(rawTarget, baseUrl);
-    return url.toString();
-  } catch {
-    return baseUrl;
-  }
+function buildTargetUrl(baseUrl, eventId, detailsFlag) {
+  if (!eventId) return baseUrl;
+  const details = detailsFlag === "1" ? "true" : "false";
+  return `${baseUrl}/worldcup/world-cup-2026?map=geographic&event=${encodeURIComponent(eventId)}&details=${details}`;
 }
 
 export default function handler(req, res) {
@@ -27,10 +23,12 @@ export default function handler(req, res) {
   const host = asSingle(req.headers.host) || "2026-fixture.vercel.app";
   const baseUrl = `${protocol}://${host}`;
 
-  const teams = asSingle(req.query.teams) || "Partido de la Copa Mundial 2026";
-  const date = asSingle(req.query.date) || "";
-  const rawTarget = asSingle(req.query.target);
-  const targetUrl = resolveTargetUrl(rawTarget, baseUrl);
+  const eventId = asSingle(req.query.event);
+  const detailsFlag = asSingle(req.query.d) ?? "0";
+  const teams = asSingle(req.query.m) || "Partido de la Copa Mundial 2026";
+  const date = asSingle(req.query.dt) || "";
+
+  const targetUrl = buildTargetUrl(baseUrl, eventId, detailsFlag);
 
   const siteName = "Fixture Interactivo Copa 2026";
   const title = `${siteName} | ${teams}`;
