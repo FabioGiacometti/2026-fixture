@@ -575,7 +575,7 @@ export default function EventsListPanel({
   const venueName = selectedEvent?.city ?? selectedEvent?.region ?? "Ubicación desconocida";
   const panelTabLabel = isCurrentWorldCupSafari ? "Calendario" : "Eventos";
   const panelOpenLabel = isCurrentWorldCupSafari
-    ? "Abrir calendario de partidos"
+    ? "Ver calendario"
     : "Abrir lista de eventos";
   const panelSubtitle = activeSafari
     ? (isCurrentWorldCupSafari ? "Calendario del torneo" : "Narrativa Curada")
@@ -676,16 +676,7 @@ export default function EventsListPanel({
                 <List className="h-4 w-4" style={{ color: "hsl(var(--primary))" }} />
               )}
               <span className="font-mono-space text-[10px] uppercase tracking-[0.18em]">
-                {panelTabLabel}
-              </span>
-              <span
-                className="rounded-full px-1.5 py-0.5 font-mono-space text-[9px]"
-                style={{
-                  background: "hsl(var(--primary) / 0.12)",
-                  color: "hsl(var(--primary))",
-                }}
-              >
-                {filteredEventsList.length}
+                {isCurrentWorldCupSafari ? "Ver calendario" : panelTabLabel}
               </span>
             </button>
           </div>

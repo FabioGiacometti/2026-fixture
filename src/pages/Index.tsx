@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from "react";
 import { track } from "@vercel/analytics";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Check, Share2 } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 import CesiumGlobe from "@/components/CesiumGlobe";
 import TimelineBar from "@/components/TimelineBar";
 import EventsListPanel from "@/components/EventsListPanel";
@@ -27,6 +27,8 @@ import { detectVisitorCountryMatch, normalizeText } from "@/lib/visitor-country"
 
 const CESIUM_LOADED_CHECK_INTERVAL = 200;
 const UI_TRANSITION_DURATION_MS = 500;
+const MOBILE_POPUP_SWIPE_DURATION_MS = 400;
+const MOBILE_POPUP_LEFT_EDGE_GUARD_PX = 28;
 const DATASET_MODE_KEY = "history-map-dataset-mode";
 const DEFAULT_SHARE_TITLE = "Fixture Interactivo Copa 2026";
 const DEFAULT_SHARE_DESCRIPTION = "Explora el fixture de la Copa Mundial 2026 en un mapa 3D interactivo y comparte partidos con enlaces directos.";
@@ -166,6 +168,7 @@ export default function Index() {
   const [copiedPopupMatchId, setCopiedPopupMatchId] = useState<string | null>(null);
   const [popupSwipeDirection, setPopupSwipeDirection] = useState<"left" | "right" | null>(null);
   const [popupSwipeEventId, setPopupSwipeEventId] = useState<string | null>(null);
+  const [popupSwipeIncomingEvent, setPopupSwipeIncomingEvent] = useState<HistoricalEvent | null>(null);
   const checkRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mobilePopupCardRef = useRef<HTMLDivElement | null>(null);
   const hoverClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -571,11 +574,6 @@ export default function Index() {
     null;
   const [renderedPopupEvent, setRenderedPopupEvent] = useState<HistoricalEvent | null>(null);
   const [isPopupClosing, setIsPopupClosing] = useState(false);
-  const isNextPopupEvent = Boolean(
-    (renderedPopupEvent ?? activePopupEvent) &&
-      nextUpcomingPopupEvent &&
-      (renderedPopupEvent ?? activePopupEvent)?.id === nextUpcomingPopupEvent.id
-  );
   const popupContextChips = [
     selectedWorldCupGroup !== "Todos" ? selectedWorldCupGroup : null,
     ...panelQuickFilters.slice(0, 2),
@@ -591,6 +589,23 @@ export default function Index() {
       (datasetMode === "worldcup" ? currentWorldCupFilteredEvents : visibleEvents)
         .filter((event) => event.eventType === "match"),
     [datasetMode, currentWorldCupFilteredEvents, visibleEvents]
+  );
+  const popupTournamentMatches = useMemo(
+    () =>
+      (activeSafari
+        ? activeSafari.eventIds
+            .map((id) => allDatasetEvents.find((event) => event.id === id))
+            .filter((event): event is HistoricalEvent => Boolean(event && event.eventType === "match"))
+        : swipeablePopupMatches
+      ).sort((left, right) => {
+        const leftDate = new Date(left.year, (left.month ?? 1) - 1, left.day ?? 1).getTime();
+        const rightDate = new Date(right.year, (right.month ?? 1) - 1, right.day ?? 1).getTime();
+        const leftKickoff = left.kickoff ? Number.parseInt(left.kickoff.replace(":", ""), 10) : 9999;
+        const rightKickoff = right.kickoff ? Number.parseInt(right.kickoff.replace(":", ""), 10) : 9999;
+
+        return leftDate === rightDate ? leftKickoff - rightKickoff : leftDate - rightDate;
+      }),
+    [activeSafari, allDatasetEvents, swipeablePopupMatches]
   );
   const globeViewportInsets = useMemo(
     () => ({
@@ -610,6 +625,7 @@ export default function Index() {
     if (activePopupEvent?.id !== popupSwipeEventId && popupSwipeEventId) {
       setPopupSwipeDirection(null);
       setPopupSwipeEventId(null);
+      setPopupSwipeIncomingEvent(null);
     }
   }, [activePopupEvent?.id, popupSwipeEventId]);
 
@@ -928,8 +944,20 @@ export default function Index() {
     setIsMobilePopupDismissed(false);
   }, [clearHoverTooltip]);
 
-  const handleCyclePopupMatch = useCallback((direction: number) => {
-    if (!activePopupEvent) return;
+  const handleShowPopupMatch = useCallback((nextMatch: HistoricalEvent) => {
+    clearHoverTooltip();
+    hoverTooltipInteractingRef.current = false;
+    setIsMobilePopupDismissed(false);
+    setSelectedEvent(null);
+    setFocusedVenueEvent(nextMatch);
+    setCurrentYear(nextMatch.year);
+    setHoveredEventState((prev) => ({ event: nextMatch, x: prev?.x ?? 0, y: prev?.y ?? 0 }));
+  }, [clearHoverTooltip]);
+
+  const triggerPopupNavigation = useCallback((direction: number) => {
+    if (!activePopupEvent) {
+      return false;
+    }
 
     const nextMatch = getChronologicalMatchNavigationEvent(
       swipeablePopupMatches,
@@ -938,22 +966,38 @@ export default function Index() {
     );
 
     if (!nextMatch || nextMatch.id === activePopupEvent.id) {
+      return false;
+    }
+
+    setPopupSwipeDirection(direction < 0 ? "right" : "left");
+    setPopupSwipeEventId(activePopupEvent.id);
+    setPopupSwipeIncomingEvent(nextMatch);
+
+    if (popupSwipeAnimationTimeoutRef.current) {
+      clearTimeout(popupSwipeAnimationTimeoutRef.current);
+    }
+
+    popupSwipeAnimationTimeoutRef.current = setTimeout(() => {
+      handleShowPopupMatch(nextMatch);
+    }, MOBILE_POPUP_SWIPE_DURATION_MS);
+
+    return true;
+  }, [activePopupEvent, handleShowPopupMatch, swipeablePopupMatches]);
+
+  const handlePopupNavigation = useCallback((direction: number) => {
+    void triggerPopupNavigation(direction);
+  }, [triggerPopupNavigation]);
+
+  const beginPopupSwipe = useCallback((clientX: number, clientY: number) => {
+    if (isMobile && clientX <= MOBILE_POPUP_LEFT_EDGE_GUARD_PX) {
+      popupSwipeStartRef.current = null;
+      popupSwipeHandledRef.current = false;
       return;
     }
 
-    clearHoverTooltip();
-    hoverTooltipInteractingRef.current = false;
-    setIsMobilePopupDismissed(false);
-    setSelectedEvent(null);
-    setFocusedVenueEvent(nextMatch);
-    setCurrentYear(nextMatch.year);
-    setHoveredEventState((prev) => ({ event: nextMatch, x: prev?.x ?? 0, y: prev?.y ?? 0 }));
-  }, [activePopupEvent, clearHoverTooltip, swipeablePopupMatches]);
-
-  const beginPopupSwipe = useCallback((clientX: number, clientY: number) => {
     popupSwipeStartRef.current = { x: clientX, y: clientY };
     popupSwipeHandledRef.current = false;
-  }, []);
+  }, [isMobile]);
 
   const endPopupSwipe = useCallback((clientX: number, clientY: number) => {
     const swipeStart = popupSwipeStartRef.current;
@@ -974,18 +1018,14 @@ export default function Index() {
     popupSwipeHandledRef.current = true;
 
     if (absDeltaX > absDeltaY) {
-      const swipeDir = deltaX > 0 ? "right" : "left";
-      setPopupSwipeDirection(swipeDir);
-      setPopupSwipeEventId(activePopupEvent?.id ?? null);
-      
-      if (popupSwipeAnimationTimeoutRef.current) {
-        clearTimeout(popupSwipeAnimationTimeoutRef.current);
+      const direction = deltaX > 0 ? -1 : 1;
+      const didNavigate = triggerPopupNavigation(direction);
+
+      if (!didNavigate) {
+        popupSwipeHandledRef.current = false;
+        return;
       }
-      
-      popupSwipeAnimationTimeoutRef.current = setTimeout(() => {
-        handleCyclePopupMatch(deltaX > 0 ? -1 : 1);
-      }, 300);
-      
+
       return;
     }
 
@@ -997,7 +1037,7 @@ export default function Index() {
     if (deltaY > 42) {
       handleDismissPopup();
     }
-  }, [activePopupEvent?.id, handleCyclePopupMatch, handleDismissPopup, handleOpenHoveredMatchInfo]);
+  }, [handleDismissPopup, handleOpenHoveredMatchInfo, triggerPopupNavigation]);
 
   const handleMobilePopupCardClick = useCallback(() => {
     if (popupSwipeHandledRef.current) {
@@ -1061,6 +1101,310 @@ export default function Index() {
     setCurrentYear(event.year);
     setHoveredEventState({ event, x, y });
   }, [clearHoverTooltip]);
+
+  const isAnimatedPopupSwipe = Boolean(
+    isMobile
+      && popupSwipeDirection
+      && popupSwipeIncomingEvent
+      && renderedPopupEvent
+      && renderedPopupEvent.id === popupSwipeEventId
+  );
+
+  const renderPopupCardContent = (popupEvent: HistoricalEvent) => {
+    const popupIsNextUpcoming = Boolean(
+      nextUpcomingPopupEvent && popupEvent.id === nextUpcomingPopupEvent.id
+    );
+    const currentPopupIndex = popupTournamentMatches.findIndex((event) => event.id === popupEvent.id);
+    const hasPreviousPopupMatch = currentPopupIndex > 0;
+    const hasNextPopupMatch = currentPopupIndex !== -1 && currentPopupIndex < popupTournamentMatches.length - 1;
+
+    return popupEvent.dataset === "worldcup" && popupEvent.eventType === "match" ? (
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-3 pr-10">
+          <p
+            className="text-[17px] font-semibold leading-tight"
+            style={{ color: "hsl(var(--foreground))" }}
+          >
+            {popupIsNextUpcoming
+              ? popupContextChips.length > 0
+                ? "Tu próximo partido relevante"
+                : "Próximo partido del torneo"
+              : "Partido seleccionado en el mapa"}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          {popupEvent.groupName ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleApplyGroupFilter(popupEvent);
+              }}
+              className="rounded-full px-2.5 py-1 font-mono-space text-[10px] uppercase tracking-[0.18em] transition-opacity hover:opacity-80"
+              style={{
+                color: "hsl(var(--primary))",
+                background: "hsl(var(--primary) / 0.12)",
+              }}
+            >
+              {popupEvent.groupName}
+            </button>
+          ) : (
+            <span
+              className="rounded-full px-2.5 py-1 font-mono-space text-[10px] uppercase tracking-[0.18em]"
+              style={{
+                color: "hsl(var(--primary))",
+                background: "hsl(var(--primary) / 0.12)",
+              }}
+            >
+              {popupEvent.stage ?? "Partido"}
+            </span>
+          )}
+
+          {isMobile && popupTournamentMatches.length > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handlePopupNavigation(-1);
+                }}
+                disabled={!hasPreviousPopupMatch}
+                aria-label="Partido anterior"
+                className="h-8 w-8 flex items-center justify-center rounded-lg transition-all"
+                style={{
+                  background: hasPreviousPopupMatch ? "hsl(var(--primary) / 0.1)" : "transparent",
+                  color: hasPreviousPopupMatch ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.2)",
+                  border: `1px solid ${hasPreviousPopupMatch ? "hsl(var(--primary) / 0.4)" : "hsl(var(--border) / 0.5)"}`,
+                  cursor: hasPreviousPopupMatch ? "pointer" : "default",
+                }}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handlePopupNavigation(1);
+                }}
+                disabled={!hasNextPopupMatch}
+                aria-label="Próximo partido"
+                className="h-8 w-8 flex items-center justify-center rounded-lg transition-all"
+                style={{
+                  background: hasNextPopupMatch ? "hsl(var(--primary) / 0.1)" : "transparent",
+                  color: hasNextPopupMatch ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.2)",
+                  border: `1px solid ${hasNextPopupMatch ? "hsl(var(--primary) / 0.4)" : "hsl(var(--border) / 0.5)"}`,
+                  cursor: hasNextPopupMatch ? "pointer" : "default",
+                }}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 text-[18px] font-semibold leading-snug" style={{ color: "hsl(var(--foreground))" }}>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleApplyTeamFilter(popupEvent.homeTeam, popupEvent);
+            }}
+            className="flex min-w-0 items-center gap-2 text-left transition-opacity hover:opacity-80"
+          >
+            {popupEvent.homeFlag && (
+              <img
+                src={`https://flagcdn.com/w20/${popupEvent.homeFlag.toLowerCase()}.png`}
+                alt={popupEvent.homeTeam ?? "Local"}
+                className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
+              />
+            )}
+            <span className="truncate text-[19px] font-semibold">{popupEvent.homeTeam ?? "Local"}</span>
+          </button>
+          <span style={{ color: "hsl(var(--muted-foreground))" }}>vs</span>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleApplyTeamFilter(popupEvent.awayTeam, popupEvent);
+            }}
+            className="flex min-w-0 items-center gap-2 text-left transition-opacity hover:opacity-80"
+          >
+            {popupEvent.awayFlag && (
+              <img
+                src={`https://flagcdn.com/w20/${popupEvent.awayFlag.toLowerCase()}.png`}
+                alt={popupEvent.awayTeam ?? "Visitante"}
+                className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
+              />
+            )}
+            <span className="truncate text-[19px] font-semibold">{popupEvent.awayTeam ?? "Visitante"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void handleCopyMatchLink(popupEvent, false);
+            }}
+            className="ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
+            style={{
+              borderColor: "hsl(var(--border) / 0.7)",
+              background: "hsl(var(--muted) / 0.2)",
+              color: copiedPopupMatchId === popupEvent.id ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+            }}
+            aria-label={copiedPopupMatchId === popupEvent.id ? "Link copiado" : "Copiar link del partido"}
+            title={copiedPopupMatchId === popupEvent.id ? "Link copiado" : "Copiar link del partido"}
+          >
+            {copiedPopupMatchId === popupEvent.id ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <Share2 className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+
+        <div className="space-y-1">
+          <p
+            className="text-[12px] uppercase tracking-[0.18em]"
+            style={{ color: "hsl(var(--muted-foreground))" }}
+          >
+            {formatExplicitEventDate(popupEvent, { includeEra: false, includeTime: true })}
+          </p>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              applyVenueFilter(popupEvent);
+            }}
+            className="text-left text-[15px] font-semibold leading-tight transition-opacity hover:opacity-80"
+            style={{ color: "hsl(var(--foreground))" }}
+          >
+            {popupEvent.city ?? popupEvent.region}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleOpenHoveredMatchInfo();
+            }}
+            className="self-start rounded-md px-0 py-0.5 text-[12px] font-semibold transition-colors hover:opacity-80"
+            style={{ color: "hsl(var(--primary))" }}
+          >
+            Ver información del partido
+          </button>
+
+          {popupTournamentMatches.length > 0 && currentPopupIndex !== -1 && (
+            <div className="rounded-md px-0 py-0.5 text-[12px] font-semibold" style={{ color: "hsl(var(--foreground))" }}>
+              {`Partido ${currentPopupIndex + 1}/${popupTournamentMatches.length}`}
+            </div>
+          )}
+        </div>
+      </div>
+    ) : (
+      <div className="flex flex-col gap-1">
+        <span
+          className="font-mono-space text-xs font-bold leading-snug"
+          style={{ color: "hsl(var(--foreground))" }}
+        >
+          {popupEvent.title}
+        </span>
+        <p
+          className="text-[10px] leading-relaxed line-clamp-2"
+          style={{ color: "hsl(var(--muted-foreground))" }}
+        >
+          {popupEvent.description}
+        </p>
+        <span
+          className="font-mono-space text-[9px] mt-0.5"
+          style={{ color: "hsl(var(--primary))" }}
+        >
+          {formatYear(popupEvent.year)}
+        </span>
+      </div>
+    );
+  };
+
+  const renderPopupCard = (
+    popupEvent: HistoricalEvent,
+    variant: "single" | "outgoing" | "incoming"
+  ) => {
+    const baseStyle: CSSProperties = {
+      background: isMobile ? "hsl(var(--card))" : "hsl(var(--card) / 0.97)",
+      border: "1px solid hsl(var(--border))",
+      borderTopLeftRadius: isMobile ? "24px" : undefined,
+      borderTopRightRadius: isMobile ? "24px" : undefined,
+      boxShadow: isMobile ? "0 -16px 40px hsl(0 0% 0% / 0.42)" : "0 10px 28px hsl(0 0% 0% / 0.42)",
+      backdropFilter: "blur(10px)",
+      touchAction: isMobile ? "none" : "auto",
+    };
+
+    if (variant === "single" && isMobile) {
+      baseStyle.transition = "transform 500ms ease-in-out, opacity 500ms ease-in-out";
+      if (isPopupClosing && !activePopupEvent) {
+        baseStyle.transform = "translateY(110%)";
+        baseStyle.opacity = 0;
+      }
+    }
+
+    if (variant !== "single" && isMobile) {
+      baseStyle.position = "absolute";
+      baseStyle.inset = 0;
+      baseStyle.pointerEvents = "none";
+      baseStyle.willChange = "transform, opacity";
+      baseStyle.animation = popupSwipeDirection === "left"
+        ? variant === "outgoing"
+          ? `mobile-popup-card-exit-left ${MOBILE_POPUP_SWIPE_DURATION_MS}ms ease-in-out forwards`
+          : `mobile-popup-card-enter-right ${MOBILE_POPUP_SWIPE_DURATION_MS}ms ease-in-out forwards`
+        : variant === "outgoing"
+          ? `mobile-popup-card-exit-right ${MOBILE_POPUP_SWIPE_DURATION_MS}ms ease-in-out forwards`
+          : `mobile-popup-card-enter-left ${MOBILE_POPUP_SWIPE_DURATION_MS}ms ease-in-out forwards`;
+      baseStyle.zIndex = variant === "incoming" ? 2 : 1;
+    }
+
+    return (
+      <div
+        key={`${variant}-${popupEvent.id}`}
+        className={`border px-3.5 py-3 shadow-xl ${variant === "single" ? "pointer-events-auto" : "pointer-events-none"} ${
+          isMobile ? "w-full rounded-none border-b-0 border-l-0 border-r-0 px-4 pb-4 pt-3" : "relative rounded-xl"
+        }`}
+        style={baseStyle}
+        onClick={variant === "single" && isMobile ? handleMobilePopupCardClick : undefined}
+        onTouchStart={variant === "single" && isMobile ? (event) => beginPopupSwipe(event.touches[0].clientX, event.touches[0].clientY) : undefined}
+        onTouchEnd={variant === "single" && isMobile ? (event) => endPopupSwipe(event.changedTouches[0].clientX, event.changedTouches[0].clientY) : undefined}
+        onPointerDown={variant === "single" && isMobile ? (event) => beginPopupSwipe(event.clientX, event.clientY) : undefined}
+        onPointerUp={variant === "single" && isMobile ? (event) => endPopupSwipe(event.clientX, event.clientY) : undefined}
+        onMouseEnter={() => {
+          hoverTooltipInteractingRef.current = true;
+          clearHoverTooltip();
+        }}
+        onMouseLeave={() => {
+          hoverTooltipInteractingRef.current = false;
+          setHoveredEventState(null);
+        }}
+      >
+        {isMobile && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleDismissPopup();
+            }}
+            aria-label="Cerrar tooltip del mapa"
+            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-base font-semibold transition-opacity hover:opacity-80"
+            style={{
+              background: "hsl(var(--muted) / 0.55)",
+              color: "hsl(var(--muted-foreground))",
+            }}
+          >
+            ×
+          </button>
+        )}
+        {renderPopupCardContent(popupEvent)}
+      </div>
+    );
+  };
 
   const handleSelectSafari = useCallback((safariId: string) => {
     if (safariId.startsWith("world-cup-")) {
@@ -1177,218 +1521,15 @@ export default function Index() {
         >
           <div
             ref={isMobile ? mobilePopupCardRef : undefined}
-            className={`pointer-events-auto border px-3.5 py-3 shadow-xl ${
-              isMobile ? "w-full rounded-none border-b-0 border-l-0 border-r-0 px-4 pb-4 pt-3" : "relative rounded-xl"
-            }`}
-            style={{
-              background: isMobile ? "hsl(var(--card))" : "hsl(var(--card) / 0.97)",
-              border: isMobile ? "1px solid hsl(var(--border))" : "1px solid hsl(var(--border))",
-              borderTopLeftRadius: isMobile ? "24px" : undefined,
-              borderTopRightRadius: isMobile ? "24px" : undefined,
-              boxShadow: isMobile ? "0 -16px 40px hsl(0 0% 0% / 0.42)" : "0 10px 28px hsl(0 0% 0% / 0.42)",
-              backdropFilter: "blur(10px)",
-              touchAction: isMobile ? "none" : "auto",
-              transition: isMobile
-                ? "transform 500ms ease-in-out, opacity 500ms ease-in-out"
-                : undefined,
-              ...(isMobile && isPopupClosing && !activePopupEvent && {
-                transform: "translateY(110%)",
-                opacity: 0,
-              }),
-              ...(isMobile && popupSwipeDirection && activePopupEvent?.id === popupSwipeEventId && {
-                transform: popupSwipeDirection === "left" ? "translateX(-120%)" : "translateX(120%)",
-                transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms ease-out",
-                opacity: 0,
-              }),
-            }}
-            onClick={isMobile ? handleMobilePopupCardClick : undefined}
-            onTouchStart={isMobile ? (event) => beginPopupSwipe(event.touches[0].clientX, event.touches[0].clientY) : undefined}
-            onTouchEnd={isMobile ? (event) => endPopupSwipe(event.changedTouches[0].clientX, event.changedTouches[0].clientY) : undefined}
-            onPointerDown={isMobile ? (event) => beginPopupSwipe(event.clientX, event.clientY) : undefined}
-            onPointerUp={isMobile ? (event) => endPopupSwipe(event.clientX, event.clientY) : undefined}
-            onMouseEnter={() => {
-              hoverTooltipInteractingRef.current = true;
-              clearHoverTooltip();
-            }}
-            onMouseLeave={() => {
-              hoverTooltipInteractingRef.current = false;
-              setHoveredEventState(null);
-            }}
+            className={isAnimatedPopupSwipe ? "pointer-events-auto relative overflow-hidden" : undefined}
+            style={isAnimatedPopupSwipe ? { minHeight: mobilePopupCardHeight || undefined } : undefined}
           >
-            {isMobile && (
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleDismissPopup();
-                }}
-                aria-label="Cerrar tooltip del mapa"
-                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-base font-semibold transition-opacity hover:opacity-80"
-                style={{
-                  background: "hsl(var(--muted) / 0.55)",
-                  color: "hsl(var(--muted-foreground))",
-                }}
-              >
-                ×
-              </button>
-            )}
-            {renderedPopupEvent.dataset === "worldcup" && renderedPopupEvent.eventType === "match" ? (
-              <div className="flex flex-col gap-3">
-                <div className="pr-10">
-                  <p
-                    className="text-[17px] font-semibold leading-tight"
-                    style={{ color: "hsl(var(--foreground))" }}
-                  >
-                    {isNextPopupEvent
-                      ? popupContextChips.length > 0
-                        ? "Tu próximo partido relevante"
-                        : "Próximo partido del torneo"
-                      : "Partido seleccionado en el mapa"}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between gap-2">
-                  {renderedPopupEvent.groupName ? (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleApplyGroupFilter(renderedPopupEvent);
-                      }}
-                      className="rounded-full px-2.5 py-1 font-mono-space text-[10px] uppercase tracking-[0.18em] transition-opacity hover:opacity-80"
-                      style={{
-                        color: "hsl(var(--primary))",
-                        background: "hsl(var(--primary) / 0.12)",
-                      }}
-                    >
-                      {renderedPopupEvent.groupName}
-                    </button>
-                  ) : (
-                    <span
-                      className="rounded-full px-2.5 py-1 font-mono-space text-[10px] uppercase tracking-[0.18em]"
-                      style={{
-                        color: "hsl(var(--primary))",
-                        background: "hsl(var(--primary) / 0.12)",
-                      }}
-                    >
-                      {renderedPopupEvent.stage ?? "Partido"}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 text-[18px] font-semibold leading-snug" style={{ color: "hsl(var(--foreground))" }}>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleApplyTeamFilter(renderedPopupEvent.homeTeam, renderedPopupEvent);
-                    }}
-                    className="flex min-w-0 items-center gap-2 text-left transition-opacity hover:opacity-80"
-                  >
-                    {renderedPopupEvent.homeFlag && (
-                      <img
-                        src={`https://flagcdn.com/w20/${renderedPopupEvent.homeFlag.toLowerCase()}.png`}
-                        alt={renderedPopupEvent.homeTeam ?? "Local"}
-                        className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
-                      />
-                    )}
-                    <span className="truncate text-[19px] font-semibold">{renderedPopupEvent.homeTeam ?? "Local"}</span>
-                  </button>
-                  <span style={{ color: "hsl(var(--muted-foreground))" }}>vs</span>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleApplyTeamFilter(renderedPopupEvent.awayTeam, renderedPopupEvent);
-                    }}
-                    className="flex min-w-0 items-center gap-2 text-left transition-opacity hover:opacity-80"
-                  >
-                    {renderedPopupEvent.awayFlag && (
-                      <img
-                        src={`https://flagcdn.com/w20/${renderedPopupEvent.awayFlag.toLowerCase()}.png`}
-                        alt={renderedPopupEvent.awayTeam ?? "Visitante"}
-                        className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
-                      />
-                    )}
-                    <span className="truncate text-[19px] font-semibold">{renderedPopupEvent.awayTeam ?? "Visitante"}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void handleCopyMatchLink(renderedPopupEvent, false);
-                    }}
-                    className="ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
-                    style={{
-                      borderColor: "hsl(var(--border) / 0.7)",
-                      background: "hsl(var(--muted) / 0.2)",
-                      color: copiedPopupMatchId === renderedPopupEvent.id ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
-                    }}
-                    aria-label={copiedPopupMatchId === renderedPopupEvent.id ? "Link copiado" : "Copiar link del partido"}
-                    title={copiedPopupMatchId === renderedPopupEvent.id ? "Link copiado" : "Copiar link del partido"}
-                  >
-                    {copiedPopupMatchId === renderedPopupEvent.id ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <Share2 className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-
-                <div className="space-y-1">
-                  <p
-                    className="text-[12px] uppercase tracking-[0.18em]"
-                    style={{ color: "hsl(var(--muted-foreground))" }}
-                  >
-                    {formatExplicitEventDate(renderedPopupEvent, { includeEra: false, includeTime: true })}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      applyVenueFilter(renderedPopupEvent);
-                    }}
-                    className="text-left text-[15px] font-semibold leading-tight transition-opacity hover:opacity-80"
-                    style={{ color: "hsl(var(--foreground))" }}
-                  >
-                    {renderedPopupEvent.city ?? renderedPopupEvent.region}
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleOpenHoveredMatchInfo();
-                  }}
-                  className="self-start rounded-md px-0 py-0.5 text-[12px] font-semibold transition-colors hover:opacity-80"
-                  style={{ color: "hsl(var(--primary))" }}
-                >
-                  Ver información del partido
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-1">
-                <span
-                  className="font-mono-space text-xs font-bold leading-snug"
-                  style={{ color: "hsl(var(--foreground))" }}
-                >
-                  {renderedPopupEvent.title}
-                </span>
-                <p
-                  className="text-[10px] leading-relaxed line-clamp-2"
-                  style={{ color: "hsl(var(--muted-foreground))" }}
-                >
-                  {renderedPopupEvent.description}
-                </p>
-                <span
-                  className="font-mono-space text-[9px] mt-0.5"
-                  style={{ color: "hsl(var(--primary))" }}
-                >
-                  {formatYear(renderedPopupEvent.year)}
-                </span>
-              </div>
-            )}
+            {isAnimatedPopupSwipe && renderedPopupEvent && popupSwipeIncomingEvent
+              ? [
+                  renderPopupCard(renderedPopupEvent, "outgoing"),
+                  renderPopupCard(popupSwipeIncomingEvent, "incoming"),
+                ]
+              : renderPopupCard(renderedPopupEvent, "single")}
           </div>
         </div>
       )}

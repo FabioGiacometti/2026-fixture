@@ -337,3 +337,51 @@ body {
 .marker-pulse {
   animation: marker-pulse 0.4s ease-out forwards;
 }
+
+@keyframes mobile-popup-card-exit-left {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(-100%);
+    opacity: 1;
+  }
+}
+
+@keyframes mobile-popup-card-exit-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+}
+
+@keyframes mobile-popup-card-enter-right {
+  from {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes mobile-popup-card-enter-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
