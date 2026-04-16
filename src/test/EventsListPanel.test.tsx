@@ -343,7 +343,7 @@ describe("EventsListPanel match detail view", () => {
 
     expect(screen.queryByRole("button", { name: "Grupo A: México vs Sudáfrica" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /abrir calendario de partidos/i }));
+    fireEvent.click(screen.getByRole("button", { name: /ver calendario/i }));
 
     expect(screen.getByRole("button", { name: "Grupo A: México vs Sudáfrica" })).toBeInTheDocument();
   });
@@ -406,7 +406,7 @@ describe("EventsListPanel match detail view", () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    expect(screen.getByRole("button", { name: /abrir calendario de partidos/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /ver calendario/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Grupo C: Argentina vs Japón" })).not.toBeInTheDocument();
   });
 
@@ -456,7 +456,7 @@ describe("EventsListPanel match detail view", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /abrir calendario de partidos/i }));
+    fireEvent.click(screen.getByRole("button", { name: /ver calendario/i }));
 
     const calendarDialog = await screen.findByRole("dialog", { name: /calendario del torneo/i });
     expect(calendarDialog).toHaveStyle({
@@ -514,12 +514,12 @@ describe("EventsListPanel match detail view", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /abrir calendario de partidos/i }));
+    fireEvent.click(screen.getByRole("button", { name: /ver calendario/i }));
     fireEvent.click(await screen.findByRole("button", { name: /ver mapa/i }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /abrir calendario de partidos/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /ver calendario/i })).toBeInTheDocument();
     });
   });
 
@@ -571,7 +571,7 @@ describe("EventsListPanel match detail view", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /abrir calendario de partidos/i }));
+    fireEvent.click(screen.getByRole("button", { name: /ver calendario/i }));
     const calendarDialog = await screen.findByRole("dialog", { name: /calendario del torneo/i });
 
     fireEvent.touchStart(calendarDialog, { touches: [{ clientX: 140, clientY: 120 }] });
@@ -579,7 +579,7 @@ describe("EventsListPanel match detail view", () => {
 
     await waitFor(() => {
       expect(onClose).toHaveBeenCalledTimes(1);
-      expect(screen.getByRole("button", { name: /abrir calendario de partidos/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /ver calendario/i })).toBeInTheDocument();
     });
   });
 
@@ -727,7 +727,7 @@ describe("EventsListPanel match detail view", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /abrir calendario de partidos/i }));
+    fireEvent.click(screen.getByRole("button", { name: /ver calendario/i }));
     fireEvent.click(screen.getByRole("button", { name: /grupos/i }));
 
     expect(screen.getAllByText("México").length).toBeGreaterThan(0);
