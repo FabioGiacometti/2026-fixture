@@ -273,7 +273,7 @@ export default function EventsListPanel({
     }
   }, [forceOpen, panelState, isMobile]);
 
-  const handleTabClick = () => {
+  const handleTabClick = useCallback(() => {
     if (panelState === "collapsed") {
       userCollapsedRef.current = false;
       setPanelState("list");
@@ -281,26 +281,26 @@ export default function EventsListPanel({
       userCollapsedRef.current = true;
       setPanelState("collapsed");
     }
-  };
+  }, [panelState]);
 
-  const handleSelectEvent = (event: HistoricalEvent) => {
+  const handleSelectEvent = useCallback((event: HistoricalEvent) => {
     userCollapsedRef.current = false;
     onSelectEvent(event);
     setPanelState("detail");
     onYearChange(event.year);
-  };
+  }, [onSelectEvent, onYearChange]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     userCollapsedRef.current = false;
     setPanelState("list");
     onClose();
-  };
+  }, [onClose]);
 
-  const handleCollapse = () => {
+  const handleCollapse = useCallback(() => {
     userCollapsedRef.current = true;
     setPanelState("collapsed");
     onClose();
-  };
+  }, [onClose]);
 
   const handleViewOnMap = useCallback(() => {
     userCollapsedRef.current = true;
@@ -757,7 +757,7 @@ export default function EventsListPanel({
           height: isMobilePanel ? (isPanelOpen ? mobilePanelHeight : "0px") : "100%",
           transition: isDragging.current && !isMobilePanel
             ? "none"
-            : "width 300ms ease-out, height 300ms ease-out, opacity 300ms ease-out, transform 300ms ease-out",
+            : "width 500ms ease-in-out, height 500ms ease-in-out, opacity 500ms ease-in-out, transform 500ms ease-in-out",
           transform: isMobilePanel ? (isPanelOpen ? "translateY(0)" : "translateY(12px)") : undefined,
           background: isFullScreenMobilePanel ? "hsl(var(--background))" : "hsl(var(--card))",
           borderLeft: isFullScreenMobilePanel ? undefined : "1px solid hsl(var(--border))",

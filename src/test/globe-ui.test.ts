@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { HistoricalEvent } from "@/data/historical-events";
 import {
   ACTIVE_EVENT_COLOR,
+  DEFAULT_LABEL_COLOR,
   DEFAULT_MAX_CAMERA_HEIGHT,
   INACTIVE_EVENT_COLOR,
   MATCH_EVENT_ZOOM_PERCENT,
@@ -16,36 +17,44 @@ import {
   getSafariPathEvents,
   getUpcomingMatchTooltipLabel,
   getUpcomingWorldCupMapEvents,
+  getUpcomingWorldCupVenueMapEvents,
+  getWorldCupVenueKey,
   getWorldCupCountryBounds,
   getZoomIndicatorState,
 } from "../lib/globe-ui";
 
 describe("globe UI helpers", () => {
-  it("makes the selected event marker green and emphasized", () => {
+  it("makes the selected event marker use the active theme color and a larger dot", () => {
     const marker = getMarkerAppearance(true);
+    const defaultMarker = getMarkerAppearance(false);
 
     expect(marker.color).toBe(ACTIVE_EVENT_COLOR);
-    expect(marker.pixelSize).toBeGreaterThan(getMarkerAppearance(false).pixelSize);
-    expect(marker.outlineWidth).toBeGreaterThan(0);
+    expect(defaultMarker.pixelSize).toBe(10);
+    expect(marker.pixelSize).toBe(14);
+    expect(marker.pixelSize).toBeGreaterThan(defaultMarker.pixelSize);
+    expect(marker.pixelSize).toBeCloseTo(defaultMarker.pixelSize * 1.4, 5);
+    expect(marker.outlineWidth).toBe(0);
   });
 
-  it("keeps non-selected markers in the default amber palette", () => {
+  it("keeps non-selected markers muted and borderless", () => {
     const marker = getMarkerAppearance(false);
 
     expect(marker.color).toBe(INACTIVE_EVENT_COLOR);
-    expect(marker.colorAlpha).toBeLessThan(1);
+    expect(marker.colorAlpha).toBe(0.68);
+    expect(marker.outlineWidth).toBe(0);
   });
 
-  it("keeps non-current upcoming match dots borderless while the current match remains emphasized", () => {
+  it("keeps emphasized upcoming match dots the same size as other inactive dots", () => {
     const defaultMarker = getMarkerAppearance(false);
     const upcomingMarker = getMarkerAppearance(false, true);
 
-    expect(upcomingMarker.pixelSize).toBeGreaterThan(defaultMarker.pixelSize);
+    expect(upcomingMarker.pixelSize).toBe(defaultMarker.pixelSize);
     expect(upcomingMarker.outlineWidth).toBe(0);
     expect(upcomingMarker.colorAlpha).toBeGreaterThan(defaultMarker.colorAlpha);
+    expect(upcomingMarker.colorAlpha).toBe(0.8);
   });
 
-  it("renders a tapped mobile focus marker as large but translucent", () => {
+  it("renders a previewed marker with the active color but softer alpha", () => {
     const defaultMarker = getMarkerAppearance(false);
     const previewMarker = (getMarkerAppearance as (...args: unknown[]) => ReturnType<typeof getMarkerAppearance>)(
       false,
@@ -54,8 +63,9 @@ describe("globe UI helpers", () => {
     );
 
     expect(previewMarker.pixelSize).toBeGreaterThan(defaultMarker.pixelSize);
-    expect(previewMarker.colorAlpha).toBeLessThan(defaultMarker.colorAlpha);
-    expect(previewMarker.outlineWidth).toBeGreaterThan(defaultMarker.outlineWidth);
+    expect(previewMarker.color).toBe(ACTIVE_EVENT_COLOR);
+    expect(previewMarker.colorAlpha).toBe(0.78);
+    expect(previewMarker.outlineWidth).toBe(0);
   });
 
   it("formats upcoming match tooltip labels with date and flags", () => {
@@ -175,6 +185,65 @@ describe("globe UI helpers", () => {
     expect(
       getUpcomingWorldCupMapEvents(events as Parameters<typeof getUpcomingWorldCupMapEvents>[0]).map((event) => event.id)
     ).toEqual(["upcoming-match"]);
+  });
+
+  it("uses one venue dot per venue and keeps the nearest upcoming match for that venue", () => {
+    const events = [
+      {
+        id: "venue-a-later",
+        dataset: "worldcup",
+        eventType: "match",
+        city: "MetLife Stadium",
+        lat: 40.8135,
+        lng: -74.0745,
+        year: 2026,
+        month: 6,
+        day: 20,
+        kickoff: "21:00",
+      },
+      {
+        id: "venue-a-earlier",
+        dataset: "worldcup",
+        eventType: "match",
+        city: "MetLife Stadium",
+        lat: 40.8135,
+        lng: -74.0745,
+        year: 2026,
+        month: 6,
+        day: 12,
+        kickoff: "18:00",
+      },
+      {
+        id: "venue-b",
+        dataset: "worldcup",
+        eventType: "match",
+        city: "SoFi Stadium",
+        lat: 33.9535,
+        lng: -118.3392,
+        year: 2026,
+        month: 6,
+        day: 14,
+        kickoff: "19:00",
+      },
+    ] as Parameters<typeof getUpcomingWorldCupVenueMapEvents>[0];
+
+    expect(getUpcomingWorldCupVenueMapEvents(events).map((event) => event.id)).toEqual([
+      "venue-a-earlier",
+      "venue-b",
+    ]);
+  });
+
+  it("builds a stable venue key for world cup match events", () => {
+    expect(
+      getWorldCupVenueKey({
+        dataset: "worldcup",
+        eventType: "match",
+        city: "MetLife Stadium",
+        region: "North America",
+        lat: 40.8135,
+        lng: -74.0745,
+      } as Parameters<typeof getWorldCupVenueKey>[0])
+    ).toBe("MetLife Stadium|40.8135|-74.0745");
   });
 
   it("returns the earliest unresolved World Cup match as the next popup target", () => {

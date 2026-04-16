@@ -19,13 +19,14 @@ import {
   worldCupSafaris,
 } from "@/data/world-cup-data";
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
-import { getChronologicalMatchNavigationEvent, getNextUpcomingWorldCupEvent, getUpcomingWorldCupMapEvents } from "@/lib/globe-ui";
+import { getChronologicalMatchNavigationEvent, getNextUpcomingWorldCupEvent, getUpcomingWorldCupVenueMapEvents } from "@/lib/globe-ui";
 import { buildAppRouteState, parseAppRouteState } from "@/lib/app-route-state";
 import { env } from "@/lib/env";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { detectVisitorCountryMatch, normalizeText } from "@/lib/visitor-country";
 
 const CESIUM_LOADED_CHECK_INTERVAL = 200;
+const UI_TRANSITION_DURATION_MS = 500;
 const DATASET_MODE_KEY = "history-map-dataset-mode";
 const DEFAULT_SHARE_TITLE = "Fixture Interactivo Copa 2026";
 const DEFAULT_SHARE_DESCRIPTION = "Explora el fixture de la Copa Mundial 2026 en un mapa 3D interactivo y comparte partidos con enlaces directos.";
@@ -171,6 +172,7 @@ export default function Index() {
   const popupSwipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const popupSwipeHandledRef = useRef(false);
   const popupSwipeAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const popupExitAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverTooltipInteractingRef = useRef(false);
   const hasAppliedRouteStateRef = useRef(false);
   const routeHydrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -530,7 +532,7 @@ export default function Index() {
 
   const mapVisibleEvents = useMemo(() => {
     if (datasetMode === "worldcup" && activeSafari?.id === CURRENT_WORLD_CUP_SAFARI_ID) {
-      return getUpcomingWorldCupMapEvents(currentWorldCupFilteredEvents);
+      return getUpcomingWorldCupVenueMapEvents(currentWorldCupFilteredEvents);
     }
 
     if (!panelFilteredEventIds) {
@@ -567,10 +569,12 @@ export default function Index() {
     focusedVenueEvent ??
     ((!isMobile || !isMobilePopupDismissed) ? nextUpcomingPopupEvent : null) ??
     null;
+  const [renderedPopupEvent, setRenderedPopupEvent] = useState<HistoricalEvent | null>(null);
+  const [isPopupClosing, setIsPopupClosing] = useState(false);
   const isNextPopupEvent = Boolean(
-    activePopupEvent &&
+    (renderedPopupEvent ?? activePopupEvent) &&
       nextUpcomingPopupEvent &&
-      activePopupEvent.id === nextUpcomingPopupEvent.id
+      (renderedPopupEvent ?? activePopupEvent)?.id === nextUpcomingPopupEvent.id
   );
   const popupContextChips = [
     selectedWorldCupGroup !== "Todos" ? selectedWorldCupGroup : null,
@@ -789,12 +793,40 @@ export default function Index() {
   }, [showWelcomeModal, currentWorldCupSafariEvents]);
 
   useEffect(() => {
+    if (popupExitAnimationTimeoutRef.current) {
+      clearTimeout(popupExitAnimationTimeoutRef.current);
+      popupExitAnimationTimeoutRef.current = null;
+    }
+
+    if (activePopupEvent) {
+      setRenderedPopupEvent(activePopupEvent);
+      setIsPopupClosing(false);
+      return;
+    }
+
+    if (!renderedPopupEvent) {
+      setIsPopupClosing(false);
+      return;
+    }
+
+    setIsPopupClosing(true);
+    popupExitAnimationTimeoutRef.current = setTimeout(() => {
+      setRenderedPopupEvent(null);
+      setIsPopupClosing(false);
+      popupExitAnimationTimeoutRef.current = null;
+    }, UI_TRANSITION_DURATION_MS);
+  }, [activePopupEvent, renderedPopupEvent]);
+
+  useEffect(() => {
     return () => {
       if (copyFeedbackTimeoutRef.current) {
         clearTimeout(copyFeedbackTimeoutRef.current);
       }
       if (popupSwipeAnimationTimeoutRef.current) {
         clearTimeout(popupSwipeAnimationTimeoutRef.current);
+      }
+      if (popupExitAnimationTimeoutRef.current) {
+        clearTimeout(popupExitAnimationTimeoutRef.current);
       }
     };
   }, []);
@@ -965,7 +997,7 @@ export default function Index() {
     if (deltaY > 42) {
       handleDismissPopup();
     }
-  }, [handleCyclePopupMatch, handleDismissPopup, handleOpenHoveredMatchInfo]);
+  }, [activePopupEvent?.id, handleCyclePopupMatch, handleDismissPopup, handleOpenHoveredMatchInfo]);
 
   const handleMobilePopupCardClick = useCallback(() => {
     if (popupSwipeHandledRef.current) {
@@ -1024,16 +1056,11 @@ export default function Index() {
     hoverTooltipInteractingRef.current = false;
     setIsMobilePopupDismissed(false);
 
-    if (!isMobile && hoveredEventState?.event.id === event.id) {
-      applyVenueFilter(event);
-      return;
-    }
-
     setSelectedEvent(null);
     setFocusedVenueEvent(event);
     setCurrentYear(event.year);
     setHoveredEventState({ event, x, y });
-  }, [applyVenueFilter, clearHoverTooltip, hoveredEventState, isMobile]);
+  }, [clearHoverTooltip]);
 
   const handleSelectSafari = useCallback((safariId: string) => {
     if (safariId.startsWith("world-cup-")) {
@@ -1121,7 +1148,7 @@ export default function Index() {
       )}
 
       {/* ── Map popup overlay ── */}
-      {activePopupEvent && (
+      {renderedPopupEvent && (
         <div
           className={
             isMobile
@@ -1133,7 +1160,7 @@ export default function Index() {
               ? {
                   left: hoveredEventState.x + 14,
                   top: hoveredEventState.y - 8,
-                  maxWidth: activePopupEvent.dataset === "worldcup" ? "280px" : "220px",
+                  maxWidth: renderedPopupEvent.dataset === "worldcup" ? "280px" : "220px",
                   transform:
                     hoveredEventState.x > window.innerWidth - 260
                       ? "translateX(-110%)"
@@ -1144,7 +1171,7 @@ export default function Index() {
                 : {
                     left: "18px",
                     bottom: "calc(var(--timeline-height) + 18px)",
-                    maxWidth: activePopupEvent.dataset === "worldcup" ? "320px" : "240px",
+                    maxWidth: renderedPopupEvent.dataset === "worldcup" ? "320px" : "240px",
                   }
           }
         >
@@ -1161,6 +1188,13 @@ export default function Index() {
               boxShadow: isMobile ? "0 -16px 40px hsl(0 0% 0% / 0.42)" : "0 10px 28px hsl(0 0% 0% / 0.42)",
               backdropFilter: "blur(10px)",
               touchAction: isMobile ? "none" : "auto",
+              transition: isMobile
+                ? "transform 500ms ease-in-out, opacity 500ms ease-in-out"
+                : undefined,
+              ...(isMobile && isPopupClosing && !activePopupEvent && {
+                transform: "translateY(110%)",
+                opacity: 0,
+              }),
               ...(isMobile && popupSwipeDirection && activePopupEvent?.id === popupSwipeEventId && {
                 transform: popupSwipeDirection === "left" ? "translateX(-120%)" : "translateX(120%)",
                 transition: "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms ease-out",
@@ -1198,7 +1232,7 @@ export default function Index() {
                 ×
               </button>
             )}
-            {activePopupEvent.dataset === "worldcup" && activePopupEvent.eventType === "match" ? (
+            {renderedPopupEvent.dataset === "worldcup" && renderedPopupEvent.eventType === "match" ? (
               <div className="flex flex-col gap-3">
                 <div className="pr-10">
                   <p
@@ -1214,12 +1248,12 @@ export default function Index() {
                 </div>
 
                 <div className="flex items-center justify-between gap-2">
-                  {activePopupEvent.groupName ? (
+                  {renderedPopupEvent.groupName ? (
                     <button
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
-                        handleApplyGroupFilter(activePopupEvent);
+                        handleApplyGroupFilter(renderedPopupEvent);
                       }}
                       className="rounded-full px-2.5 py-1 font-mono-space text-[10px] uppercase tracking-[0.18em] transition-opacity hover:opacity-80"
                       style={{
@@ -1227,7 +1261,7 @@ export default function Index() {
                         background: "hsl(var(--primary) / 0.12)",
                       }}
                     >
-                      {activePopupEvent.groupName}
+                      {renderedPopupEvent.groupName}
                     </button>
                   ) : (
                     <span
@@ -1237,7 +1271,7 @@ export default function Index() {
                         background: "hsl(var(--primary) / 0.12)",
                       }}
                     >
-                      {activePopupEvent.stage ?? "Partido"}
+                      {renderedPopupEvent.stage ?? "Partido"}
                     </span>
                   )}
                 </div>
@@ -1247,53 +1281,53 @@ export default function Index() {
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleApplyTeamFilter(activePopupEvent.homeTeam, activePopupEvent);
+                      handleApplyTeamFilter(renderedPopupEvent.homeTeam, renderedPopupEvent);
                     }}
                     className="flex min-w-0 items-center gap-2 text-left transition-opacity hover:opacity-80"
                   >
-                    {activePopupEvent.homeFlag && (
+                    {renderedPopupEvent.homeFlag && (
                       <img
-                        src={`https://flagcdn.com/w20/${activePopupEvent.homeFlag.toLowerCase()}.png`}
-                        alt={activePopupEvent.homeTeam ?? "Local"}
+                        src={`https://flagcdn.com/w20/${renderedPopupEvent.homeFlag.toLowerCase()}.png`}
+                        alt={renderedPopupEvent.homeTeam ?? "Local"}
                         className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
                       />
                     )}
-                    <span className="truncate text-[19px] font-semibold">{activePopupEvent.homeTeam ?? "Local"}</span>
+                    <span className="truncate text-[19px] font-semibold">{renderedPopupEvent.homeTeam ?? "Local"}</span>
                   </button>
                   <span style={{ color: "hsl(var(--muted-foreground))" }}>vs</span>
                   <button
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleApplyTeamFilter(activePopupEvent.awayTeam, activePopupEvent);
+                      handleApplyTeamFilter(renderedPopupEvent.awayTeam, renderedPopupEvent);
                     }}
                     className="flex min-w-0 items-center gap-2 text-left transition-opacity hover:opacity-80"
                   >
-                    {activePopupEvent.awayFlag && (
+                    {renderedPopupEvent.awayFlag && (
                       <img
-                        src={`https://flagcdn.com/w20/${activePopupEvent.awayFlag.toLowerCase()}.png`}
-                        alt={activePopupEvent.awayTeam ?? "Visitante"}
+                        src={`https://flagcdn.com/w20/${renderedPopupEvent.awayFlag.toLowerCase()}.png`}
+                        alt={renderedPopupEvent.awayTeam ?? "Visitante"}
                         className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
                       />
                     )}
-                    <span className="truncate text-[19px] font-semibold">{activePopupEvent.awayTeam ?? "Visitante"}</span>
+                    <span className="truncate text-[19px] font-semibold">{renderedPopupEvent.awayTeam ?? "Visitante"}</span>
                   </button>
                   <button
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      void handleCopyMatchLink(activePopupEvent, false);
+                      void handleCopyMatchLink(renderedPopupEvent, false);
                     }}
                     className="ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
                     style={{
                       borderColor: "hsl(var(--border) / 0.7)",
                       background: "hsl(var(--muted) / 0.2)",
-                      color: copiedPopupMatchId === activePopupEvent.id ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+                      color: copiedPopupMatchId === renderedPopupEvent.id ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
                     }}
-                    aria-label={copiedPopupMatchId === activePopupEvent.id ? "Link copiado" : "Copiar link del partido"}
-                    title={copiedPopupMatchId === activePopupEvent.id ? "Link copiado" : "Copiar link del partido"}
+                    aria-label={copiedPopupMatchId === renderedPopupEvent.id ? "Link copiado" : "Copiar link del partido"}
+                    title={copiedPopupMatchId === renderedPopupEvent.id ? "Link copiado" : "Copiar link del partido"}
                   >
-                    {copiedPopupMatchId === activePopupEvent.id ? (
+                    {copiedPopupMatchId === renderedPopupEvent.id ? (
                       <Check className="h-4 w-4" />
                     ) : (
                       <Share2 className="h-4 w-4" />
@@ -1306,18 +1340,18 @@ export default function Index() {
                     className="text-[12px] uppercase tracking-[0.18em]"
                     style={{ color: "hsl(var(--muted-foreground))" }}
                   >
-                    {formatExplicitEventDate(activePopupEvent, { includeEra: false, includeTime: true })}
+                    {formatExplicitEventDate(renderedPopupEvent, { includeEra: false, includeTime: true })}
                   </p>
                   <button
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      applyVenueFilter(activePopupEvent);
+                      applyVenueFilter(renderedPopupEvent);
                     }}
                     className="text-left text-[15px] font-semibold leading-tight transition-opacity hover:opacity-80"
                     style={{ color: "hsl(var(--foreground))" }}
                   >
-                    {activePopupEvent.city ?? activePopupEvent.region}
+                    {renderedPopupEvent.city ?? renderedPopupEvent.region}
                   </button>
                 </div>
 
@@ -1339,19 +1373,19 @@ export default function Index() {
                   className="font-mono-space text-xs font-bold leading-snug"
                   style={{ color: "hsl(var(--foreground))" }}
                 >
-                  {activePopupEvent.title}
+                  {renderedPopupEvent.title}
                 </span>
                 <p
                   className="text-[10px] leading-relaxed line-clamp-2"
                   style={{ color: "hsl(var(--muted-foreground))" }}
                 >
-                  {activePopupEvent.description}
+                  {renderedPopupEvent.description}
                 </p>
                 <span
                   className="font-mono-space text-[9px] mt-0.5"
                   style={{ color: "hsl(var(--primary))" }}
                 >
-                  {formatYear(activePopupEvent.year)}
+                  {formatYear(renderedPopupEvent.year)}
                 </span>
               </div>
             )}
