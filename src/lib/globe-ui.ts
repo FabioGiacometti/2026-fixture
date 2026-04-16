@@ -22,7 +22,22 @@ function getThemeCssColor(tokenName: string, fallback: string) {
     .getPropertyValue(tokenName)
     .trim();
 
-  return tokenValue ? `hsl(${tokenValue})` : fallback;
+  if (!tokenValue) {
+    return fallback;
+  }
+
+  const probe = document.createElement("span");
+  probe.style.color = fallback;
+  probe.style.color = `hsl(${tokenValue})`;
+  probe.style.position = "absolute";
+  probe.style.visibility = "hidden";
+  probe.style.pointerEvents = "none";
+  document.body.appendChild(probe);
+
+  const resolvedColor = window.getComputedStyle(probe).color;
+  probe.remove();
+
+  return resolvedColor || fallback;
 }
 
 export function getMapThemeColors(): MapThemeColors {
@@ -138,7 +153,6 @@ export interface MarkerAppearance {
   colorAlpha: number;
   outlineColor: string;
   outlineWidth: number;
-  labelColor: string;
 }
 
 export interface ZoomIndicatorState {
@@ -152,46 +166,47 @@ export function getMarkerAppearance(
   emphasizeVenue = false,
   useSoftFocus = false
 ): MarkerAppearance {
+  const activeMarkerColor = getThemeCssColor("--primary", ACTIVE_EVENT_COLOR);
+  const inactiveMarkerColor = getThemeCssColor("--secondary", INACTIVE_EVENT_COLOR);
+  const inactiveMarkerSize = 10;
+  const activeMarkerSize = 14;
+
   if (useSoftFocus) {
     return {
-      pixelSize: emphasizeVenue ? 26 : 22,
-      color: getThemeCssColor("--map-active-marker", ACTIVE_EVENT_COLOR),
-      colorAlpha: emphasizeVenue ? 0.26 : 0.18,
-      outlineColor: getThemeCssColor("--map-active-marker-outline", "#DCFCE7"),
-      outlineWidth: emphasizeVenue ? 12 : 8,
-      labelColor: getThemeCssColor("--map-active-marker", ACTIVE_EVENT_COLOR),
+      pixelSize: activeMarkerSize,
+      color: activeMarkerColor,
+      colorAlpha: 0.78,
+      outlineColor: activeMarkerColor,
+      outlineWidth: 0,
     };
   }
 
   if (isSelected) {
     return {
-      pixelSize: emphasizeVenue ? 20 : 16,
-      color: getThemeCssColor("--map-active-marker", ACTIVE_EVENT_COLOR),
+      pixelSize: activeMarkerSize,
+      color: activeMarkerColor,
       colorAlpha: 1,
-      outlineColor: getThemeCssColor("--map-active-marker-outline", "#DCFCE7"),
-      outlineWidth: emphasizeVenue ? 10 : 8,
-      labelColor: getThemeCssColor("--map-active-marker", ACTIVE_EVENT_COLOR),
+      outlineColor: activeMarkerColor,
+      outlineWidth: 0,
     };
   }
 
   if (emphasizeVenue) {
     return {
-      pixelSize: 14,
-      color: getThemeCssColor("--map-active-marker", ACTIVE_EVENT_COLOR),
-      colorAlpha: 0.95,
-      outlineColor: getThemeCssColor("--map-active-marker", ACTIVE_EVENT_COLOR),
+      pixelSize: inactiveMarkerSize,
+      color: inactiveMarkerColor,
+      colorAlpha: 0.8,
+      outlineColor: inactiveMarkerColor,
       outlineWidth: 0,
-      labelColor: getThemeCssColor("--map-label", DEFAULT_LABEL_COLOR),
     };
   }
 
   return {
-    pixelSize: 8,
-    color: getThemeCssColor("--map-inactive-marker", INACTIVE_EVENT_COLOR),
-    colorAlpha: 0.65,
-    outlineColor: getThemeCssColor("--map-inactive-marker", INACTIVE_EVENT_COLOR),
+    pixelSize: inactiveMarkerSize,
+    color: inactiveMarkerColor,
+    colorAlpha: 0.68,
+    outlineColor: inactiveMarkerColor,
     outlineWidth: 0,
-    labelColor: getThemeCssColor("--map-label", DEFAULT_LABEL_COLOR),
   };
 }
 
@@ -238,6 +253,33 @@ function getSortedUpcomingWorldCupMatches(events: HistoricalEvent[]): Historical
     .sort((a, b) => getEventSortValue(a) - getEventSortValue(b));
 }
 
+export function getWorldCupVenueKey(
+  event: Pick<HistoricalEvent, "city" | "region" | "lat" | "lng" | "dataset" | "eventType"> | null | undefined
+): string | null {
+  if (!event || event.dataset !== "worldcup" || event.eventType !== "match") {
+    return null;
+  }
+
+  const latKey = Number.isFinite(event.lat) ? event.lat.toFixed(4) : "na";
+  const lngKey = Number.isFinite(event.lng) ? event.lng.toFixed(4) : "na";
+  return `${event.city ?? event.region ?? "unknown-venue"}|${latKey}|${lngKey}`;
+}
+
+export function getUpcomingWorldCupVenueMapEvents(events: HistoricalEvent[]): HistoricalEvent[] {
+  const uniqueVenueEvents = new Map<string, HistoricalEvent>();
+
+  getSortedUpcomingWorldCupMatches(events).forEach((event) => {
+    const venueKey = getWorldCupVenueKey(event);
+    if (!venueKey || uniqueVenueEvents.has(venueKey)) {
+      return;
+    }
+
+    uniqueVenueEvents.set(venueKey, event);
+  });
+
+  return [...uniqueVenueEvents.values()];
+}
+
 export function getChronologicalMatchNavigationEvent(
   events: HistoricalEvent[],
   currentEventId: string | null | undefined,
@@ -265,18 +307,7 @@ export function getNextUpcomingWorldCupEvent(events: HistoricalEvent[]): Histori
 }
 
 export function getUpcomingWorldCupMapEvents(events: HistoricalEvent[]): HistoricalEvent[] {
-  const uniqueVenueEvents = new Map<string, HistoricalEvent>();
-
-  getSortedUpcomingWorldCupMatches(events).forEach((event) => {
-    const latKey = Number.isFinite(event.lat) ? event.lat.toFixed(4) : "na";
-    const lngKey = Number.isFinite(event.lng) ? event.lng.toFixed(4) : "na";
-    const venueKey = `${event.city ?? event.region ?? event.id}|${latKey}|${lngKey}`;
-    if (!uniqueVenueEvents.has(venueKey)) {
-      uniqueVenueEvents.set(venueKey, event);
-    }
-  });
-
-  return [...uniqueVenueEvents.values()];
+  return getUpcomingWorldCupVenueMapEvents(events);
 }
 
 export function getCameraHeightForZoomPercent(percent: number, maxHeight = DEFAULT_MAX_CAMERA_HEIGHT): number {

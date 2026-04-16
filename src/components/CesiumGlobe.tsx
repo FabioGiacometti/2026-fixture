@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
 import {
-  ACTIVE_EVENT_COLOR,
   DEFAULT_MAX_CAMERA_HEIGHT,
   MIN_CAMERA_HEIGHT,
   getCameraHeightForZoomPercent,
@@ -12,11 +11,13 @@ import {
   getMaxZoomOutCameraHeight,
   getSafariPathEvents,
   getWheelZoomCameraHeight,
-  getUpcomingMatchTooltipLabel,
-  isUpcomingWorldCupMatch,
+  getWorldCupVenueKey,
   getWorldCupCountryBounds,
   getZoomIndicatorState,
 } from "@/lib/globe-ui";
+
+const UI_TRANSITION_DURATION_MS = 500;
+const UI_TRANSITION_DURATION_SECONDS = UI_TRANSITION_DURATION_MS / 1000;
 
 declare global {
   interface Window {
@@ -234,10 +235,21 @@ export default function CesiumGlobe({
     syncInteractionConstraints();
     window.addEventListener("resize", syncInteractionConstraints);
 
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(() => {
+          viewer.resize();
+          syncInteractionConstraints();
+        });
+
+    if (resizeObserver && containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
     // Initial camera
     viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(15, 20, maxZoomOutHeightRef.current),
-      duration: 2,
+      destination: Cesium.Cartesian3.fromDegrees(-98, 39, maxZoomOutHeightRef.current),
+      duration: UI_TRANSITION_DURATION_SECONDS,
       orientation: {
         heading: 0,
         pitch: -Cesium.Math.PI_OVER_TWO,
@@ -347,6 +359,9 @@ export default function CesiumGlobe({
     viewerRef.current = viewer;
 
     return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       window.removeEventListener("resize", syncInteractionConstraints);
       viewer.scene.canvas.removeEventListener("wheel", handleWheel);
       viewer.scene.canvas.removeEventListener("touchstart", handleTouchStart);
@@ -432,20 +447,20 @@ export default function CesiumGlobe({
     events.forEach((event) => {
       if (entitiesRef.current.has(event.id)) return;
 
-      const isFocusedPreview = !selectedEvent && focusedEvent?.id === event.id;
-      const isSelected = selectedEvent?.id === event.id || isFocusedPreview;
-      const isUpcomingVenueMarker = isUpcomingWorldCupMatch(event);
-      const markerAppearance = getMarkerAppearance(isSelected, isUpcomingVenueMarker, isFocusedPreview);
-      const maxDisplayDistance = isUpcomingVenueMarker
+      const eventVenueKey = getWorldCupVenueKey(event);
+      const activeVenueKey = getWorldCupVenueKey(selectedEvent ?? focusedEvent ?? null);
+      const isWorldCupVenueMarker = event.dataset === "worldcup" && event.eventType === "match";
+      const matchesActiveVenue = Boolean(isWorldCupVenueMarker && activeVenueKey && eventVenueKey === activeVenueKey);
+      const isFocusedPreview = !selectedEvent && (matchesActiveVenue || focusedEvent?.id === event.id);
+      const isSelected = Boolean(selectedEvent ? (matchesActiveVenue || selectedEvent?.id === event.id) : isFocusedPreview);
+      const markerAppearance = getMarkerAppearance(isSelected, false, isFocusedPreview && !isWorldCupVenueMarker);
+      const maxDisplayDistance = isWorldCupVenueMarker
         ? 30_000_000.0
         : event.importance === 1
           ? 30_000_000.0
           : event.importance === 2
             ? 9_000_000.0
             : 3_000_000.0;
-      const labelText = isUpcomingVenueMarker
-        ? getUpcomingMatchTooltipLabel(event)
-        : event.title;
 
       const entity = viewer.entities.add({
         position: Cesium.Cartesian3.fromDegrees(event.lng, event.lat),
@@ -458,33 +473,12 @@ export default function CesiumGlobe({
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
           distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, maxDisplayDistance),
         },
-        label: {
-          text: labelText,
-          font: isUpcomingVenueMarker
-            ? "600 13px 'Source Sans 3', 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif"
-            : "12px 'Source Sans 3', sans-serif",
-          fillColor: Cesium.Color.fromCssColorString(markerAppearance.labelColor),
-          outlineColor: Cesium.Color.fromCssColorString(mapThemeColors.labelOutlineColor),
-          outlineWidth: 0,
-          style: Cesium.LabelStyle.FILL,
-          showBackground: isUpcomingVenueMarker,
-          backgroundColor: Cesium.Color.fromCssColorString(mapThemeColors.tooltipBackgroundColor).withAlpha(
-            isUpcomingVenueMarker ? 0.92 : 0
-          ),
-          horizontalOrigin: isUpcomingVenueMarker ? Cesium.HorizontalOrigin.LEFT : Cesium.HorizontalOrigin.CENTER,
-          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-          pixelOffset: isUpcomingVenueMarker ? new Cesium.Cartesian2(16, -8) : new Cesium.Cartesian2(0, -14),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          show: isUpcomingVenueMarker ? false : (isMobile || isSelected),
-          scale: isSelected ? 1 : 0.9,
-          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, maxDisplayDistance),
-        },
       });
 
       entity._customEventId = event.id;
       entitiesRef.current.set(event.id, entity);
     });
-  }, [events, selectedEvent, focusedEvent, isMobile, mapThemeColors.labelOutlineColor, mapThemeColors.tooltipBackgroundColor]);
+  }, [events, selectedEvent, focusedEvent, allEvents]);
 
   /* ── Highlight selected event and fly camera ── */
   useEffect(() => {
@@ -493,32 +487,23 @@ export default function CesiumGlobe({
     const Cesium = window.Cesium;
 
     entitiesRef.current.forEach((entity, id) => {
-      const linkedEvent = events.find((event) => event.id === id) ?? allEvents.find((event) => event.id === id);
-      const isFocusedPreview = !selectedEvent && focusedEvent?.id === id;
-      const isSelected = selectedEvent?.id === id || isFocusedPreview;
-      const isUpcomingVenueMarker = isUpcomingWorldCupMatch(linkedEvent);
-      const markerAppearance = getMarkerAppearance(isSelected, isUpcomingVenueMarker, isFocusedPreview);
+      if (!entity.point) {
+        return;
+      }
 
-      if (entity.point) {
-        entity.point.pixelSize = markerAppearance.pixelSize;
-        entity.point.color = Cesium.Color.fromCssColorString(markerAppearance.color).withAlpha(markerAppearance.colorAlpha);
-        entity.point.outlineColor = Cesium.Color.fromCssColorString(markerAppearance.outlineColor);
-        entity.point.outlineWidth = markerAppearance.outlineWidth;
-      }
-      if (entity.label) {
-        entity.label.show = isUpcomingVenueMarker ? false : (isMobile || isSelected);
-        entity.label.fillColor = Cesium.Color.fromCssColorString(markerAppearance.labelColor);
-        entity.label.outlineColor = Cesium.Color.fromCssColorString(mapThemeColors.labelOutlineColor);
-        entity.label.outlineWidth = 0;
-        entity.label.style = Cesium.LabelStyle.FILL;
-        entity.label.showBackground = isUpcomingVenueMarker;
-        entity.label.backgroundColor = Cesium.Color.fromCssColorString(mapThemeColors.tooltipBackgroundColor).withAlpha(
-          isUpcomingVenueMarker ? 0.92 : 0
-        );
-        entity.label.horizontalOrigin = isUpcomingVenueMarker ? Cesium.HorizontalOrigin.LEFT : Cesium.HorizontalOrigin.CENTER;
-        entity.label.pixelOffset = isUpcomingVenueMarker ? new Cesium.Cartesian2(16, -8) : new Cesium.Cartesian2(0, -14);
-        entity.label.scale = isSelected ? 1 : 0.9;
-      }
+      const linkedEvent = events.find((event) => event.id === id) ?? allEvents.find((event) => event.id === id);
+      const linkedVenueKey = getWorldCupVenueKey(linkedEvent ?? null);
+      const activeVenueKey = getWorldCupVenueKey(selectedEvent ?? focusedEvent ?? null);
+      const isWorldCupVenueMarker = linkedEvent?.dataset === "worldcup" && linkedEvent?.eventType === "match";
+      const matchesActiveVenue = Boolean(isWorldCupVenueMarker && activeVenueKey && linkedVenueKey === activeVenueKey);
+      const isFocusedPreview = !selectedEvent && (matchesActiveVenue || focusedEvent?.id === id);
+      const isSelected = Boolean(selectedEvent ? (matchesActiveVenue || selectedEvent?.id === id) : isFocusedPreview);
+      const markerAppearance = getMarkerAppearance(isSelected, false, isFocusedPreview && !isWorldCupVenueMarker);
+
+      entity.point.pixelSize = markerAppearance.pixelSize;
+      entity.point.color = Cesium.Color.fromCssColorString(markerAppearance.color).withAlpha(markerAppearance.colorAlpha);
+      entity.point.outlineColor = Cesium.Color.fromCssColorString(markerAppearance.outlineColor);
+      entity.point.outlineWidth = markerAppearance.outlineWidth;
     });
 
     const cameraTargetEvent = selectedEvent ?? focusedEvent;
@@ -534,8 +519,8 @@ export default function CesiumGlobe({
           worldCupCountryBounds.east,
           worldCupCountryBounds.north
         ),
-        duration: 1.8,
-        easingFunction: Cesium.EasingFunction.QUARTIC_IN_OUT,
+        duration: UI_TRANSITION_DURATION_SECONDS,
+        easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
         orientation: {
           heading: 0,
           pitch: -Cesium.Math.PI_OVER_TWO,
@@ -545,15 +530,36 @@ export default function CesiumGlobe({
       return;
     }
 
-    if (cameraTargetEvent) {
+    if (cameraTargetEvent && cameraTargetEvent.eventType === "match") {
+      const currentHeight = viewer.camera.positionCartographic?.height
+        ?? getCameraHeightForZoomPercent(getEventZoomPercent(cameraTargetEvent));
+
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(
+          cameraTargetEvent.lng,
+          cameraTargetEvent.lat,
+          currentHeight
+        ),
+        duration: UI_TRANSITION_DURATION_SECONDS,
+        easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
+        orientation: {
+          heading: 0,
+          pitch: -Cesium.Math.PI_OVER_TWO,
+          roll: 0,
+        },
+      });
+      return;
+    }
+
+    if (cameraTargetEvent && cameraTargetEvent.eventType !== "match") {
       viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(
           cameraTargetEvent.lng,
           cameraTargetEvent.lat,
           getCameraHeightForZoomPercent(getEventZoomPercent(cameraTargetEvent))
         ),
-        duration: 1.6,
-        easingFunction: Cesium.EasingFunction.QUARTIC_IN_OUT,
+        duration: UI_TRANSITION_DURATION_SECONDS,
+        easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
         orientation: {
           heading: 0,
           pitch: -Cesium.Math.PI_OVER_TWO,
@@ -561,7 +567,7 @@ export default function CesiumGlobe({
         },
       });
     }
-  }, [selectedEvent, focusedEvent, isMobile, activeSafari, allEvents, events, themeKey, mapThemeColors.labelOutlineColor, mapThemeColors.tooltipBackgroundColor]);
+  }, [selectedEvent, focusedEvent, activeSafari, allEvents, events, themeKey]);
 
   /* ── Render World Cup host outline ── */
   useEffect(() => {
@@ -643,6 +649,7 @@ export default function CesiumGlobe({
           bottom: `${safeViewportInsets.bottom}px`,
           left: `${safeViewportInsets.left}px`,
           background: "hsl(var(--map-scene-background))",
+          transition: "top 500ms ease-in-out, right 500ms ease-in-out, bottom 500ms ease-in-out, left 500ms ease-in-out",
         }}
       />
 
