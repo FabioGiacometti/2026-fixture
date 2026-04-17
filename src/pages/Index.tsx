@@ -1649,10 +1649,11 @@ export default function Index() {
         </div>
       )}
 
-      {/* ── App badge (top-left) ── */}
+
+      {/* ── App badge (top-left) with favicon logo ── */}
       <button
         type="button"
-        className={`fixed z-40 rounded-full cursor-pointer transition-colors hover:bg-white/5 ${
+        className={`fixed z-40 rounded-full cursor-pointer transition-colors hover:bg-white/5 flex items-center gap-2 ${
           isMobile ? "top-3 left-3 px-3 py-1.5" : "top-5 left-6 px-4 py-2"
         }`}
         style={{
@@ -1663,6 +1664,12 @@ export default function Index() {
         onClick={() => setShowSafariModal(true)}
         aria-label="Abrir selector del Mundial 2026"
       >
+        <img
+          src="/favicon-soccer.svg"
+          alt="Logo"
+          className={isMobile ? "w-5 h-5" : "w-6 h-6"}
+          style={{ display: "inline-block", verticalAlign: "middle" }}
+        />
         <span
           className={`font-mono-space font-semibold uppercase tracking-[0.18em] ${isMobile ? "text-[10px]" : "text-xs"}`}
           style={{ color: "hsl(var(--foreground))" }}
