@@ -55,6 +55,9 @@ function buildCalendarDescription(event: HistoricalEvent) {
     lines.push(`Sede: ${event.city}`);
   }
 
+  // Add site link at the end
+  lines.push('Más información: https://2026-fixture.vercel.app');
+
   return lines.filter(Boolean).join("\n");
 }
 
