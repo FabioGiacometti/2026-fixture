@@ -5,6 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 import CesiumGlobe from "@/components/CesiumGlobe";
 import TimelineBar from "@/components/TimelineBar";
 import EventsListPanel from "@/components/EventsListPanel";
+import MatchTeamsRow from "@/components/MatchTeamsRow";
 import SafariSelectionModal from "@/components/SafariSelectionModal";
 import FixturePipPanel from "@/components/FixturePipPanel";
 import WelcomeModal from "@/components/WelcomeModal";
@@ -1115,20 +1116,6 @@ export default function Index() {
       && renderedPopupEvent.id === popupSwipeEventId
   );
 
-  const getPopupTeamNameClassName = useCallback((teamName: string | undefined) => {
-    const length = teamName?.trim().length ?? 0;
-
-    if (length >= 18) {
-      return "text-[15px] leading-tight";
-    }
-
-    if (length >= 13) {
-      return "text-[17px] leading-tight";
-    }
-
-    return "text-[19px] leading-tight";
-  }, []);
-
   const renderPopupCardContent = (popupEvent: HistoricalEvent) => {
     const popupIsNextUpcoming = Boolean(
       nextUpcomingPopupEvent && popupEvent.id === nextUpcomingPopupEvent.id
@@ -1223,48 +1210,16 @@ export default function Index() {
         </div>
 
         <div
-          className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center gap-2"
+          className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"
           style={{ color: "hsl(var(--foreground))" }}
         >
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleApplyTeamFilter(popupEvent.homeTeam, popupEvent);
-            }}
-            className="flex min-w-0 items-center gap-2 text-left transition-opacity hover:opacity-80"
-          >
-            {popupEvent.homeFlag && (
-              <img
-                src={`https://flagcdn.com/w20/${popupEvent.homeFlag.toLowerCase()}.png`}
-                alt={popupEvent.homeTeam ?? "Local"}
-                className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
-              />
-            )}
-            <span className={`min-w-0 whitespace-normal break-words [overflow-wrap:anywhere] font-semibold ${getPopupTeamNameClassName(popupEvent.homeTeam)}`}>
-              {popupEvent.homeTeam ?? "Local"}
-            </span>
-          </button>
-          <span className="shrink-0 self-center" style={{ color: "hsl(var(--muted-foreground))" }}>vs</span>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleApplyTeamFilter(popupEvent.awayTeam, popupEvent);
-            }}
-            className="flex min-w-0 items-center gap-2 text-left transition-opacity hover:opacity-80"
-          >
-            {popupEvent.awayFlag && (
-              <img
-                src={`https://flagcdn.com/w20/${popupEvent.awayFlag.toLowerCase()}.png`}
-                alt={popupEvent.awayTeam ?? "Visitante"}
-                className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
-              />
-            )}
-            <span className={`min-w-0 whitespace-normal break-words [overflow-wrap:anywhere] font-semibold ${getPopupTeamNameClassName(popupEvent.awayTeam)}`}>
-              {popupEvent.awayTeam ?? "Visitante"}
-            </span>
-          </button>
+          <MatchTeamsRow
+            event={popupEvent}
+            variant="regular"
+            centerContent={popupEvent.score ? `${popupEvent.score.home}-${popupEvent.score.away}` : "vs"}
+            onHomeTeamClick={() => handleApplyTeamFilter(popupEvent.homeTeam, popupEvent)}
+            onAwayTeamClick={() => handleApplyTeamFilter(popupEvent.awayTeam, popupEvent)}
+          />
           <button
             type="button"
             onClick={(event) => {
