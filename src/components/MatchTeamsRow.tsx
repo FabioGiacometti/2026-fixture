@@ -48,6 +48,7 @@ export default function MatchTeamsRow({
 }: MatchTeamsRowProps) {
   const classes = variantClasses[variant];
 
+
   const renderTeam = (
     teamName: string | undefined,
     flagCode: string | undefined,
@@ -60,41 +61,53 @@ export default function MatchTeamsRow({
           <img
             src={`https://flagcdn.com/w20/${flagCode.toLowerCase()}.png`}
             alt={teamName ?? fallbackLabel}
-            className={cn(classes.flag, "rounded-[2px] object-cover")}
+            className={cn(classes.flag, "rounded-[2px] object-cover flex-shrink-0")}
+            style={{ marginRight: 4 }}
           />
         )}
-        <span className={cn("min-w-0 whitespace-normal break-words [overflow-wrap:anywhere] font-bold", classes.teamName)}>
+        <span
+          className={cn(
+            "min-w-0 whitespace-normal break-words [overflow-wrap:anywhere] font-bold",
+            classes.teamName
+          )}
+          style={{ display: "inline-block", verticalAlign: "middle", wordBreak: "break-word" }}
+        >
           {teamName ?? fallbackLabel}
         </span>
       </>
     );
+
+    // Container is only as wide as flag+name, no extra space
+    const containerClass = "flex min-w-0 items-center";
 
     if (onClick) {
       return (
         <button
           type="button"
           onClick={onClick}
-          className="flex min-w-0 items-center gap-inherit text-left transition-opacity hover:opacity-80"
+          className={cn(containerClass, "text-left transition-opacity hover:opacity-80")}
+          style={{ padding: 0, background: "none", border: "none" }}
         >
           {content}
         </button>
       );
     }
-
-    return <div className="flex min-w-0 items-center gap-inherit">{content}</div>;
+    return (
+      <div className={containerClass} style={{ padding: 0 }}>{content}</div>
+    );
   };
 
   return (
     <div
       className={cn(
-        "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center font-mono-space font-bold leading-snug",
+        "flex items-center font-mono-space font-bold leading-snug",
         classes.root,
         className
       )}
-      style={{ color: "hsl(var(--foreground) / 0.92)" }}
+      style={{ color: "hsl(var(--foreground) / 0.92)", gap: 24 }} // 24px gap between teams
     >
       {renderTeam(event.homeTeam, event.homeFlag, "Equipo local", onHomeTeamClick)}
-      <span className={cn("shrink-0 px-1", classes.center)} style={{ color: "hsl(var(--muted-foreground))" }}>
+      <span className={cn("shrink-0 px-2", classes.center)} style={{ color: "hsl(var(--muted-foreground))" }}>
         {centerContent}
       </span>
       {renderTeam(event.awayTeam, event.awayFlag, "Equipo visitante", onAwayTeamClick)}

@@ -853,6 +853,8 @@ export default function Index() {
       popupExitAnimationTimeoutRef.current = null;
     }
 
+    let isUnmounted = false;
+
     if (activePopupEvent) {
       setRenderedPopupEvent(activePopupEvent);
       setIsPopupClosing(false);
@@ -866,10 +868,20 @@ export default function Index() {
 
     setIsPopupClosing(true);
     popupExitAnimationTimeoutRef.current = setTimeout(() => {
-      setRenderedPopupEvent(null);
-      setIsPopupClosing(false);
-      popupExitAnimationTimeoutRef.current = null;
+      if (!isUnmounted) {
+        setRenderedPopupEvent(null);
+        setIsPopupClosing(false);
+        popupExitAnimationTimeoutRef.current = null;
+      }
     }, UI_TRANSITION_DURATION_MS);
+
+    return () => {
+      isUnmounted = true;
+      if (popupExitAnimationTimeoutRef.current) {
+        clearTimeout(popupExitAnimationTimeoutRef.current);
+        popupExitAnimationTimeoutRef.current = null;
+      }
+    };
   }, [activePopupEvent, renderedPopupEvent]);
 
   useEffect(() => {
@@ -1186,19 +1198,20 @@ export default function Index() {
     return popupEvent.dataset === "worldcup" && popupEvent.eventType === "match" ? (
       <div className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3 pr-10">
-          <p
-            className="text-[17px] font-semibold leading-tight"
-            style={{ color: "hsl(var(--foreground))" }}
-          >
-            {popupIsNextUpcoming
-              ? popupContextChips.length > 0
-                ? "Tu próximo partido relevante"
-                : "Próximo partido del torneo"
-              : "Partido seleccionado en el mapa"}
-          </p>
+          <div className="flex items-center gap-2">
+            <p
+              className="text-[14px] font-semibold leading-tight"
+              style={{ color: "hsl(var(--foreground))" }}
+            >
+              Próximo partido del torneo
+            </p>
+            <span className="text-[14px] font-semibold leading-tight" style={{ color: "hsl(var(--foreground))" }}>
+              ({currentPopupIndex + 1}/{popupTournamentMatches.length})
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between">
           {popupEvent.groupName ? (
             <button
               type="button"
@@ -1225,74 +1238,17 @@ export default function Index() {
               {popupEvent.stage ?? "Partido"}
             </span>
           )}
-
-          {isMobile && popupTournamentMatches.length > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handlePopupNavigation(-1);
-                }}
-                disabled={!hasPreviousPopupMatch}
-                aria-label="Partido anterior"
-                className="h-8 w-8 flex items-center justify-center rounded-lg transition-all"
-                style={{
-                  background: hasPreviousPopupMatch ? "hsl(var(--primary) / 0.1)" : "transparent",
-                  color: hasPreviousPopupMatch ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.2)",
-                  border: `1px solid ${hasPreviousPopupMatch ? "hsl(var(--primary) / 0.4)" : "hsl(var(--border) / 0.5)"}`,
-                  cursor: hasPreviousPopupMatch ? "pointer" : "default",
-                }}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handlePopupNavigation(1);
-                }}
-                disabled={!hasNextPopupMatch}
-                aria-label="Próximo partido"
-                className="h-8 w-8 flex items-center justify-center rounded-lg transition-all"
-                style={{
-                  background: hasNextPopupMatch ? "hsl(var(--primary) / 0.1)" : "transparent",
-                  color: hasNextPopupMatch ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.2)",
-                  border: `1px solid ${hasNextPopupMatch ? "hsl(var(--primary) / 0.4)" : "hsl(var(--border) / 0.5)"}`,
-                  cursor: hasNextPopupMatch ? "pointer" : "default",
-                }}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div
-          className="grid grid-cols-[5fr_1fr] grid-rows-2 items-center gap-3"
-          style={{ color: "hsl(var(--foreground))" }}
-        >
-          {/* Top left: Teams */}
-          <div className="col-start-1 row-start-1">
-            <MatchTeamsRow
-              event={popupEvent}
-              variant="regular"
-              centerContent={popupEvent.score ? `${popupEvent.score.home}-${popupEvent.score.away}` : "vs"}
-              onHomeTeamClick={() => handleApplyTeamFilter(popupEvent.homeTeam, popupEvent)}
-              onAwayTeamClick={() => handleApplyTeamFilter(popupEvent.awayTeam, popupEvent)}
-            />
-          </div>
-          {/* Top right: Calendar */}
-          <div className="col-start-2 row-start-1 justify-self-end">
+          {/* Calendar & Share inline with group */}
+          <div className="flex gap-1">
             <Popover>
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85 ml-1"
                   style={{
                     borderColor: "hsl(var(--border) / 0.7)",
                     background: "hsl(var(--muted) / 0.2)",
-                    color: "hsl(var(--primary))",
+                    color: "hsl(var(--muted-foreground))",
                   }}
                   aria-label="Agendar partido"
                   title="Agendar partido"
@@ -1347,16 +1303,13 @@ export default function Index() {
                 })}
               </PopoverContent>
             </Popover>
-          </div>
-          {/* Bottom right: Share */}
-          <div className="col-start-2 row-start-2 justify-self-end">
             <button
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
                 void handleCopyMatchLink(popupEvent, false);
               }}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85 ml-1"
               style={{
                 borderColor: "hsl(var(--border) / 0.7)",
                 background: "hsl(var(--muted) / 0.2)",
@@ -1372,17 +1325,29 @@ export default function Index() {
               )}
             </button>
           </div>
-          {/* Bottom left: (empty or future action) */}
-          <div className="col-start-1 row-start-2" />
         </div>
 
-        <div className="space-y-1">
+        <div
+          className="flex flex-col gap-2"
+          style={{ color: "hsl(var(--foreground))" }}
+        >
           <p
             className="text-[12px] uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
             {formatExplicitEventDate(popupEvent, { includeEra: false, includeTime: true })}
           </p>
+          <MatchTeamsRow
+            event={popupEvent}
+            variant="regular"
+            centerContent={popupEvent.score ? `${popupEvent.score.home}-${popupEvent.score.away}` : "vs"}
+            onHomeTeamClick={() => handleApplyTeamFilter(popupEvent.homeTeam, popupEvent)}
+            onAwayTeamClick={() => handleApplyTeamFilter(popupEvent.awayTeam, popupEvent)}
+          />
+        </div>
+
+        <div className="space-y-1">
+          
           <button
             type="button"
             onClick={(event) => {
@@ -1396,24 +1361,60 @@ export default function Index() {
           </button>
         </div>
 
-        <div className="flex items-center justify-between gap-3">
+        {/* Navigation and info button */}
+        <div className="flex items-center justify-between gap-3 mt-2">
           <button
             type="button"
             onClick={(event) => {
               event.stopPropagation();
               handleOpenHoveredMatchInfo();
             }}
-            className="self-start rounded-md px-0 py-0.5 text-[12px] font-semibold transition-colors hover:opacity-80"
+            className="rounded-md px-0 py-0.5 text-[12px] font-semibold transition-colors hover:opacity-80"
             style={{ color: "hsl(var(--primary))" }}
           >
             Ver información del partido
           </button>
-
-          {popupTournamentMatches.length > 0 && currentPopupIndex !== -1 && (
-            <div className="rounded-md px-0 py-0.5 text-[12px] font-semibold" style={{ color: "hsl(var(--foreground))" }}>
+          <div className="flex items-center gap-2">
+            {hasPreviousPopupMatch && (
+              <button
+                type="button"
+                aria-label="Partido anterior"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
+                style={{
+                  borderColor: "hsl(var(--border) / 0.7)",
+                  background: "hsl(var(--muted) / 0.2)",
+                  color: "hsl(var(--primary))",
+                }}
+                onClick={e => {
+                  e.stopPropagation();
+                  handlePopupNavigation(-1);
+                }}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            )}
+            {/* <span className="text-[13px] font-semibold" style={{ color: "hsl(var(--foreground))" }}>
               {`Partido ${currentPopupIndex + 1}/${popupTournamentMatches.length}`}
-            </div>
-          )}
+            </span> */}
+            {hasNextPopupMatch && (
+              <button
+                type="button"
+                aria-label="Partido siguiente"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
+                style={{
+                  borderColor: "hsl(var(--border) / 0.7)",
+                  background: "hsl(var(--muted) / 0.2)",
+                  color: "hsl(var(--primary))",
+                }}
+                onClick={e => {
+                  e.stopPropagation();
+                  handlePopupNavigation(1);
+                }}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     ) : (

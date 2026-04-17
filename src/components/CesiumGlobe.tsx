@@ -447,12 +447,15 @@ export default function CesiumGlobe({
     events.forEach((event) => {
       if (entitiesRef.current.has(event.id)) return;
 
+      // If both selectedEvent and focusedEvent are null, all dots are active
+      const treatAllActive = !selectedEvent && !focusedEvent;
+
       const eventVenueKey = getWorldCupVenueKey(event);
       const activeVenueKey = getWorldCupVenueKey(selectedEvent ?? focusedEvent ?? null);
       const isWorldCupVenueMarker = event.dataset === "worldcup" && event.eventType === "match";
       const matchesActiveVenue = Boolean(isWorldCupVenueMarker && activeVenueKey && eventVenueKey === activeVenueKey);
       const isFocusedPreview = !selectedEvent && (matchesActiveVenue || focusedEvent?.id === event.id);
-      const isSelected = Boolean(selectedEvent ? (matchesActiveVenue || selectedEvent?.id === event.id) : isFocusedPreview);
+      const isSelected = treatAllActive ? true : Boolean(selectedEvent ? (matchesActiveVenue || selectedEvent?.id === event.id) : isFocusedPreview);
       const markerAppearance = getMarkerAppearance(isSelected, false, isFocusedPreview && !isWorldCupVenueMarker);
       const maxDisplayDistance = isWorldCupVenueMarker
         ? 30_000_000.0
@@ -491,13 +494,16 @@ export default function CesiumGlobe({
         return;
       }
 
+      // If both selectedEvent and focusedEvent are null, all dots are active
+      const treatAllActive = !selectedEvent && !focusedEvent;
+
       const linkedEvent = events.find((event) => event.id === id) ?? allEvents.find((event) => event.id === id);
       const linkedVenueKey = getWorldCupVenueKey(linkedEvent ?? null);
       const activeVenueKey = getWorldCupVenueKey(selectedEvent ?? focusedEvent ?? null);
       const isWorldCupVenueMarker = linkedEvent?.dataset === "worldcup" && linkedEvent?.eventType === "match";
       const matchesActiveVenue = Boolean(isWorldCupVenueMarker && activeVenueKey && linkedVenueKey === activeVenueKey);
       const isFocusedPreview = !selectedEvent && (matchesActiveVenue || focusedEvent?.id === id);
-      const isSelected = Boolean(selectedEvent ? (matchesActiveVenue || selectedEvent?.id === id) : isFocusedPreview);
+      const isSelected = treatAllActive ? true : Boolean(selectedEvent ? (matchesActiveVenue || selectedEvent?.id === id) : isFocusedPreview);
       const markerAppearance = getMarkerAppearance(isSelected, false, isFocusedPreview && !isWorldCupVenueMarker);
 
       entity.point.pixelSize = markerAppearance.pixelSize;
