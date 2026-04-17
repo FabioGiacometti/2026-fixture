@@ -29,7 +29,7 @@ function getCountryRelevantMatches(events: HistoricalEvent[], country: string) {
   return result;
 }
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Calendar } from "lucide-react";
+import { Trophy, Sparkles, Calendar } from "lucide-react";
 import {
   buildMatchCalendarEntry,
   buildGoogleCalendarUrl,
@@ -1650,33 +1650,70 @@ export default function Index() {
       )}
 
 
-      {/* ── App badge (top-left) with favicon logo ── */}
-      <button
-        type="button"
-        className={`fixed z-40 rounded-full cursor-pointer transition-colors hover:bg-white/5 flex items-center gap-2 ${
-          isMobile ? "top-3 left-3 px-3 py-1.5" : "top-5 left-6 px-4 py-2"
-        }`}
-        style={{
-          background: "hsl(var(--card) / 0.85)",
-          border: "1px solid hsl(var(--border))",
-          backdropFilter: "blur(8px)",
-        }}
-        onClick={() => setShowSafariModal(true)}
-        aria-label="Abrir selector del Mundial 2026"
-      >
-        <img
-          src="/favicon-soccer.svg"
-          alt="Logo"
-          className={isMobile ? "w-5 h-5" : "w-6 h-6"}
-          style={{ display: "inline-block", verticalAlign: "middle" }}
-        />
-        <span
-          className={`font-mono-space font-semibold uppercase tracking-[0.18em] ${isMobile ? "text-[10px]" : "text-xs"}`}
-          style={{ color: "hsl(var(--foreground))" }}
-        >
-          Mundial 2026
-        </span>
-      </button>
+
+      {/* ── App badge (top-left) as dropdown menu ── */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={`fixed z-40 rounded-full cursor-pointer transition-colors hover:bg-white/5 flex items-center gap-2 ${
+              isMobile ? "top-3 left-3 px-3 py-1.5" : "top-5 left-6 px-4 py-2"
+            }`}
+            style={{
+              background: "hsl(var(--card) / 0.85)",
+              border: "1px solid hsl(var(--border))",
+              backdropFilter: "blur(8px)",
+            }}
+            aria-label="Abrir menú principal"
+          >
+            <img
+              src="/favicon-soccer.svg"
+              alt="Logo"
+              className={isMobile ? "w-5 h-5" : "w-6 h-6"}
+              style={{ display: "inline-block", verticalAlign: "middle" }}
+            />
+            <span
+              className={`font-mono-space font-semibold uppercase tracking-[0.18em] ${isMobile ? "text-[10px]" : "text-xs"}`}
+              style={{ color: "hsl(var(--foreground))" }}
+            >
+              Mundial 2026
+            </span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className={isMobile ? "w-4 h-4 ml-1" : "w-5 h-5 ml-1"}
+              style={{ color: "hsl(var(--muted-foreground))" }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" sideOffset={8} className="p-0 w-80 border-none bg-[hsl(var(--popover))] shadow-xl">
+          <div className="flex flex-col">
+            <button
+              type="button"
+              className="flex items-center gap-3 px-6 py-4 text-base font-normal rounded-none hover:bg-[hsl(var(--muted)/0.13)] transition-colors text-left"
+              style={{ color: "hsl(var(--foreground))" }}
+              onClick={() => setShowSafariModal(true)}
+            >
+              <Trophy className="w-6 h-6 opacity-90" />
+              Ver mundiales anteriores
+            </button>
+            <button
+              type="button"
+              className="flex items-center gap-3 px-6 py-4 text-base font-normal rounded-none hover:bg-[hsl(var(--muted)/0.13)] transition-colors text-left"
+              style={{ color: "hsl(var(--foreground))" }}
+              onClick={() => setShowWelcomeModal(true)}
+            >
+              <Sparkles className="w-6 h-6 opacity-90" />
+              Ver inicio rapido
+            </button>
+          </div>
+        </PopoverContent>
+      </Popover>
 
       {showMobileContextChips && (
         <div className="fixed left-4 top-[4.7rem] z-40 flex max-w-[calc(100vw-2rem)] flex-col gap-2">
