@@ -655,7 +655,7 @@ export default function Index() {
       observer.disconnect();
       window.removeEventListener("resize", updatePopupHeight);
     };
-  }, [shouldPrioritizeMobilePopup, activePopupEvent?.id]);
+  }, [shouldPrioritizeMobilePopup, activePopupEvent?.id, renderedPopupEvent?.id]);
 
   const routeState = useMemo(
     () => {
