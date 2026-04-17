@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List, Play, Image as ImageIcon, ExternalLink, Globe, Video, Maximize2, Share2, Check } from "lucide-react";
+import MatchTeamsRow from "@/components/MatchTeamsRow";
 import { Safari, HistoricalEvent, formatYear, formatEventDate, formatExplicitEventDate } from "@/data/historical-events";
 import { CURRENT_WORLD_CUP_SAFARI_ID } from "@/data/world-cup-data";
 import { detectVisitorCountryMatch, normalizeText } from "@/lib/visitor-country";
@@ -1228,28 +1229,7 @@ export default function EventsListPanel({
                               </span>
                             </div>
 
-                            <div
-                              className="mt-2 flex items-center gap-1.5 font-mono-space text-xs font-bold leading-snug"
-                              style={{ color: "hsl(var(--foreground) / 0.92)" }}
-                            >
-                              {event.homeFlag && (
-                                <img
-                                  src={`https://flagcdn.com/w20/${event.homeFlag.toLowerCase()}.png`}
-                                  alt={event.homeTeam ?? "Local"}
-                                  className="h-3 w-4 rounded-[2px] object-cover"
-                                />
-                              )}
-                              <span>{event.homeTeam ?? "Equipo local"}</span>
-                              <span style={{ color: "hsl(var(--muted-foreground))" }}>vs</span>
-                              {event.awayFlag && (
-                                <img
-                                  src={`https://flagcdn.com/w20/${event.awayFlag.toLowerCase()}.png`}
-                                  alt={event.awayTeam ?? "Visitante"}
-                                  className="h-3 w-4 rounded-[2px] object-cover"
-                                />
-                              )}
-                              <span>{event.awayTeam ?? "Equipo visitante"}</span>
-                            </div>
+                            <MatchTeamsRow event={event} variant="compact" className="mt-2" />
 
                             <div
                               className="mt-1 flex items-center justify-between gap-2 font-mono-space text-[10px]"
