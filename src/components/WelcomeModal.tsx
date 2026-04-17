@@ -104,7 +104,7 @@ export default function WelcomeModal({
                     )}
                   </span>
                   <span className="font-mono-space text-[11px] uppercase tracking-[0.14em] text-foreground">
-                    {`Ver proximo partido de ${resolvedCountryLabel}`}
+                    {`Ver próximos partidos de ${resolvedCountryLabel}`}
                   </span>
                 </span>
               </button>

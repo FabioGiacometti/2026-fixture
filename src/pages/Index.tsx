@@ -1,3 +1,33 @@
+import { getEventSortValue } from "../lib/globe-ui";
+
+// Utility: get all group matches and one per phase for a country
+function getCountryRelevantMatches(events: HistoricalEvent[], country: string) {
+  const normalized = normalizeText(country);
+  // Group by stage
+  const byStage: Record<string, HistoricalEvent[]> = {};
+  for (const event of events) {
+    if (event.eventType !== "match") continue;
+    if (
+      normalizeText(event.homeTeam ?? "") === normalized ||
+      normalizeText(event.awayTeam ?? "") === normalized
+    ) {
+      if (!event.stage) continue;
+      if (!byStage[event.stage]) byStage[event.stage] = [];
+      byStage[event.stage].push(event);
+    }
+  }
+  // All group matches, and one per other stage
+  const result: HistoricalEvent[] = [];
+  if (byStage.group) result.push(...byStage.group);
+  for (const stage of ["round32","round16","quarterfinal","semifinal","third-place","final"]) {
+    if (byStage[stage] && byStage[stage].length > 0) {
+      // Pick the earliest by date
+      const sorted = [...byStage[stage]].sort((a, b) => getEventSortValue(a) - getEventSortValue(b));
+      result.push(sorted[0]);
+    }
+  }
+  return result;
+}
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "lucide-react";
 import {
@@ -909,9 +939,30 @@ export default function Index() {
     handleWelcomeSelectEvent(nextUpcomingGlobalEvent);
   }, [handleWelcomeSelectEvent, nextUpcomingGlobalEvent]);
 
+  // Onboarding CTA: filter for country, close modal, show all country matches, select next match
   const handleWelcomeViewCountryMatch = useCallback(() => {
-    handleWelcomeSelectEvent(nextUpcomingCountryEvent);
-  }, [handleWelcomeSelectEvent, nextUpcomingCountryEvent]);
+    if (!detectedVisitorTeam) return;
+    setShowWelcomeModal(false);
+    setPanelQuickFilters([detectedVisitorTeam]);
+    setSelectedWorldCupGroup("Todos");
+    setIsMobilePopupDismissed(false);
+    setCurrentYear(CURRENT_WORLD_CUP_YEAR);
+
+    // Find all matches for the country
+    const normalized = normalizeText(detectedVisitorTeam);
+    const countryMatches = currentWorldCupSafariEvents.filter(e =>
+      e.eventType === "match" &&
+      (normalizeText(e.homeTeam ?? "") === normalized || normalizeText(e.awayTeam ?? "") === normalized)
+    );
+    // Find next upcoming match
+    const now = new Date();
+    const nextMatch = countryMatches.find(e => {
+      const eventDate = new Date(e.year, (e.month ?? 1) - 1, e.day ?? 1);
+      return !e.score && eventDate >= now;
+    }) || countryMatches.find(e => !e.score) || countryMatches[0] || null;
+    setSelectedEvent(null);
+    setFocusedVenueEvent(nextMatch ?? null);
+  }, [detectedVisitorTeam, currentWorldCupSafariEvents]);
 
   const handleHoverEvent = useCallback(
     (event: HistoricalEvent | null, x: number, y: number) => {
@@ -1218,101 +1269,111 @@ export default function Index() {
         </div>
 
         <div
-          className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"
+          className="grid grid-cols-[5fr_1fr] grid-rows-2 items-center gap-3"
           style={{ color: "hsl(var(--foreground))" }}
         >
-          <MatchTeamsRow
-            event={popupEvent}
-            variant="regular"
-            centerContent={popupEvent.score ? `${popupEvent.score.home}-${popupEvent.score.away}` : "vs"}
-            onHomeTeamClick={() => handleApplyTeamFilter(popupEvent.homeTeam, popupEvent)}
-            onAwayTeamClick={() => handleApplyTeamFilter(popupEvent.awayTeam, popupEvent)}
-          />
-          {/* Agendar menu */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
-                style={{
-                  borderColor: "hsl(var(--border) / 0.7)",
-                  background: "hsl(var(--muted) / 0.2)",
-                  color: "hsl(var(--primary))",
-                }}
-                aria-label="Agendar partido"
-                title="Agendar partido"
-                onClick={e => { e.stopPropagation(); }}
-              >
-                <Calendar className="h-4 w-4" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="p-2 w-56">
-              <div className="font-semibold mb-2 text-[13px]">Agendar partido</div>
-              {CALENDAR_PROVIDER_ACTIONS.map((action) => {
-                const entry = buildMatchCalendarEntry(popupEvent);
-                if (!entry) return null;
-                if (action.id === "google") {
-                  return (
-                    <a
-                      key="google"
-                      href={buildGoogleCalendarUrl(entry)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-[14px]"
-                    >
-                      <Calendar className="w-4 h-4 mr-1" /> Google Calendar
-                    </a>
-                  );
-                }
-                if (action.id === "ics") {
-                  return (
-                    <button
-                      key="ics"
-                      className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-[14px] w-full text-left"
-                      onClick={() => {
-                        const ics = buildIcsCalendar([entry]);
-                        const blob = new Blob([ics], { type: "text/calendar" });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `${entry.title}.ics`;
-                        document.body.appendChild(a);
-                        a.click();
-                        setTimeout(() => {
-                          document.body.removeChild(a);
-                          URL.revokeObjectURL(url);
-                        }, 100);
-                      }}
-                    >
-                      <Calendar className="w-4 h-4 mr-1" /> Descargar .ics
-                    </button>
-                  );
-                }
-                return null;
-              })}
-            </PopoverContent>
-          </Popover>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              void handleCopyMatchLink(popupEvent, false);
-            }}
-            className="ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
-            style={{
-              borderColor: "hsl(var(--border) / 0.7)",
-              background: "hsl(var(--muted) / 0.2)",
-              color: copiedPopupMatchId === popupEvent.id ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
-            }}
-            aria-label={copiedPopupMatchId === popupEvent.id ? "Link copiado" : "Copiar link del partido"}
-            title={copiedPopupMatchId === popupEvent.id ? "Link copiado" : "Copiar link del partido"}
-          >
-            {copiedPopupMatchId === popupEvent.id ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              <Share2 className="h-4 w-4" />
-            )}
-          </button>
+          {/* Top left: Teams */}
+          <div className="col-start-1 row-start-1">
+            <MatchTeamsRow
+              event={popupEvent}
+              variant="regular"
+              centerContent={popupEvent.score ? `${popupEvent.score.home}-${popupEvent.score.away}` : "vs"}
+              onHomeTeamClick={() => handleApplyTeamFilter(popupEvent.homeTeam, popupEvent)}
+              onAwayTeamClick={() => handleApplyTeamFilter(popupEvent.awayTeam, popupEvent)}
+            />
+          </div>
+          {/* Top right: Calendar */}
+          <div className="col-start-2 row-start-1 justify-self-end">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
+                  style={{
+                    borderColor: "hsl(var(--border) / 0.7)",
+                    background: "hsl(var(--muted) / 0.2)",
+                    color: "hsl(var(--primary))",
+                  }}
+                  aria-label="Agendar partido"
+                  title="Agendar partido"
+                  onClick={e => { e.stopPropagation(); }}
+                >
+                  <Calendar className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="p-2 w-56">
+                <div className="font-semibold mb-2 text-[13px]">Agendar partido</div>
+                {CALENDAR_PROVIDER_ACTIONS.map((action) => {
+                  const entry = buildMatchCalendarEntry(popupEvent);
+                  if (!entry) return null;
+                  if (action.id === "google") {
+                    return (
+                      <a
+                        key="google"
+                        href={buildGoogleCalendarUrl(entry)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-[14px]"
+                      >
+                        <Calendar className="w-4 h-4 mr-1" /> Google Calendar
+                      </a>
+                    );
+                  }
+                  if (action.id === "ics") {
+                    return (
+                      <button
+                        key="ics"
+                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-[14px] w-full text-left"
+                        onClick={() => {
+                          const ics = buildIcsCalendar([entry]);
+                          const blob = new Blob([ics], { type: "text/calendar" });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `${entry.title}.ics`;
+                          document.body.appendChild(a);
+                          a.click();
+                          setTimeout(() => {
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                          }, 100);
+                        }}
+                      >
+                        <Calendar className="w-4 h-4 mr-1" /> Descargar .ics
+                      </button>
+                    );
+                  }
+                  return null;
+                })}
+              </PopoverContent>
+            </Popover>
+          </div>
+          {/* Bottom right: Share */}
+          <div className="col-start-2 row-start-2 justify-self-end">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                void handleCopyMatchLink(popupEvent, false);
+              }}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
+              style={{
+                borderColor: "hsl(var(--border) / 0.7)",
+                background: "hsl(var(--muted) / 0.2)",
+                color: copiedPopupMatchId === popupEvent.id ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))",
+              }}
+              aria-label={copiedPopupMatchId === popupEvent.id ? "Link copiado" : "Copiar link del partido"}
+              title={copiedPopupMatchId === popupEvent.id ? "Link copiado" : "Copiar link del partido"}
+            >
+              {copiedPopupMatchId === popupEvent.id ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Share2 className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+          {/* Bottom left: (empty or future action) */}
+          <div className="col-start-1 row-start-2" />
         </div>
 
         <div className="space-y-1">

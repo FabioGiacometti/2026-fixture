@@ -210,7 +210,7 @@ export function getMarkerAppearance(
   };
 }
 
-function getEventSortValue(event: Pick<HistoricalEvent, "year" | "month" | "day" | "kickoff">): number {
+export function getEventSortValue(event: Pick<HistoricalEvent, "year" | "month" | "day" | "kickoff">): number {
   const dateValue = new Date(event.year, (event.month ?? 1) - 1, event.day ?? 1).getTime();
   const kickoffValue = event.kickoff
     ? Number.parseInt(event.kickoff.replace(":", ""), 10)
