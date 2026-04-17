@@ -1,8 +1,17 @@
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from "lucide-react";
+import {
+  buildMatchCalendarEntry,
+  buildGoogleCalendarUrl,
+  buildIcsCalendar,
+  CALENDAR_PROVIDER_ACTIONS,
+} from "@/lib/calendar-actions";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { ChevronRight, ChevronLeft, X, MapPin, Calendar, List, Play, Image as ImageIcon, ExternalLink, Globe, Video, Maximize2, Share2, Check } from "lucide-react";
 import MatchTeamsRow from "@/components/MatchTeamsRow";
 import { Safari, HistoricalEvent, formatYear, formatEventDate, formatExplicitEventDate } from "@/data/historical-events";
 import { CURRENT_WORLD_CUP_SAFARI_ID } from "@/data/world-cup-data";
+import { formatMatchLocalKickoff } from "@/lib/match-time";
 import { detectVisitorCountryMatch, normalizeText } from "@/lib/visitor-country";
 
 type PanelState = "collapsed" | "list" | "detail";
@@ -165,6 +174,10 @@ function getEventSearchBlob(event: HistoricalEvent) {
 function getChipVariants(chip: string) {
   const normalized = normalizeText(chip);
   return FILTER_ALIASES[normalized] ?? [normalized];
+}
+
+function getDisplayKickoff(event: Pick<HistoricalEvent, "year" | "month" | "day" | "kickoff" | "city">) {
+  return formatMatchLocalKickoff(event) ?? event.kickoff ?? null;
 }
 
 export default function EventsListPanel({
@@ -1225,7 +1238,7 @@ export default function EventsListPanel({
                                 className="font-mono-space text-[10px]"
                                 style={{ color: "hsl(var(--muted-foreground))" }}
                               >
-                                {event.kickoff ?? "—"}
+                                {getDisplayKickoff(event) ?? "—"}
                               </span>
                             </div>
 
@@ -1467,6 +1480,69 @@ export default function EventsListPanel({
                   {copiedDetailEventId === selectedEvent.id ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
                   <span>{copiedDetailEventId === selectedEvent.id ? "Copiado" : "Compartir"}</span>
                 </button>
+                {/* Agendar menu */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="ml-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
+                      style={{
+                        borderColor: "hsl(var(--border) / 0.7)",
+                        background: "hsl(var(--muted) / 0.2)",
+                        color: "hsl(var(--primary))",
+                      }}
+                      aria-label="Agendar partido"
+                      title="Agendar partido"
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="p-2 w-56">
+                    <div className="font-semibold mb-2 text-[13px]">Agendar partido</div>
+                    {CALENDAR_PROVIDER_ACTIONS.map((action) => {
+                      const entry = buildMatchCalendarEntry(selectedEvent);
+                      if (!entry) return null;
+                      if (action.id === "google") {
+                        return (
+                          <a
+                            key="google"
+                            href={buildGoogleCalendarUrl(entry)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-[14px]"
+                          >
+                            <CalendarIcon className="w-4 h-4 mr-1" /> Google Calendar
+                          </a>
+                        );
+                      }
+                      if (action.id === "ics") {
+                        return (
+                          <button
+                            key="ics"
+                            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-[14px] w-full text-left"
+                            onClick={() => {
+                              const ics = buildIcsCalendar([entry]);
+                              const blob = new Blob([ics], { type: "text/calendar" });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = url;
+                              a.download = `${entry.title}.ics`;
+                              document.body.appendChild(a);
+                              a.click();
+                              setTimeout(() => {
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                              }, 100);
+                            }}
+                          >
+                            <CalendarIcon className="w-4 h-4 mr-1" /> Descargar .ics
+                          </button>
+                        );
+                      }
+                      return null;
+                    })}
+                  </PopoverContent>
+                </Popover>
               </div>
 
 
@@ -1499,7 +1575,7 @@ export default function EventsListPanel({
                     <span className="font-mono-space text-xl font-bold" style={{ color: "hsl(var(--primary))" }}>
                       {selectedEvent.score
                         ? `${selectedEvent.score.home}-${selectedEvent.score.away}`
-                        : (selectedEvent.kickoff ?? "vs")}
+                        : (getDisplayKickoff(selectedEvent) ?? "vs")}
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="font-mono-space text-xs font-bold" style={{ color: "hsl(var(--foreground))" }}>
@@ -1512,7 +1588,7 @@ export default function EventsListPanel({
                   </div>
                   {!selectedEvent.score && (
                     <p className="mt-2 font-mono-space text-[10px]" style={{ color: "hsl(var(--muted-foreground))" }}>
-                      Partido programado{selectedEvent.kickoff ? ` · ${selectedEvent.kickoff}` : ""}
+                      Partido programado{getDisplayKickoff(selectedEvent) ? ` · ${getDisplayKickoff(selectedEvent)}` : ""}
                     </p>
                   )}
                   {(selectedEvent.formationHome || selectedEvent.formationAway) && (

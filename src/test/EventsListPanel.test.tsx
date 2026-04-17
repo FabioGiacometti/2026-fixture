@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import EventsListPanel from "@/components/EventsListPanel";
 import { CURRENT_WORLD_CUP_SAFARI_ID } from "@/data/world-cup-data";
 import type { HistoricalEvent, Safari } from "@/data/historical-events";
+import { formatMatchLocalKickoff } from "@/lib/match-time";
 
 function ControlledQuickFilterPanel({ children }: { children: (filters: string[], setFilters: (filters: string[]) => void) => ReactNode }) {
   const [filters, setFilters] = useState<string[]>([]);
@@ -60,8 +61,10 @@ describe("EventsListPanel match detail view", () => {
       />
     );
 
+    const displayedKickoff = formatMatchLocalKickoff(upcomingMatch) ?? upcomingMatch.kickoff;
+
     await waitFor(() => {
-      expect(screen.getByText("Partido programado · 16:00")).toBeInTheDocument();
+      expect(screen.getByText(`Partido programado · ${displayedKickoff}`)).toBeInTheDocument();
     });
 
     expect(screen.getByText("Estadio Ciudad de México")).toBeInTheDocument();
@@ -115,6 +118,8 @@ describe("EventsListPanel match detail view", () => {
       />
     );
 
+    const displayedKickoff = formatMatchLocalKickoff(upcomingMatch) ?? upcomingMatch.kickoff;
+
     fireEvent.click(screen.getByRole("button", { name: "Grupo A: México vs Sudáfrica" }));
 
     const viewOnMapButton = await screen.findByRole("button", { name: "Ver en mapa" });
@@ -122,7 +127,7 @@ describe("EventsListPanel match detail view", () => {
 
     expect(onClose).not.toHaveBeenCalled();
     await waitFor(() => {
-      expect(screen.queryByText("Partido programado · 16:00")).not.toBeInTheDocument();
+      expect(screen.queryByText(`Partido programado · ${displayedKickoff}`)).not.toBeInTheDocument();
     });
   });
 

@@ -1,3 +1,11 @@
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "lucide-react";
+import {
+  buildMatchCalendarEntry,
+  buildGoogleCalendarUrl,
+  buildIcsCalendar,
+  CALENDAR_PROVIDER_ACTIONS,
+} from "@/lib/calendar-actions";
 import { useState, useCallback, useMemo, useEffect, useRef, type CSSProperties } from "react";
 import { track } from "@vercel/analytics";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -1220,6 +1228,70 @@ export default function Index() {
             onHomeTeamClick={() => handleApplyTeamFilter(popupEvent.homeTeam, popupEvent)}
             onAwayTeamClick={() => handleApplyTeamFilter(popupEvent.awayTeam, popupEvent)}
           />
+          {/* Agendar menu */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-opacity hover:opacity-85"
+                style={{
+                  borderColor: "hsl(var(--border) / 0.7)",
+                  background: "hsl(var(--muted) / 0.2)",
+                  color: "hsl(var(--primary))",
+                }}
+                aria-label="Agendar partido"
+                title="Agendar partido"
+                onClick={e => { e.stopPropagation(); }}
+              >
+                <Calendar className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="p-2 w-56">
+              <div className="font-semibold mb-2 text-[13px]">Agendar partido</div>
+              {CALENDAR_PROVIDER_ACTIONS.map((action) => {
+                const entry = buildMatchCalendarEntry(popupEvent);
+                if (!entry) return null;
+                if (action.id === "google") {
+                  return (
+                    <a
+                      key="google"
+                      href={buildGoogleCalendarUrl(entry)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-[14px]"
+                    >
+                      <Calendar className="w-4 h-4 mr-1" /> Google Calendar
+                    </a>
+                  );
+                }
+                if (action.id === "ics") {
+                  return (
+                    <button
+                      key="ics"
+                      className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-[14px] w-full text-left"
+                      onClick={() => {
+                        const ics = buildIcsCalendar([entry]);
+                        const blob = new Blob([ics], { type: "text/calendar" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${entry.title}.ics`;
+                        document.body.appendChild(a);
+                        a.click();
+                        setTimeout(() => {
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        }, 100);
+                      }}
+                    >
+                      <Calendar className="w-4 h-4 mr-1" /> Descargar .ics
+                    </button>
+                  );
+                }
+                return null;
+              })}
+            </PopoverContent>
+          </Popover>
           <button
             type="button"
             onClick={(event) => {

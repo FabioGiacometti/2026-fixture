@@ -8,6 +8,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { env } from "@/lib/env";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import CalendarBundlePage from "./pages/CalendarBundlePage";
 import "./App.css";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/worldcup/*" element={<Index />} />
             <Route path="/historical/*" element={<Index />} />
+            <Route path="/calendar/bundle" element={<CalendarBundlePage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

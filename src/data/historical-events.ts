@@ -1,3 +1,5 @@
+import { formatMatchLocalDateTime } from "@/lib/match-time";
+
 export type MediaType = 'image' | 'video' | 'link';
 
 export interface MediaItem {
@@ -1957,19 +1959,31 @@ export function formatEventDate(
 }
 
 export function formatExplicitEventDate(
-  event: Pick<HistoricalEvent, "year" | "month" | "day" | "kickoff">,
-  options?: { includeEra?: boolean; includeTime?: boolean }
+  event: Pick<HistoricalEvent, "year" | "month" | "day" | "kickoff" | "city">,
+  options?: { includeEra?: boolean; includeTime?: boolean; locale?: string; timeZone?: string }
 ): string {
   const includeEra = options?.includeEra ?? true;
   const includeTime = options?.includeTime ?? true;
 
   if (event.year > 0) {
+    if (includeTime) {
+      const localDateTime = formatMatchLocalDateTime(event, {
+        locale: options?.locale,
+        timeZone: options?.timeZone,
+      });
+
+      if (localDateTime) {
+        return localDateTime;
+      }
+    }
+
     const date = new Date(event.year, Math.max(0, (event.month ?? 1) - 1), Math.max(1, event.day ?? 1));
-    const explicitDate = new Intl.DateTimeFormat("es-AR", {
+    const explicitDate = new Intl.DateTimeFormat(options?.locale ?? "es-AR", {
       weekday: "long",
       day: "2-digit",
       month: "long",
       year: "numeric",
+      timeZone: options?.timeZone,
     }).format(date);
 
     return includeTime && event.kickoff
