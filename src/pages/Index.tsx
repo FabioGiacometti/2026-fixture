@@ -863,8 +863,13 @@ export default function Index() {
 
   const handleClosePanel = useCallback(() => {
     setSelectedEvent(null);
-    setFocusedVenueEvent(null);
-  }, []);
+    setFocusedVenueEvent(
+      selectedEvent?.dataset === "worldcup" && selectedEvent.eventType === "match"
+        ? selectedEvent
+        : null
+    );
+    setIsMobilePopupDismissed(false);
+  }, [selectedEvent]);
 
   const clearHoverTooltip = useCallback(() => {
     if (hoverClearTimeoutRef.current) {
@@ -1082,10 +1087,10 @@ export default function Index() {
 
     clearHoverTooltip();
     hoverTooltipInteractingRef.current = false;
-    setIsMobilePopupDismissed(true);
+    setIsMobilePopupDismissed(false);
     setHoveredEventState(null);
     setSelectedEvent(null);
-    setFocusedVenueEvent(null);
+    setFocusedVenueEvent(event);
     setCurrentYear(event.year);
     setSelectedWorldCupGroup("Todos");
     setPanelQuickFilters([teamName]);
@@ -1109,6 +1114,20 @@ export default function Index() {
       && renderedPopupEvent
       && renderedPopupEvent.id === popupSwipeEventId
   );
+
+  const getPopupTeamNameClassName = useCallback((teamName: string | undefined) => {
+    const length = teamName?.trim().length ?? 0;
+
+    if (length >= 18) {
+      return "text-[15px] leading-tight";
+    }
+
+    if (length >= 13) {
+      return "text-[17px] leading-tight";
+    }
+
+    return "text-[19px] leading-tight";
+  }, []);
 
   const renderPopupCardContent = (popupEvent: HistoricalEvent) => {
     const popupIsNextUpcoming = Boolean(
@@ -1203,7 +1222,10 @@ export default function Index() {
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-[18px] font-semibold leading-snug" style={{ color: "hsl(var(--foreground))" }}>
+        <div
+          className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center gap-2"
+          style={{ color: "hsl(var(--foreground))" }}
+        >
           <button
             type="button"
             onClick={(event) => {
@@ -1219,9 +1241,11 @@ export default function Index() {
                 className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
               />
             )}
-            <span className="truncate text-[19px] font-semibold">{popupEvent.homeTeam ?? "Local"}</span>
+            <span className={`min-w-0 whitespace-normal break-words [overflow-wrap:anywhere] font-semibold ${getPopupTeamNameClassName(popupEvent.homeTeam)}`}>
+              {popupEvent.homeTeam ?? "Local"}
+            </span>
           </button>
-          <span style={{ color: "hsl(var(--muted-foreground))" }}>vs</span>
+          <span className="shrink-0 self-center" style={{ color: "hsl(var(--muted-foreground))" }}>vs</span>
           <button
             type="button"
             onClick={(event) => {
@@ -1237,7 +1261,9 @@ export default function Index() {
                 className="h-4 w-6 rounded-[2px] object-cover shadow-sm"
               />
             )}
-            <span className="truncate text-[19px] font-semibold">{popupEvent.awayTeam ?? "Visitante"}</span>
+            <span className={`min-w-0 whitespace-normal break-words [overflow-wrap:anywhere] font-semibold ${getPopupTeamNameClassName(popupEvent.awayTeam)}`}>
+              {popupEvent.awayTeam ?? "Visitante"}
+            </span>
           </button>
           <button
             type="button"
@@ -1477,7 +1503,7 @@ export default function Index() {
           events={mapVisibleEvents}
           allEvents={allDatasetEvents}
           selectedEvent={selectedEvent}
-          focusedEvent={focusedVenueEvent}
+          focusedEvent={activePopupEvent}
           viewportInsets={globeViewportInsets}
           activeSafari={activeSafari}
           onSelectEvent={handleSelectEvent}
